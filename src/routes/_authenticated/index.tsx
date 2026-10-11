@@ -292,6 +292,7 @@ function PainelMasterSaaS({
 
 function PainelInicial() {
   const { ehSuperAdmin, listaEmpresas, listaUsuarios } = useAuth();
+  const [modoGrafico, setModoGrafico] = useState<"divisao" | "faturamento">("divisao");
   const { data: vendas = [] } = useVendas();
   const { data: insumos = [] } = useInsumos();
   const { data: produtos = [] } = useProdutos();
@@ -301,8 +302,6 @@ function PainelInicial() {
   if (ehSuperAdmin) {
     return <PainelMasterSaaS listaEmpresas={listaEmpresas} listaUsuarios={listaUsuarios} />;
   }
-
-  const [modoGrafico, setModoGrafico] = useState<"divisao" | "faturamento">("divisao");
 
   const validas = vendas.filter((v) => v.status !== "cancelado");
   const inicioHoje = new Date();
