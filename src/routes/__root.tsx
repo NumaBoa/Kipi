@@ -144,5 +144,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       </button>
     </div>
   ),
-  notFoundComponent: () => <div className="grid min-h-screen place-items-center bg-background text-center"><div><h1 className="text-5xl">404</h1><p className="mt-2 text-muted-foreground">Página não encontrada</p><Link to="/" className="mt-4 inline-block text-primary">Voltar ao painel</Link></div></div>
+  notFoundComponent: () => <div className="grid min-h-screen place-items-center bg-background text-center"><div><h1 className="text-5xl">404</h1><p className="mt-2 text-muted-foreground">Página não encontrada</p><Link to="/" className="mt-4 inline-block text-primary">Voltar ao painel</Link></div></div>,
+  pendingComponent: () => (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "#F3F6F8", fontFamily: "sans-serif" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: 16, background: "#084463", color: "white", display: "grid", placeItems: "center", fontWeight: "bold", fontSize: 20 }}>
+          P
+        </div>
+        <p style={{ fontSize: 13, fontWeight: "bold", color: "#084463" }}>Carregando Kipi...</p>
+      </div>
+    </div>
+  ),
 });
