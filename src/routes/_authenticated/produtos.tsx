@@ -80,9 +80,6 @@ function PaginaProdutos() {
     produtos.forEach((p) => {
       if (p.categoria) conjunto.add(p.categoria.toLowerCase());
     });
-    if (conjunto.size === 0) {
-      ["bolo", "cookie", "artesanato", "doces", "salgados"].forEach((c) => conjunto.add(c));
-    }
     return Array.from(conjunto);
   }, [categoriasData, produtos]);
 
@@ -92,7 +89,7 @@ function PaginaProdutos() {
   }, [produtos, categoriaFiltro]);
 
   const abrir = (produto?: Produto) => {
-    setForm(produto ? { ...produto } : { ...vazio, categoria: listaCategorias[0] ?? "bolo" });
+    setForm(produto ? { ...produto } : { ...vazio, categoria: listaCategorias[0] ?? "" });
     setAberto(true);
   };
 
@@ -104,7 +101,7 @@ function PaginaProdutos() {
     try {
       await salvar.mutateAsync({
         ...form,
-        categoria: (form.categoria || "bolo").toLowerCase(),
+        categoria: (form.categoria || "Geral").toLowerCase(),
         preco: Number(form.preco) || 0,
         estoque: Number(form.estoque) || 0,
       });

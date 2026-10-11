@@ -25,22 +25,13 @@ export type Usuario = {
   ultimoAcesso?: string;
 };
 
-const CHAVE_USUARIOS = "meu-atelie-usuarios-v5";
-const CHAVE_EMPRESAS = "meu-atelie-empresas-v5";
-const CHAVE_SESSAO = "meu-atelie-sessao-v5";
+const CHAVE_USUARIOS = "meu-atelie-usuarios-v6";
+const CHAVE_EMPRESAS = "meu-atelie-empresas-v6";
+const CHAVE_SESSAO = "meu-atelie-sessao-v6";
 
 const id = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-export const empresasIniciais: Empresa[] = [
-  {
-    id: "emp_matriz",
-    nome: "Ateliê Gourmet (Matriz)",
-    documento: "12.345.678/0001-90",
-    plano: "Enterprise",
-    status: "ativa",
-    criadaEm: new Date().toISOString(),
-  },
-];
+export const empresasIniciais: Empresa[] = [];
 
 export const usuariosIniciais: Usuario[] = [
   {
@@ -50,8 +41,8 @@ export const usuariosIniciais: Usuario[] = [
     senha: "P&ix1nh0!",
     status: "ativo",
     papel: "super_admin",
-    empresaIds: ["emp_matriz"],
-    empresaAtivaId: "emp_matriz",
+    empresaIds: [],
+    empresaAtivaId: "",
     criadoEm: new Date().toISOString(),
     ultimoAcesso: new Date().toISOString(),
   },
@@ -59,6 +50,12 @@ export const usuariosIniciais: Usuario[] = [
 
 export function lerEmpresas(): Empresa[] {
   if (typeof window === "undefined") return empresasIniciais;
+
+  // Limpar chaves antigas se existirem
+  ["meu-atelie-empresas-v1", "meu-atelie-empresas-v2", "meu-atelie-empresas-v3", "meu-atelie-empresas-v4", "meu-atelie-empresas-v5"].forEach((k) => {
+    localStorage.removeItem(k);
+  });
+
   const salvo = localStorage.getItem(CHAVE_EMPRESAS);
   if (!salvo) {
     localStorage.setItem(CHAVE_EMPRESAS, JSON.stringify(empresasIniciais));
@@ -181,7 +178,7 @@ export function useAuth() {
     mutationFn: async (novo: Partial<Usuario>) => {
       const todos = lerUsuarios();
       const pos = todos.findIndex((x) => x.id === novo.id);
-      const defaultEmpresaId = listaEmpresas[0]?.id ?? "emp_matriz";
+      const defaultEmpresaId = listaEmpresas[0]?.id ?? "";
       const item: Usuario = {
         id: novo.id ?? id(),
         nome: novo.nome ?? "Usuário Sem Nome",
@@ -189,7 +186,7 @@ export function useAuth() {
         senha: novo.senha ?? "123",
         status: novo.status ?? "ativo",
         papel: novo.papel ?? "operador",
-        empresaIds: novo.empresaIds && novo.empresaIds.length > 0 ? novo.empresaIds : [defaultEmpresaId],
+        empresaIds: novo.empresaIds && novo.empresaIds.length > 0 ? novo.empresaIds : (defaultEmpresaId ? [defaultEmpresaId] : []),
         empresaAtivaId: novo.empresaAtivaId ?? (novo.empresaIds && novo.empresaIds[0] ? novo.empresaIds[0] : defaultEmpresaId),
         criadoEm: novo.criadoEm ?? new Date().toISOString(),
         ...(novo.ultimoAcesso ? { ultimoAcesso: novo.ultimoAcesso } : {}),
