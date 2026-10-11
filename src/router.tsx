@@ -80,5 +80,31 @@ export const getRouter = () => {
     return router;
   };
 
+  let _ssr: any = (router as any).ssr;
+  Object.defineProperty(router, "ssr", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      if (!_ssr) {
+        _ssr = { manifest: { routes: new Proxy({}, { get: () => ({ assets: [], scripts: [] }) }) } };
+      } else if (!_ssr.manifest) {
+        _ssr.manifest = { routes: new Proxy({}, { get: () => ({ assets: [], scripts: [] }) }) };
+      } else if (!_ssr.manifest.routes) {
+        _ssr.manifest.routes = new Proxy({}, { get: () => ({ assets: [], scripts: [] }) });
+      }
+      return _ssr;
+    },
+    set(s: any) {
+      if (!s) {
+        s = { manifest: { routes: new Proxy({}, { get: () => ({ assets: [], scripts: [] }) }) } };
+      } else if (!s.manifest) {
+        s = { ...s, manifest: { routes: new Proxy({}, { get: () => ({ assets: [], scripts: [] }) }) } };
+      } else if (!s.manifest.routes) {
+        s.manifest = { ...s.manifest, routes: new Proxy({}, { get: () => ({ assets: [], scripts: [] }) }) };
+      }
+      _ssr = s;
+    },
+  });
+
   return router;
 };

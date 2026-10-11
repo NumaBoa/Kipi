@@ -80,26 +80,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           dangerouslySetInnerHTML={{
             __html: `
               if (typeof window !== 'undefined') {
+                var safeRoutes = new Proxy({}, { get: function() { return { assets: [], scripts: [] }; } });
                 window.$_TSR = window.$_TSR || {
                   buffer: [],
                   p: function(s) { !this.initialized ? this.buffer.push(s) : s(); },
-                  h: function() { this.hydrated = true; this.c(); },
-                  e: function() { this.streamEnded = true; this.c(); },
-                  c: function() { if (this.hydrated && this.streamEnded) { delete window.$_TSR; } },
-                  router: { matches: [], manifest: {} }
+                  h: function() { this.hydrated = true; },
+                  e: function() { this.streamEnded = true; },
+                  c: function() {},
+                  router: { matches: [], manifest: { routes: safeRoutes } }
                 };
-              }
-              window.addEventListener('error', function(e) {
-                console.error("GLOBAL WINDOW ERROR:", e.error || e.message);
-                var existing = document.getElementById('debug-global-err-box');
-                if (!existing && document.body) {
-                  var b = document.createElement('div');
-                  b.id = 'debug-global-err-box';
-                  b.style = 'position:fixed;bottom:16px;left:16px;right:16px;z-index:999999;background:#991B1B;color:white;padding:16px;border-radius:16px;font-family:sans-serif;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,0.5);';
-                  b.innerHTML = '<strong style="font-size:14px">⚠️ Erro Detectado no Navegador:</strong><p style="margin:6px 0">' + (e.message || '') + '</p><pre style="background:rgba(0,0,0,0.3);padding:8px;border-radius:8px;overflow:auto;max-height:120px">' + (e.error ? e.error.stack : '') + '</pre><button onclick="localStorage.clear();location.reload()" style="margin-top:8px;background:white;color:#991B1B;border:none;padding:6px 14px;border-radius:9999px;font-weight:bold;cursor:pointer">Limpar dados e recarregar</button>';
-                  document.body.appendChild(b);
+                if (window.$_TSR.router && (!window.$_TSR.router.manifest || !window.$_TSR.router.manifest.routes)) {
+                  window.$_TSR.router.manifest = { routes: safeRoutes };
                 }
-              });
+              }
             `,
           }}
         />
