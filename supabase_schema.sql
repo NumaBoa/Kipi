@@ -1,15 +1,42 @@
--- Script de criação de tabelas e dados iniciais para o Supabase
--- Copie e cole este script no Editor SQL do seu Supabase Dashboard (SQL Editor -> New Query -> Run)
+-- ==============================================================================
+-- SCRIPT DE BANCO DE DADOS MULTI-TENANT & CONTROLE DE ACESSO (SUPABASE)
+-- Execute este script no SQL Editor do Supabase (SQL Editor -> New Query -> Run)
+-- ==============================================================================
 
--- 1. Tabela de Categorias
+-- 1. TABELA DE EMPRESAS (TENANTS)
+CREATE TABLE IF NOT EXISTS public.empresas (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  nome TEXT NOT NULL,
+  documento TEXT,
+  plano TEXT DEFAULT 'Pro',
+  status TEXT DEFAULT 'ativa',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. TABELA DE PERFIS DE USUÁRIOS (VINCULADA AO AUTH E EMPRESAS)
+CREATE TABLE IF NOT EXISTS public.perfis (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL UNIQUE,
+  nome TEXT NOT NULL,
+  papel TEXT NOT NULL DEFAULT 'operador' CHECK (papel IN ('super_admin', 'admin', 'operador')),
+  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'pendente', 'bloqueado')),
+  empresa_ids TEXT[] DEFAULT '{}',
+  empresa_ativa_id TEXT REFERENCES public.empresas(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  ultimo_acesso TIMESTAMPTZ
+);
+
+-- 3. TABELA DE CATEGORIAS
 CREATE TABLE IF NOT EXISTS public.categorias (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   nome TEXT NOT NULL
 );
 
--- 2. Tabela de Insumos (Estoque de Ingredientes e Materiais)
+-- 4. TABELA DE INSUMOS (ESTOQUE)
 CREATE TABLE IF NOT EXISTS public.insumos (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
   tipo TEXT NOT NULL CHECK (tipo IN ('ingrediente', 'material')),
   unidade TEXT NOT NULL,
@@ -19,9 +46,10 @@ CREATE TABLE IF NOT EXISTS public.insumos (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3. Tabela de Produtos
+-- 5. TABELA DE PRODUTOS
 CREATE TABLE IF NOT EXISTS public.produtos (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
   categoria TEXT NOT NULL,
   preco NUMERIC NOT NULL DEFAULT 0,
@@ -33,9 +61,10 @@ CREATE TABLE IF NOT EXISTS public.produtos (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 4. Tabela de Clientes
+-- 6. TABELA DE CLIENTES
 CREATE TABLE IF NOT EXISTS public.clientes (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
   telefone TEXT,
   rua TEXT,
@@ -46,9 +75,10 @@ CREATE TABLE IF NOT EXISTS public.clientes (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. Tabela de Revendedoras
+-- 7. TABELA DE REVENDEDORAS
 CREATE TABLE IF NOT EXISTS public.revendedoras (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
   telefone TEXT,
   tipo_comissao TEXT NOT NULL CHECK (tipo_comissao IN ('porcentagem', 'valor_fixo')),
@@ -59,26 +89,29 @@ CREATE TABLE IF NOT EXISTS public.revendedoras (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 6. Tabela de Pagamentos de Comissão
+-- 8. TABELA DE PAGAMENTOS DE COMISSÃO
 CREATE TABLE IF NOT EXISTS public.pagamentos_comissao (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   revendedora_id TEXT REFERENCES public.revendedoras(id) ON DELETE CASCADE,
   valor NUMERIC NOT NULL DEFAULT 0,
   data TIMESTAMPTZ NOT NULL DEFAULT now(),
   observacoes TEXT
 );
 
--- 7. Tabela de Receitas (Ficha Técnica: Insumos por Produto)
+-- 9. TABELA DE RECEITAS (FICHA TÉCNICA)
 CREATE TABLE IF NOT EXISTS public.receitas (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   produto_id TEXT REFERENCES public.produtos(id) ON DELETE CASCADE,
   insumo_id TEXT REFERENCES public.insumos(id) ON DELETE CASCADE,
   quantidade NUMERIC NOT NULL DEFAULT 0
 );
 
--- 8. Tabela de Vendas
+-- 10. TABELA DE VENDAS
 CREATE TABLE IF NOT EXISTS public.vendas (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   cliente_id TEXT REFERENCES public.clientes(id) ON DELETE SET NULL,
   canal TEXT NOT NULL DEFAULT 'propria' CHECK (canal IN ('propria', 'revendedora')),
   revendedora_id TEXT REFERENCES public.revendedoras(id) ON DELETE SET NULL,
@@ -91,9 +124,10 @@ CREATE TABLE IF NOT EXISTS public.vendas (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 9. Tabela de Itens da Venda
+-- 11. TABELA DE ITENS DA VENDA
 CREATE TABLE IF NOT EXISTS public.venda_itens (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   venda_id TEXT REFERENCES public.vendas(id) ON DELETE CASCADE,
   produto_id TEXT REFERENCES public.produtos(id) ON DELETE SET NULL,
   nome_produto TEXT NOT NULL,
@@ -101,7 +135,9 @@ CREATE TABLE IF NOT EXISTS public.venda_itens (
   preco_unitario NUMERIC NOT NULL DEFAULT 0
 );
 
--- Habilitar RLS (Row Level Security) permissivo para chave pública anon
+-- HABILITAR RLS PERMISSIVO
+ALTER TABLE public.empresas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.perfis ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.insumos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.produtos ENABLE ROW LEVEL SECURITY;
@@ -112,7 +148,9 @@ ALTER TABLE public.receitas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.venda_itens ENABLE ROW LEVEL SECURITY;
 
--- Políticas de acesso total para o app (Anon Access Policy)
+-- POLÍTICAS DE ACESSO TOTAL PARA O APP
+CREATE POLICY "Acesso total empresas" ON public.empresas FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso total perfis" ON public.perfis FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total categorias" ON public.categorias FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total insumos" ON public.insumos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total produtos" ON public.produtos FOR ALL USING (true) WITH CHECK (true);
@@ -123,41 +161,7 @@ CREATE POLICY "Acesso total receitas" ON public.receitas FOR ALL USING (true) WI
 CREATE POLICY "Acesso total vendas" ON public.vendas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total venda_itens" ON public.venda_itens FOR ALL USING (true) WITH CHECK (true);
 
--- DADOS INICIAIS (SEED DATA)
-INSERT INTO public.categorias (id, nome) VALUES
-  ('cat1', 'bolo'),
-  ('cat2', 'cookie'),
-  ('cat3', 'artesanato')
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.insumos (id, nome, tipo, unidade, quantidade, minimo, custo_unitario) VALUES
-  ('i1', 'Farinha de trigo', 'ingrediente', 'kg', 8.5, 3, 6.9),
-  ('i2', 'Chocolate 60%', 'ingrediente', 'kg', 1.2, 2, 48),
-  ('i3', 'Ovos', 'ingrediente', 'un', 42, 18, 0.92),
-  ('i4', 'Açúcar mascavo', 'ingrediente', 'kg', 0, 2, 10.5),
-  ('i5', 'Manteiga', 'ingrediente', 'kg', 3.4, 1.5, 39.9),
-  ('i6', 'Leite condensado', 'ingrediente', 'un', 9, 6, 7.8),
-  ('i7', 'Caixa para bolo', 'material', 'un', 7, 10, 4.2),
-  ('i8', 'Saquinho para cookie', 'material', 'un', 64, 30, 0.55),
-  ('i9', 'Fita de cetim', 'material', 'm', 18, 10, 1.4)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.produtos (id, nome, categoria, preco, estoque, ativo, tempo_preparo_minutos, valor_hora_trabalho, rendimento_unidades) VALUES
-  ('p1', 'Bolo de cenoura', 'bolo', 65, 3, true, 45, 25, 1),
-  ('p2', 'Bolo Red Velvet', 'bolo', 120, 1, true, 60, 30, 1),
-  ('p3', 'Cookie clássico', 'cookie', 9, 24, true, 40, 20, 12),
-  ('p4', 'Cookie de chocolate', 'cookie', 11, 18, true, 45, 20, 12),
-  ('p5', 'Caixa com 6 cookies', 'cookie', 52, 8, true, 20, 20, 1),
-  ('p6', 'Kit presente artesanal', 'artesanato', 78, 5, true, 30, 25, 1)
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.clientes (id, nome, telefone, rua, numero, bairro, complemento, observacoes) VALUES
-  ('c1', 'Mariana Souza', '(11) 98765-4321', 'Rua das Flores', '123', 'Jardim Primavera', 'Apt 42', 'Prefere entregas à tarde'),
-  ('c2', 'Carlos Eduardo', '(11) 91234-5678', 'Av. Central', '500', 'Centro', NULL, 'Cliente assíduo de Red Velvet'),
-  ('c3', 'Ana Beatris', '(11) 99887-7665', 'Rua dos Sabores', '88', 'Vila Nova', NULL, 'Alergia a amendoim')
-ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO public.revendedoras (id, nome, telefone, tipo_comissao, comissao_percentual, comissao_fixa, observacoes) VALUES
-  ('r1', 'Café & Aconchego', '(11) 94444-5555', 'porcentagem', 15, 0, 'Retiradas todas as terças'),
-  ('r2', 'Empório Gourmet', '(11) 93333-2222', 'valor_fixo', 0, 8, 'Comissão fixa por bolo vendido')
+-- DADOS INICIAIS DA EMPRESA MATRIZ E CONTAS
+INSERT INTO public.empresas (id, nome, documento, plano, status) VALUES
+  ('emp_matriz', 'Ateliê Gourmet (Matriz)', '12.345.678/0001-90', 'Enterprise', 'ativa')
 ON CONFLICT (id) DO NOTHING;
