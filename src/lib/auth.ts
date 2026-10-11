@@ -25,9 +25,9 @@ export type Usuario = {
   ultimoAcesso?: string;
 };
 
-const CHAVE_USUARIOS = "meu-atelie-usuarios-v3";
-const CHAVE_EMPRESAS = "meu-atelie-empresas-v3";
-const CHAVE_SESSAO = "meu-atelie-sessao-v3";
+const CHAVE_USUARIOS = "meu-atelie-usuarios-v5";
+const CHAVE_EMPRESAS = "meu-atelie-empresas-v5";
+const CHAVE_SESSAO = "meu-atelie-sessao-v5";
 
 const id = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -38,23 +38,7 @@ export const empresasIniciais: Empresa[] = [
     documento: "12.345.678/0001-90",
     plano: "Enterprise",
     status: "ativa",
-    criadaEm: new Date("2024-01-15").toISOString(),
-  },
-  {
-    id: "emp_filial_centro",
-    nome: "Confeitaria Doce Arte (Filial Centro)",
-    documento: "98.765.432/0001-10",
-    plano: "Pro",
-    status: "ativa",
-    criadaEm: new Date("2024-05-20").toISOString(),
-  },
-  {
-    id: "emp_gourmet",
-    nome: "Padaria & Doces Premium",
-    documento: "45.678.901/0001-23",
-    plano: "Starter",
-    status: "ativa",
-    criadaEm: new Date("2024-08-10").toISOString(),
+    criadaEm: new Date().toISOString(),
   },
 ];
 
@@ -114,17 +98,13 @@ export function gravarUsuarios(u: Usuario[]) {
 }
 
 export function lerSessao(): Usuario | null {
-  if (typeof window === "undefined") return usuariosIniciais[0] ?? null;
+  if (typeof window === "undefined") return null;
   const salvo = localStorage.getItem(CHAVE_SESSAO);
-  if (!salvo) {
-    const padrao = usuariosIniciais[0] ?? null;
-    if (padrao) localStorage.setItem(CHAVE_SESSAO, JSON.stringify(padrao));
-    return padrao;
-  }
+  if (!salvo) return null;
   try {
-    return (JSON.parse(salvo) as Usuario) ?? usuariosIniciais[0] ?? null;
+    return (JSON.parse(salvo) as Usuario) ?? null;
   } catch {
-    return usuariosIniciais[0] ?? null;
+    return null;
   }
 }
 
@@ -145,10 +125,9 @@ export const CHAVE_EMPRESAS_QUERY = ["auth_empresas"] as const;
 export function useAuth() {
   const qc = useQueryClient();
 
-  const { data: usuario = usuariosIniciais[0] } = useQuery({
+  const { data: usuario = null } = useQuery<Usuario | null>({
     queryKey: CHAVE_AUTH_QUERY,
     queryFn: async () => lerSessao(),
-    initialData: usuariosIniciais[0],
   });
 
   const { data: listaUsuarios = usuariosIniciais } = useQuery({
@@ -182,14 +161,20 @@ export function useAuth() {
       gravarSessao(achado);
       return achado;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY }),
+    onSuccess: (dadosUser) => {
+      qc.setQueryData(CHAVE_AUTH_QUERY, dadosUser);
+      qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY });
+    },
   });
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
       gravarSessao(null);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY }),
+    onSuccess: () => {
+      qc.setQueryData(CHAVE_AUTH_QUERY, null);
+      qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY });
+    },
   });
 
   const salvarUsuarioMutation = useMutation({

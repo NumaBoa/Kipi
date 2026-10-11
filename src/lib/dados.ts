@@ -74,7 +74,7 @@ type Dados = {
   categorias: Categoria[];
 };
 
-const CHAVE = "meu-atelie-dados-mocados-v2";
+const CHAVE = "meu-atelie-dados-v5";
 const haDias = (dias: number, hora = 14) => { const d = new Date(); d.setDate(d.getDate() - dias); d.setHours(hora, 0, 0, 0); return d.toISOString(); };
 
 const iniciais: Dados = {
@@ -92,6 +92,12 @@ const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
 function ler(): Dados {
   if (typeof window === "undefined") return clone(iniciais);
+  
+  // Limpar chaves antigas de dados mockados se existirem
+  ["meu-atelie-dados-mocados-v2", "meu-atelie-dados-v3", "meu-atelie-dados-v4"].forEach((k) => {
+    localStorage.removeItem(k);
+  });
+
   const salvo = localStorage.getItem(CHAVE);
   if (!salvo) {
     localStorage.setItem(CHAVE, JSON.stringify(iniciais));
@@ -99,11 +105,9 @@ function ler(): Dados {
   }
   try {
     const d = JSON.parse(salvo) as Dados;
-    if (!d.revendedoras || d.revendedoras.length === 0) {
-      d.revendedoras = clone(iniciais.revendedoras);
-    }
-    if (!d.pagamentos_comissao) d.pagamentos_comissao = clone(iniciais.pagamentos_comissao);
-    if (!d.categorias || d.categorias.length === 0) d.categorias = clone(iniciais.categorias);
+    if (!d.revendedoras) d.revendedoras = [];
+    if (!d.pagamentos_comissao) d.pagamentos_comissao = [];
+    if (!d.categorias) d.categorias = [];
     return d;
   } catch {
     return clone(iniciais);

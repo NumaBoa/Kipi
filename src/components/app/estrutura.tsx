@@ -120,12 +120,34 @@ export function Estrutura({
     empresaAtual,
     ehSuperAdmin,
     ehAdmin,
+    login,
     logout,
     salvarUsuario,
     apagarUsuario,
     alternarEmpresaAtiva,
   } = useAuth();
   const navigate = useNavigate();
+
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginSenha, setLoginSenha] = useState("");
+  const [loginCarregando, setLoginCarregando] = useState(false);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail.trim() || !loginSenha.trim()) {
+      toast.error("Informe seu e-mail e senha.");
+      return;
+    }
+    setLoginCarregando(true);
+    try {
+      await login({ email: loginEmail, senha: loginSenha });
+      toast.success("Login realizado com sucesso!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao realizar login.");
+    } finally {
+      setLoginCarregando(false);
+    }
+  };
 
   const rotuloPapel = (papel?: PapelUsuario) => {
     switch (papel) {
@@ -138,6 +160,60 @@ export function Estrutura({
         return "👤 Operador";
     }
   };
+
+  if (!usuario) {
+    return (
+      <div className="relative min-h-screen w-full flex items-center justify-center p-4 bg-background text-foreground">
+        <Fundo />
+        <div className="relative z-10 w-full max-w-md glass-panel rounded-3xl p-8 space-y-6 shadow-2xl border border-border/60">
+          <div className="text-center space-y-2">
+            <div className="gradient-brand mx-auto grid size-14 place-items-center rounded-3xl font-display text-2xl font-bold text-white shadow-lg shadow-brand/30">
+              K
+            </div>
+            <h1 className="font-display text-2xl font-bold tracking-tight">Kipi — Acessar Conta</h1>
+            <p className="text-xs text-muted-foreground">
+              Informe seu e-mail e senha de administrador para acessar o painel de gestão.
+            </p>
+          </div>
+
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email-login" className="text-xs font-semibold">E-mail</Label>
+              <Input
+                id="email-login"
+                type="email"
+                placeholder="camila.c.lima08@gmail.com"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                className="rounded-xl h-11 text-xs"
+                autoFocus
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="senha-login" className="text-xs font-semibold">Senha</Label>
+              <Input
+                id="senha-login"
+                type="password"
+                placeholder="••••••••"
+                value={loginSenha}
+                onChange={(e) => setLoginSenha(e.target.value)}
+                className="rounded-xl h-11 text-xs"
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loginCarregando}
+              className="w-full h-11 rounded-xl font-semibold text-xs shadow-lg shadow-brand/25 mt-2"
+            >
+              {loginCarregando ? "Acessando..." : "Entrar no Sistema"}
+            </Button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
