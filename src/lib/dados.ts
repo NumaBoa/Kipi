@@ -78,91 +78,15 @@ const CHAVE = "meu-atelie-dados-mocados-v2";
 const haDias = (dias: number, hora = 14) => { const d = new Date(); d.setDate(d.getDate() - dias); d.setHours(hora, 0, 0, 0); return d.toISOString(); };
 
 const iniciais: Dados = {
-  insumos: [
-    { id: "i1", nome: "Farinha de trigo", tipo: "ingrediente", unidade: "kg", quantidade: 8.5, minimo: 3, custo_unitario: 6.9 },
-    { id: "i2", nome: "Chocolate 60%", tipo: "ingrediente", unidade: "kg", quantidade: 1.2, minimo: 2, custo_unitario: 48 },
-    { id: "i3", nome: "Ovos", tipo: "ingrediente", unidade: "un", quantidade: 42, minimo: 18, custo_unitario: 0.92 },
-    { id: "i4", nome: "Açúcar mascavo", tipo: "ingrediente", unidade: "kg", quantidade: 0, minimo: 2, custo_unitario: 10.5 },
-    { id: "i5", nome: "Manteiga", tipo: "ingrediente", unidade: "kg", quantidade: 3.4, minimo: 1.5, custo_unitario: 39.9 },
-    { id: "i6", nome: "Leite condensado", tipo: "ingrediente", unidade: "un", quantidade: 9, minimo: 6, custo_unitario: 7.8 },
-    { id: "i7", nome: "Caixa para bolo", tipo: "material", unidade: "un", quantidade: 7, minimo: 10, custo_unitario: 4.2 },
-    { id: "i8", nome: "Saquinho para cookie", tipo: "material", unidade: "un", quantidade: 64, minimo: 30, custo_unitario: 0.55 },
-    { id: "i9", nome: "Fita de cetim", tipo: "material", unidade: "m", quantidade: 18, minimo: 10, custo_unitario: 1.4 }
-  ],
-  produtos: [
-    { id: "p1", nome: "Bolo de cenoura", categoria: "bolo", preco: 65, estoque: 3, ativo: true, tempo_preparo_minutos: 45, valor_hora_trabalho: 25, rendimento_unidades: 1 },
-    { id: "p2", nome: "Bolo Red Velvet", categoria: "bolo", preco: 120, estoque: 1, ativo: true, tempo_preparo_minutos: 60, valor_hora_trabalho: 30, rendimento_unidades: 1 },
-    { id: "p3", nome: "Cookie clássico", categoria: "cookie", preco: 9, estoque: 24, ativo: true, tempo_preparo_minutos: 40, valor_hora_trabalho: 20, rendimento_unidades: 12 },
-    { id: "p4", nome: "Cookie de chocolate", categoria: "cookie", preco: 11, estoque: 18, ativo: true, tempo_preparo_minutos: 45, valor_hora_trabalho: 20, rendimento_unidades: 12 },
-    { id: "p5", nome: "Caixa com 6 cookies", categoria: "cookie", preco: 52, estoque: 8, ativo: true, tempo_preparo_minutos: 20, valor_hora_trabalho: 20, rendimento_unidades: 1 },
-    { id: "p6", nome: "Kit presente artesanal", categoria: "artesanato", preco: 78, estoque: 5, ativo: true, tempo_preparo_minutos: 30, valor_hora_trabalho: 25, rendimento_unidades: 1 }
-  ],
-  categorias: [
-    { id: "cat1", nome: "bolo" },
-    { id: "cat2", nome: "cookie" },
-    { id: "cat3", nome: "artesanato" },
-    { id: "cat4", nome: "doces" },
-    { id: "cat5", nome: "salgados" }
-  ],
-  clientes: [
-    { id: "c1", nome: "Marina Lopes", telefone: "(11) 98888-4321", rua: "Rua Augusta", numero: "1200", bairro: "Consolação", complemento: "Apto 54", observacoes: "Prefere recheios menos doces." },
-    { id: "c2", nome: "Ana Paula", telefone: "(11) 91234-8877", rua: "Av. Paulista", numero: "900", bairro: "Bela Vista", complemento: "Bloco A", observacoes: "Retira aos sábados." },
-    { id: "c3", nome: "Carla Mendes", telefone: "(11) 99876-1122", rua: null, numero: null, bairro: null, complemento: null, observacoes: null },
-    { id: "c4", nome: "Rafael Lima", telefone: "(11) 93456-7788", rua: "Rua Funchal", numero: "418", bairro: "Vila Olímpia", complemento: "Conj 82", observacoes: "Encomendas para o escritório." },
-    { id: "c5", nome: "Juliana Reis", telefone: "(11) 97654-2233", rua: null, numero: null, bairro: null, complemento: null, observacoes: "Gosta de embalagens para presente." }
-  ],
-  revendedoras: [
-    { id: "rv1", nome: "Camila Doces", telefone: "(11) 98888-7777", tipo_comissao: "porcentagem", comissao_percentual: 15, comissao_fixa: 0, observacoes: "Revendedora principal zona sul", cliente_ids: ["c1", "c3"] },
-    { id: "rv2", nome: "Café da Praça", telefone: "(11) 97777-6666", tipo_comissao: "valor_fixo", comissao_percentual: 0, comissao_fixa: 5, observacoes: "Ponto comercial parceiro (R$ 5/item)", cliente_ids: ["c4"] }
-  ],
-  pagamentos_comissao: [
-    { id: "pg1", revendedora_id: "rv1", valor: 100, data: haDias(10), observacoes: "Acerto de comissão parcial" }
-  ],
-  receitas: [
-    { id: "r1", produto_id: "p1", insumo_id: "i1", quantidade: 0.35 }, { id: "r2", produto_id: "p1", insumo_id: "i3", quantidade: 4 },
-    { id: "r3", produto_id: "p1", insumo_id: "i6", quantidade: 1 }, { id: "r4", produto_id: "p1", insumo_id: "i7", quantidade: 1 },
-    { id: "r5", produto_id: "p2", insumo_id: "i1", quantidade: 0.5 }, { id: "r6", produto_id: "p2", insumo_id: "i3", quantidade: 5 },
-    { id: "r7", produto_id: "p2", insumo_id: "i5", quantidade: 0.25 }, { id: "r8", produto_id: "p2", insumo_id: "i7", quantidade: 1 },
-    { id: "r9", produto_id: "p3", insumo_id: "i1", quantidade: 0.06 }, { id: "r10", produto_id: "p3", insumo_id: "i4", quantidade: 0.025 },
-    { id: "r11", produto_id: "p3", insumo_id: "i5", quantidade: 0.03 }, { id: "r12", produto_id: "p3", insumo_id: "i8", quantidade: 1 },
-    { id: "r13", produto_id: "p4", insumo_id: "i2", quantidade: 0.04 }, { id: "r14", produto_id: "p4", insumo_id: "i1", quantidade: 0.055 },
-    { id: "r15", produto_id: "p4", insumo_id: "i5", quantidade: 0.03 }, { id: "r16", produto_id: "p4", insumo_id: "i8", quantidade: 1 }
-  ],
+  insumos: [],
+  produtos: [],
+  categorias: [],
+  clientes: [],
+  revendedoras: [],
+  pagamentos_comissao: [],
+  receitas: [],
   vendas: []
 };
-
-const vendasBase = [
-  [0,"c1","pix","p1",1,"propria",null],[0,"c3","cartao","p3",4,"revendedora","rv1"],[1,"c2","pix","p5",1,"propria",null],[2,"c4","transferencia","p4",8,"revendedora","rv2"],
-  [3,"c5","dinheiro","p6",1,"propria",null],[4,"c1","pix","p2",1,"revendedora","rv1"],[5,"c3","cartao","p3",6,"propria",null],[6,"c2","pix","p1",1,"propria",null],
-  [8,"c4","pix","p5",2,"revendedora","rv2"],[11,"c5","cartao","p4",5,"propria",null],[14,"c1","transferencia","p2",1,"revendedora","rv1"],[17,"c3","pix","p3",10,"propria",null],
-  [21,"c2","dinheiro","p6",1,"revendedora","rv2"],[25,"c4","cartao","p1",2,"propria",null],[31,"c5","pix","p5",1,"revendedora","rv1"],[38,"c1","pix","p4",7,"propria",null],
-  [45,"c2","cartao","p2",1,"propria",null],[53,"c3","dinheiro","p3",8,"revendedora","rv2"],[67,"c4","pix","p1",1,"propria",null],[82,"c5","transferencia","p6",2,"revendedora","rv1"]
-] as const;
-
-iniciais.vendas = vendasBase.map(([dias, clienteId, pagamento, produtoId, quantidade, canal, revId], index) => {
-  const produto = iniciais.produtos.find((p) => p.id === produtoId);
-  if (!produto) throw new Error("Produto fictício não encontrado");
-  const cliente = iniciais.clientes.find((c) => c.id === clienteId);
-  const revendedora = revId ? iniciais.revendedoras.find((r) => r.id === revId) : null;
-  const total = produto.preco * quantidade;
-  const custo = produtoId === "p2" ? 33 : produtoId === "p1" ? 17 : produtoId === "p6" ? 31 : 3.8;
-  const id = `v${index + 1}`;
-  return {
-    id,
-    cliente_id: clienteId,
-    canal: (canal as "propria" | "revendedora") ?? "propria",
-    revendedora_id: (revId as string) ?? null,
-    data: haDias(dias, 10 + index % 8),
-    pagamento,
-    status: index === 2 || index === 9 ? "pendente" : "pago",
-    total,
-    custo_total: custo * quantidade,
-    observacoes: index === 0 ? "Retirada às 17h" : null,
-    clientes: cliente ? { nome: cliente.nome } : null,
-    revendedoras: revendedora ? { nome: revendedora.nome } : null,
-    venda_itens: [{ id: `vi${index + 1}`, venda_id: id, produto_id: produtoId, nome_produto: produto.nome, quantidade, preco_unitario: produto.preco }]
-  } as Venda;
-});
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
