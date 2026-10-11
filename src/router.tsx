@@ -12,6 +12,7 @@ export const getRouter = () => {
     defaultPreloadStaleTime: 0,
   });
 
+  // Compatibility between TanStack Router 1.170 and TanStack Start 1.168
   const origGetMatchedRoutes = router.getMatchedRoutes.bind(router);
   (router as any).getMatchedRoutes = (pathname: string) => {
     const res: any = origGetMatchedRoutes(pathname);
@@ -25,6 +26,7 @@ export const getRouter = () => {
     return res;
   };
 
+  // Provide robust serverSsr interface between React Router 1.170 and Start 1.168
   let _serverSsr: any = undefined;
   Object.defineProperty(router, "serverSsr", {
     configurable: true,
@@ -34,52 +36,51 @@ export const getRouter = () => {
     },
     set(val) {
       if (val && typeof val === "object") {
-        if (!val.isDehydrated) val.isDehydrated = () => true;
-        if (!val.isSerializationFinished) val.isSerializationFinished = () => true;
         if (!val.reserveStreamFastPath) val.reserveStreamFastPath = () => false;
-        if (!val.setRenderFinished) val.setRenderFinished = () => {};
-        if (!val.onInjectedHtml) val.onInjectedHtml = () => () => {};
-        if (!val.onRenderFinished) val.onRenderFinished = () => {};
-        if (!val.onCleanup) val.onCleanup = () => {};
-        if (!val.onSerializationFinished) val.onSerializationFinished = () => () => {};
         if (!val.takeBufferedScripts) val.takeBufferedScripts = () => undefined;
         if (!val.takeBufferedHtml) val.takeBufferedHtml = () => undefined;
         if (!val.liftScriptBarrier) val.liftScriptBarrier = () => {};
+        if (!val.onInjectedHtml) val.onInjectedHtml = () => () => {};
+        if (!val.onSerializationFinished) val.onSerializationFinished = () => () => {};
+        if (!val.onRenderFinished) val.onRenderFinished = () => {};
+        if (!val.onCleanup) val.onCleanup = () => {};
+        if (!val.setRenderFinished) val.setRenderFinished = () => {};
+        if (!val.isSerializationFinished) val.isSerializationFinished = () => true;
+
+        const origCleanup = val.cleanup?.bind(val);
+        val.cleanup = () => {
+          setTimeout(() => {
+            try { origCleanup?.(); } catch {}
+          }, 3000);
+        };
       }
       _serverSsr = val;
     },
   });
 
+  // TanStack Start 1.168 reads router.stores.ids (renamed to matchesId in 1.170)
   let _stores: any = (router as any).stores;
   Object.defineProperty(router, "stores", {
     configurable: true,
     enumerable: true,
     get() {
       if (_stores && !_stores.ids) {
-        _stores.ids = _stores.matchesId ?? { get: () => [] };
+        _stores.ids = _stores.matchesId;
       }
       return _stores;
     },
     set(s: any) {
       if (s && !s.ids) {
-        s.ids = s.matchesId ?? { get: () => [] };
+        s.ids = s.matchesId;
       }
       _stores = s;
     },
   });
   if (_stores && !_stores.ids) {
-    _stores.ids = _stores.matchesId ?? { get: () => [] };
+    _stores.ids = _stores.matchesId;
   }
 
-  const origUpdate = router.update.bind(router);
-  router.update = (newOptions: any) => {
-    origUpdate(newOptions);
-    if ((router as any).stores && !(router as any).stores.ids) {
-      (router as any).stores.ids = (router as any).stores.matchesId ?? { get: () => [] };
-    }
-    return router;
-  };
-
+  // TanStack Start 1.168 reads router.ssr.manifest
   let _ssr: any = (router as any).ssr;
   Object.defineProperty(router, "ssr", {
     configurable: true,
@@ -111,35 +112,63 @@ export const getRouter = () => {
     (router as any)._replaceRouteChunk = () => {};
   }
 
-  // Prevent _displayPending from freezing the client tree to a blank screen
+  // Prevent _displayPending or _forcePending from freezing the client tree to a blank screen
   const origUpdateMatch = router.updateMatch.bind(router);
   router.updateMatch = (id: string, updater: any) => {
     return origUpdateMatch(id, (prev: any) => {
       const updated = typeof updater === "function" ? updater(prev) : updater;
-      if (updated && updated._displayPending) {
-        updated._displayPending = undefined;
+      if (updated) {
+        if (updated._displayPending) updated._displayPending = undefined;
+        if (updated._forcePending) updated._forcePending = undefined;
+        if (updated._nonReactive?.displayPendingPromise) {
+          updated._nonReactive.displayPendingPromise = undefined;
+        }
       }
       return updated;
     });
   };
 
+  const origMatchRoutes = router.matchRoutes.bind(router);
+  (router as any).matchRoutes = (...args: any[]) => {
+    const res = (origMatchRoutes as any)(...args);
+    if (Array.isArray(res)) {
+      res.forEach((m: any) => {
+        if (m) {
+          m._displayPending = undefined;
+          m._forcePending = undefined;
+          if (m._nonReactive) {
+            m._nonReactive.dehydrated = undefined;
+            m._nonReactive.displayPendingPromise = undefined;
+          }
+        }
+      });
+    }
+    return res;
+  };
+
   // On client, prefill window.$_TSR with exact matched routes before hydrate() checks isSpaMode
   if (typeof window !== "undefined") {
     try {
-      const pathname = window.location.pathname || "/";
-      const targetRoute = pathname === "/" ? "/_authenticated/" : `/_authenticated${pathname.replace(/\/$/, "")}`;
-      const lastId = targetRoute;
-      const initialMatches = [
-        { i: "__root__", s: "success", ssr: true, u: Date.now() },
-        { i: "/_authenticated", s: "success", ssr: true, u: Date.now() },
-        { i: lastId, s: "success", ssr: true, u: Date.now() },
-      ];
-      if ((window as any).$_TSR && (window as any).$_TSR.router) {
-        (window as any).$_TSR.router.matches = initialMatches;
-        (window as any).$_TSR.router.lastMatchId = lastId;
+      const currentMatches = router.matchRoutes(router.stores.location.get());
+      const lastMatch = currentMatches[currentMatches.length - 1];
+      if (lastMatch) {
+        const safeRoutes = new Proxy({}, { get: () => ({ assets: [], scripts: [] }) });
+        const tsr = (window as any).$_TSR = (window as any).$_TSR || {};
+        tsr.router = tsr.router || {};
+        tsr.router.manifest = tsr.router.manifest || { routes: safeRoutes };
+        tsr.router.lastMatchId = lastMatch.id;
+        tsr.router.matches = currentMatches.map((m: any) => ({
+          i: m.id,
+          s: "success",
+          ssr: true,
+          u: Date.now(),
+        }));
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Could not align SSR matches:", e);
+    }
   }
 
   return router;
 };
+
