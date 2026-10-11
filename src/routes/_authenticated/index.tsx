@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Building2, Plus } from "lucide-react";
 import { useState } from "react";
 import { Estrutura } from "@/components/app/estrutura";
 import { CartaoIndicador, Etiqueta, Painel, TituloSecao, Vazio } from "@/components/app/painel";
 import { Button } from "@/components/ui/button";
 import { brl, dataHora, num } from "@/lib/format";
 import { statusInsumo, useInsumos, useProdutos, useClientes, useVendas, useRevendedoras } from "@/lib/dados";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -28,12 +29,231 @@ export const Route = createFileRoute("/_authenticated/")({
 
 const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 
+function PainelMasterSaaS({
+  listaEmpresas,
+  listaUsuarios,
+}: {
+  listaEmpresas: any[];
+  listaUsuarios: any[];
+}) {
+  const totalEmpresas = listaEmpresas.length;
+  const empresasAtivas = listaEmpresas.filter((e) => e.status === "ativa").length;
+  const empresasSuspensas = listaEmpresas.filter((e) => e.status === "suspensa").length;
+
+  const empresasStarter = listaEmpresas.filter((e) => e.plano === "Starter").length;
+  const empresasPro = listaEmpresas.filter((e) => e.plano === "Pro").length;
+  const empresasEnterprise = listaEmpresas.filter((e) => e.plano === "Enterprise").length;
+
+  const mrrEstimado = empresasStarter * 97 + empresasPro * 197 + empresasEnterprise * 397;
+  const ticketMedio = empresasAtivas > 0 ? mrrEstimado / empresasAtivas : 0;
+  const totalUsuarios = listaUsuarios.length;
+
+  return (
+    <Estrutura
+      titulo="Painel Gestor SaaS — Kipi"
+      subtitulo="Visão Geral de Vendas do seu Site & Assinaturas Comercializadas"
+      acao={
+        <Button asChild className="rounded-2xl gap-2 font-bold shadow-lg shadow-brand/25">
+          <Link to="/usuarios">
+            <Building2 className="size-4" /> Gestão de Empresas & Clientes
+          </Link>
+        </Button>
+      }
+    >
+      {/* BANNER RECEPTIVO MASTER */}
+      <Painel className="p-6 md:p-8 bg-gradient-to-r from-brand/15 via-blossom/10 to-transparent border border-brand/20 relative overflow-hidden">
+        <div className="relative z-10 space-y-2 max-w-3xl">
+          <Etiqueta tom="brand" className="px-3 py-1 text-xs">👑 Plataforma Master Kipi</Etiqueta>
+          <h2 className="font-display text-2xl md:text-3xl font-bold tracking-tight">
+            Desempenho Comercial do seu Software SaaS
+          </h2>
+          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
+            Bem-vinda ao seu centro de controle comercial. Acompanhe a contratação dos planos do seu site, total de empresas clientes ativas, receita recorrente mensal (MRR) e gestione o acesso das contas.
+          </p>
+        </div>
+      </Painel>
+
+      {/* METRICAS CHAVE DO SAAS */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5">
+        <CartaoIndicador
+          rotulo="Receita Recorrente (MRR)"
+          valor={brl(mrrEstimado)}
+          detalhe="Estimativa mensal de assinaturas ativas"
+          etiqueta="faturamento"
+          tom="brand"
+        />
+        <CartaoIndicador
+          rotulo="Empresas Contratantes"
+          valor={`${totalEmpresas} clientes`}
+          detalhe={`${empresasAtivas} ativas · ${empresasSuspensas} suspensas`}
+          etiqueta="tenants"
+          tom="blossom"
+        />
+        <CartaoIndicador
+          rotulo="Usuários da Plataforma"
+          valor={`${totalUsuarios} contas`}
+          detalhe="Admins e operadores nas empresas"
+          etiqueta="acessos"
+          tom="success"
+        />
+        <CartaoIndicador
+          rotulo="Ticket Médio (ARPU)"
+          valor={brl(ticketMedio)}
+          detalhe="Média mensal por empresa cliente"
+          etiqueta="média"
+          tom="warning"
+        />
+      </section>
+
+      {/* PLANOS COMERCIALIZADOS NO SEU SITE */}
+      <section className="space-y-4">
+        <TituloSecao
+          titulo="Planos Comercializados no seu Site"
+          descricao="Valores de contratação e quantidade de assinantes por categoria de plano."
+        />
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* STARTER */}
+          <Painel className="p-6 space-y-4 border border-border/60 hover:border-brand/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Plano Starter</span>
+              <Etiqueta tom="neutro">R$ 97 /mês</Etiqueta>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-bold">{empresasStarter} <span className="text-xs font-normal text-muted-foreground">empresas</span></p>
+              <p className="text-xs text-muted-foreground mt-1">Faturamento: <strong className="text-foreground">{brl(empresasStarter * 97)}/mês</strong></p>
+            </div>
+            <p className="text-[11px] text-muted-foreground border-t border-border/40 pt-3">
+              Destinado a pequenos ateliês e confeiteiras autônomas. Inclui gestão de insumos, receitas e catálogo.
+            </p>
+          </Painel>
+
+          {/* PRO (RECOMENDADO) */}
+          <Painel className="p-6 space-y-4 border-2 border-brand/50 shadow-lg shadow-brand/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-brand text-primary-foreground text-[9px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+              Popular
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-brand">Plano Pro</span>
+              <Etiqueta tom="brand">R$ 197 /mês</Etiqueta>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-bold text-brand">{empresasPro} <span className="text-xs font-normal text-muted-foreground">empresas</span></p>
+              <p className="text-xs text-muted-foreground mt-1">Faturamento: <strong className="text-foreground">{brl(empresasPro * 197)}/mês</strong></p>
+            </div>
+            <p className="text-[11px] text-muted-foreground border-t border-border/40 pt-3">
+              Destinado a ateliês com equipe e vendas via revendedoras parceiras. Inclui comissões e relatórios.
+            </p>
+          </Painel>
+
+          {/* ENTERPRISE */}
+          <Painel className="p-6 space-y-4 border border-border/60 hover:border-blossom/40 transition-colors">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-blossom">Plano Enterprise</span>
+              <Etiqueta tom="blossom">R$ 397 /mês</Etiqueta>
+            </div>
+            <div>
+              <p className="font-display text-3xl font-bold">{empresasEnterprise} <span className="text-xs font-normal text-muted-foreground">empresas</span></p>
+              <p className="text-xs text-muted-foreground mt-1">Faturamento: <strong className="text-foreground">{brl(empresasEnterprise * 397)}/mês</strong></p>
+            </div>
+            <p className="text-[11px] text-muted-foreground border-t border-border/40 pt-3">
+              Para indústrias, franquias e redes de alta produção. Suporte dedicado e gestão avançada de acessos.
+            </p>
+          </Painel>
+        </div>
+      </section>
+
+      {/* TABELA DE EMPRESAS CONTRATANTES */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <TituloSecao
+            titulo="Empresas Clientes Cadastradas"
+            descricao="Lista de ateliês e indústrias contratantes do seu sistema."
+          />
+          {totalEmpresas > 0 && (
+            <Button asChild variant="outline" size="sm" className="rounded-xl text-xs">
+              <Link to="/usuarios">Ver Todas ({totalEmpresas})</Link>
+            </Button>
+          )}
+        </div>
+
+        {totalEmpresas === 0 ? (
+          <Painel className="p-12 text-center space-y-4 border-dashed border-2">
+            <div className="grid size-16 place-items-center rounded-3xl bg-brand/10 text-brand mx-auto">
+              <Building2 className="size-8" />
+            </div>
+            <div className="space-y-1 max-w-md mx-auto">
+              <h3 className="font-display text-lg font-bold">Nenhuma Empresa Contratante Cadastrada</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                O seu sistema Kipi está zerado e pronto para a comercialização. Cadastre a primeira empresa cliente para liberar as credenciais de acesso ao ateliê.
+              </p>
+            </div>
+            <Button asChild className="rounded-2xl font-bold shadow-lg shadow-brand/25 h-11 px-6">
+              <Link to="/usuarios">
+                <Plus className="size-4 mr-2" /> Cadastrar Primeira Empresa Cliente
+              </Link>
+            </Button>
+          </Painel>
+        ) : (
+          <Painel className="p-0 overflow-hidden border border-border/60">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-muted/50 text-muted-foreground uppercase tracking-wider text-[10px] border-b border-border/50">
+                  <tr>
+                    <th className="py-3 px-4">Empresa</th>
+                    <th className="py-3 px-4">Documento</th>
+                    <th className="py-3 px-4">Plano</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4 text-right">Ação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {listaEmpresas.map((emp) => (
+                    <tr key={emp.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-4 font-semibold">{emp.nome}</td>
+                      <td className="py-3 px-4 text-muted-foreground">{emp.documento || "Não informado"}</td>
+                      <td className="py-3 px-4">
+                        <Etiqueta tom={emp.plano === "Enterprise" ? "blossom" : emp.plano === "Pro" ? "brand" : "neutro"}>
+                          {emp.plano}
+                        </Etiqueta>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 font-semibold text-[11px]",
+                          emp.status === "ativa" ? "text-emerald-500" : "text-amber-500"
+                        )}>
+                          <span className={cn("size-2 rounded-full", emp.status === "ativa" ? "bg-emerald-500" : "bg-amber-500")} />
+                          {emp.status === "ativa" ? "Ativa" : "Suspensa"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <Button asChild variant="ghost" size="sm" className="h-7 text-xs rounded-xl">
+                          <Link to="/usuarios">Gerenciar</Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Painel>
+        )}
+      </section>
+    </Estrutura>
+  );
+}
+
 function PainelInicial() {
+  const { ehSuperAdmin, listaEmpresas, listaUsuarios } = useAuth();
   const { data: vendas = [] } = useVendas();
   const { data: insumos = [] } = useInsumos();
   const { data: produtos = [] } = useProdutos();
   const { data: clientes = [] } = useClientes();
   const { data: revendedoras = [] } = useRevendedoras();
+
+  if (ehSuperAdmin) {
+    return <PainelMasterSaaS listaEmpresas={listaEmpresas} listaUsuarios={listaUsuarios} />;
+  }
 
   const [modoGrafico, setModoGrafico] = useState<"divisao" | "faturamento">("divisao");
 

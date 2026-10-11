@@ -76,27 +76,37 @@ function Navegacao({
   compacto?: boolean;
 }) {
   const itens = todosItens.filter((item) => temPermissaoRota(papel, item.para));
+  const ehSuperAdmin = papel === "super_admin";
 
   return (
     <nav className={cn("space-y-1 text-sm font-medium", compacto && "flex gap-1 space-y-0")}>
-      {itens.map(({ para, rotulo, Icone }) => (
-        <Link
-          key={para}
-          to={para}
-          activeOptions={{ exact: para === "/" }}
-          activeProps={{ className: "bg-brand/12 text-brand font-semibold" }}
-          inactiveProps={{ className: "text-muted-foreground hover:bg-card/60" }}
-          className={cn(
-            "flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors",
-            compacto && "flex-col gap-1 px-3 py-2 text-[11px]",
-          )}
-        >
-          <span className="grid size-7 shrink-0 place-items-center rounded-xl bg-foreground/5">
-            <Icone className="size-4" />
-          </span>
-          {rotulo}
-        </Link>
-      ))}
+      {itens.map(({ para, rotulo, Icone }) => {
+        let textoExibido: string = rotulo;
+        if (ehSuperAdmin) {
+          if (para === "/") textoExibido = "Painel SaaS";
+          if (para === "/usuarios") textoExibido = "Empresas & Clientes";
+          if (para === "/relatorios") textoExibido = "Relatórios Globais";
+        }
+
+        return (
+          <Link
+            key={para}
+            to={para}
+            activeOptions={{ exact: para === "/" }}
+            activeProps={{ className: "bg-brand/12 text-brand font-semibold" }}
+            inactiveProps={{ className: "text-muted-foreground hover:bg-card/60" }}
+            className={cn(
+              "flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors",
+              compacto && "flex-col gap-1 px-3 py-2 text-[11px]",
+            )}
+          >
+            <span className="grid size-7 shrink-0 place-items-center rounded-xl bg-foreground/5">
+              <Icone className="size-4" />
+            </span>
+            {textoExibido}
+          </Link>
+        );
+      })}
     </nav>
   );
 }

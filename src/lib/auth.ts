@@ -309,7 +309,16 @@ export function useAuth() {
 
 export function temPermissaoRota(papel: PapelUsuario | undefined, rota: string): boolean {
   if (!papel) return true;
-  if (papel === "super_admin" || papel === "admin") return true;
+
+  // Super Admin (Master Admin do SaaS): apenas visões estratégicas e comerciais da plataforma
+  if (papel === "super_admin") {
+    const rotasMaster = ["/", "/usuarios", "/relatorios"];
+    return rotasMaster.includes(rota);
+  }
+
+  // Admin da Empresa: Acessa todas as rotas operacionais do ateliê
+  if (papel === "admin") return true;
+
   // Operador só pode acessar Painel, Vendas, Produtos, Estoque, Clientes
   const rotasRestritasOperador = ["/receitas", "/relatorios", "/usuarios"];
   return !rotasRestritasOperador.includes(rota);
