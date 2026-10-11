@@ -74,18 +74,92 @@ type Dados = {
   categorias: Categoria[];
 };
 
-const CHAVE = "meu-atelie-dados-v5";
+const CHAVE = "meu-atelie-dados-v7";
 const haDias = (dias: number, hora = 14) => { const d = new Date(); d.setDate(d.getDate() - dias); d.setHours(hora, 0, 0, 0); return d.toISOString(); };
 
 const iniciais: Dados = {
-  insumos: [],
-  produtos: [],
-  categorias: [],
-  clientes: [],
-  revendedoras: [],
+  insumos: [
+    { id: "ins_1", nome: "Farinha de Trigo Premium", tipo: "ingrediente", unidade: "kg", quantidade: 15, minimo: 5, custo_unitario: 6.5 },
+    { id: "ins_2", nome: "Chocolate 70% Cacau", tipo: "ingrediente", unidade: "kg", quantidade: 6, minimo: 3, custo_unitario: 38.0 },
+    { id: "ins_3", nome: "Leite Condensado 395g", tipo: "ingrediente", unidade: "un", quantidade: 30, minimo: 10, custo_unitario: 5.9 },
+    { id: "ins_4", nome: "Manteiga Sem Sal", tipo: "ingrediente", unidade: "kg", quantidade: 4, minimo: 2, custo_unitario: 32.0 },
+    { id: "ins_5", nome: "Embalagem Torta Luxo", tipo: "material", unidade: "un", quantidade: 8, minimo: 15, custo_unitario: 4.2 }
+  ],
+  produtos: [
+    { id: "prod_1", nome: "Bolo Vulcão Ninho com Nutella", categoria: "Bolos & Tortas", preco: 85.0, estoque: 14, ativo: true, tempo_preparo_minutos: 45, rendimento_unidades: 1 },
+    { id: "prod_2", nome: "Caixa 12 Brigadeiros Gourmet", categoria: "Doces Gourmet", preco: 36.0, estoque: 28, ativo: true, tempo_preparo_minutos: 20, rendimento_unidades: 12 },
+    { id: "prod_3", nome: "Torta Holandesa Especial", categoria: "Bolos & Tortas", preco: 110.0, estoque: 6, ativo: true, tempo_preparo_minutos: 60, rendimento_unidades: 1 },
+    { id: "prod_4", nome: "Empadão de Frango com Requeijão", categoria: "Salgados", preco: 68.0, estoque: 10, ativo: true, tempo_preparo_minutos: 40, rendimento_unidades: 1 }
+  ],
+  categorias: [
+    { id: "cat_1", nome: "Bolos & Tortas" },
+    { id: "cat_2", nome: "Doces Gourmet" },
+    { id: "cat_3", nome: "Salgados" }
+  ],
+  clientes: [
+    { id: "cli_1", nome: "Mariana Souza", telefone: "(11) 98877-6655", rua: "Av. Paulista", numero: "1000", bairro: "Bela Vista", complemento: "Apt 42", observacoes: "Cliente VIP" },
+    { id: "cli_2", nome: "Fernanda Oliveira", telefone: "(11) 97766-5544", rua: "Rua Augusta", numero: "500", bairro: "Consolação", complemento: null, observacoes: null }
+  ],
+  revendedoras: [
+    { id: "rev_1", nome: "Café & Doce Parceiro", telefone: "(11) 95544-3322", tipo_comissao: "porcentagem", comissao_percentual: 15, comissao_fixa: 0, observacoes: "Entregas terças e quintas" }
+  ],
   pagamentos_comissao: [],
   receitas: [],
-  vendas: []
+  vendas: [
+    {
+      id: "vnd_1",
+      cliente_id: "cli_1",
+      canal: "propria",
+      revendedora_id: null,
+      data: haDias(0),
+      pagamento: "pix",
+      status: "pago",
+      total: 121.0,
+      custo_total: 42.0,
+      observacoes: "Entrega agendada para às 16h",
+      venda_itens: [
+        { id: "vi_1", venda_id: "vnd_1", produto_id: "prod_1", nome_produto: "Bolo Vulcão Ninho com Nutella", quantidade: 1, preco_unitario: 85.0 },
+        { id: "vi_2", venda_id: "vnd_1", produto_id: "prod_2", nome_produto: "Caixa 12 Brigadeiros Gourmet", quantidade: 1, preco_unitario: 36.0 }
+      ],
+      clientes: { nome: "Mariana Souza" },
+      revendedoras: null
+    },
+    {
+      id: "vnd_2",
+      cliente_id: "cli_2",
+      canal: "revendedora",
+      revendedora_id: "rev_1",
+      data: haDias(1),
+      pagamento: "cartao",
+      status: "pago",
+      total: 220.0,
+      custo_total: 80.0,
+      observacoes: "Venda consignada café",
+      venda_itens: [
+        { id: "vi_3", venda_id: "vnd_2", produto_id: "prod_3", nome_produto: "Torta Holandesa Especial", quantidade: 2, preco_unitario: 110.0 }
+      ],
+      clientes: { nome: "Fernanda Oliveira" },
+      revendedoras: { nome: "Café & Doce Parceiro" }
+    },
+    {
+      id: "vnd_3",
+      cliente_id: "cli_1",
+      canal: "propria",
+      revendedora_id: null,
+      data: haDias(2),
+      pagamento: "pix",
+      status: "pago",
+      total: 153.0,
+      custo_total: 55.0,
+      observacoes: null,
+      venda_itens: [
+        { id: "vi_4", venda_id: "vnd_3", produto_id: "prod_1", nome_produto: "Bolo Vulcão Ninho com Nutella", quantidade: 1, preco_unitario: 85.0 },
+        { id: "vi_5", venda_id: "vnd_3", produto_id: "prod_4", nome_produto: "Empadão de Frango com Requeijão", quantidade: 1, preco_unitario: 68.0 }
+      ],
+      clientes: { nome: "Mariana Souza" },
+      revendedoras: null
+    }
+  ]
 };
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;

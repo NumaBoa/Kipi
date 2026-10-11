@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Building2, Plus } from "lucide-react";
+import { Building2, CheckCircle2, Plus } from "lucide-react";
 import { useState } from "react";
 import { Estrutura } from "@/components/app/estrutura";
 import { CartaoIndicador, Etiqueta, Painel, TituloSecao, Vazio } from "@/components/app/painel";
@@ -163,81 +163,128 @@ function PainelMasterSaaS({
         </div>
       </section>
 
-      {/* TABELA DE EMPRESAS CONTRATANTES */}
+      {/* TABELA DE EMPRESAS CONTRATANTES & WIDGET DARK */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <TituloSecao
-            titulo="Empresas Clientes Cadastradas"
-            descricao="Lista de ateliês e indústrias contratantes do seu sistema."
-          />
-          {totalEmpresas > 0 && (
-            <Button asChild variant="outline" size="sm" className="rounded-xl text-xs">
-              <Link to="/usuarios">Ver Todas ({totalEmpresas})</Link>
-            </Button>
-          )}
-        </div>
+        <TituloSecao
+          titulo="Empresas Clientes Cadastradas & Status de Operação"
+          descricao="Lista de ateliês e indústrias contratantes do seu sistema."
+        />
 
-        {totalEmpresas === 0 ? (
-          <Painel className="p-12 text-center space-y-4 border-dashed border-2">
-            <div className="grid size-16 place-items-center rounded-3xl bg-brand/10 text-brand mx-auto">
-              <Building2 className="size-8" />
+        <div className="grid gap-6 lg:grid-cols-12">
+          {/* TABELA (8 COLS) */}
+          <div className="lg:col-span-8 space-y-4">
+            {totalEmpresas === 0 ? (
+              <Painel className="p-12 text-center space-y-4 border-dashed border-2">
+                <div className="grid size-16 place-items-center rounded-3xl bg-brand/10 text-brand mx-auto">
+                  <Building2 className="size-8" />
+                </div>
+                <div className="space-y-1 max-w-md mx-auto">
+                  <h3 className="font-display text-lg font-bold">Nenhuma Empresa Contratante Cadastrada</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    O seu sistema Kipi está zerado e pronto para a comercialização. Cadastre a primeira empresa cliente para liberar as credenciais de acesso ao ateliê.
+                  </p>
+                </div>
+                <Button asChild className="rounded-full font-bold shadow-lg shadow-brand/25 h-11 px-6 bg-brand text-white">
+                  <Link to="/usuarios">
+                    <Plus className="size-4 mr-2" /> Cadastrar Primeira Empresa Cliente
+                  </Link>
+                </Button>
+              </Painel>
+            ) : (
+              <Painel className="p-0 overflow-hidden border border-border/60">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/50 text-muted-foreground uppercase tracking-wider text-[10px] border-b border-border/50">
+                      <tr>
+                        <th className="py-3 px-4">Empresa</th>
+                        <th className="py-3 px-4">Documento</th>
+                        <th className="py-3 px-4">Plano</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {listaEmpresas.map((emp) => (
+                        <tr key={emp.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 px-4 font-semibold">{emp.nome}</td>
+                          <td className="py-3 px-4 text-muted-foreground">{emp.documento || "Não informado"}</td>
+                          <td className="py-3 px-4">
+                            <Etiqueta tom={emp.plano === "Enterprise" ? "blossom" : emp.plano === "Pro" ? "brand" : "neutro"}>
+                              {emp.plano}
+                            </Etiqueta>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={cn(
+                              "inline-flex items-center gap-1.5 font-semibold text-[11px]",
+                              emp.status === "ativa" ? "text-emerald-500" : "text-amber-500"
+                            )}>
+                              <span className={cn("size-2 rounded-full", emp.status === "ativa" ? "bg-emerald-500" : "bg-amber-500")} />
+                              {emp.status === "ativa" ? "Ativa" : "Suspensa"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <Button asChild variant="ghost" size="sm" className="h-7 text-xs rounded-full">
+                              <Link to="/usuarios">Gerenciar</Link>
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Painel>
+            )}
+          </div>
+
+          {/* DARK HIGHLIGHT WIDGET CARD (EXATAMENTE COMO O CARD ESCURO DO ANEXO) */}
+          <div className="lg:col-span-4">
+            <div className="bg-[#18182B] text-white p-6 rounded-3xl space-y-6 shadow-2xl border border-white/10 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-lg font-bold tracking-tight text-white">Tarefas & Onboarding</h3>
+                  <p className="text-[11px] text-slate-400">Status de Comercialização Kipi</p>
+                </div>
+                <span className="font-display text-xl font-extrabold text-brand bg-brand/20 px-3 py-1 rounded-2xl border border-brand/30">
+                  3/5
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { id: 1, text: "Configurar Domínio & SSL Vercel", done: true, time: "Concluído" },
+                  { id: 2, text: "Banco Multi-Tenant Supabase", done: true, time: "Concluído" },
+                  { id: 3, text: "Criar Conta Admin Master (Camila)", done: true, time: "Concluído" },
+                  { id: 4, text: "Cadastrar 1ª Empresa Contratante", done: false, time: "Em andamento" },
+                  { id: 5, text: "Lançar Campanhas de Divulgação", done: false, time: "Pendente" },
+                ].map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "grid size-7 place-items-center rounded-full transition-colors",
+                          task.done
+                            ? "bg-brand text-white shadow-md shadow-brand/40"
+                            : "border border-slate-600 text-transparent"
+                        )}
+                      >
+                        <CheckCircle2 className="size-4 fill-current text-white" />
+                      </div>
+                      <div>
+                        <p className={cn("text-xs font-semibold", task.done ? "line-through text-slate-400" : "text-white")}>
+                          {task.text}
+                        </p>
+                        <p className="text-[10px] text-slate-400">{task.time}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-1 max-w-md mx-auto">
-              <h3 className="font-display text-lg font-bold">Nenhuma Empresa Contratante Cadastrada</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                O seu sistema Kipi está zerado e pronto para a comercialização. Cadastre a primeira empresa cliente para liberar as credenciais de acesso ao ateliê.
-              </p>
-            </div>
-            <Button asChild className="rounded-2xl font-bold shadow-lg shadow-brand/25 h-11 px-6">
-              <Link to="/usuarios">
-                <Plus className="size-4 mr-2" /> Cadastrar Primeira Empresa Cliente
-              </Link>
-            </Button>
-          </Painel>
-        ) : (
-          <Painel className="p-0 overflow-hidden border border-border/60">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-muted/50 text-muted-foreground uppercase tracking-wider text-[10px] border-b border-border/50">
-                  <tr>
-                    <th className="py-3 px-4">Empresa</th>
-                    <th className="py-3 px-4">Documento</th>
-                    <th className="py-3 px-4">Plano</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Ação</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {listaEmpresas.map((emp) => (
-                    <tr key={emp.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-4 font-semibold">{emp.nome}</td>
-                      <td className="py-3 px-4 text-muted-foreground">{emp.documento || "Não informado"}</td>
-                      <td className="py-3 px-4">
-                        <Etiqueta tom={emp.plano === "Enterprise" ? "blossom" : emp.plano === "Pro" ? "brand" : "neutro"}>
-                          {emp.plano}
-                        </Etiqueta>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={cn(
-                          "inline-flex items-center gap-1.5 font-semibold text-[11px]",
-                          emp.status === "ativa" ? "text-emerald-500" : "text-amber-500"
-                        )}>
-                          <span className={cn("size-2 rounded-full", emp.status === "ativa" ? "bg-emerald-500" : "bg-amber-500")} />
-                          {emp.status === "ativa" ? "Ativa" : "Suspensa"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <Button asChild variant="ghost" size="sm" className="h-7 text-xs rounded-xl">
-                          <Link to="/usuarios">Gerenciar</Link>
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Painel>
-        )}
+          </div>
+        </div>
       </section>
     </Estrutura>
   );

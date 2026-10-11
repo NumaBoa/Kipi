@@ -141,6 +141,7 @@ export function Estrutura({
   const [loginEmail, setLoginEmail] = useState("");
   const [loginSenha, setLoginSenha] = useState("");
   const [loginCarregando, setLoginCarregando] = useState(false);
+  const [profileAberto, setProfileAberto] = useState(false);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,151 +226,206 @@ export function Estrutura({
     );
   }
 
+  const itensNav = todosItens.filter((item) => temPermissaoRota(usuario?.papel, item.para));
+
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground">
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground font-sans">
       <Fundo />
-      <div className="relative z-10 mx-auto flex w-full max-w-[1920px] gap-6 px-4 py-4 sm:px-6 lg:px-8 xl:px-10 sm:py-6">
-        {/* ASIDE SIDEBAR */}
-        <aside className="hidden w-60 shrink-0 lg:block xl:w-64 2xl:w-72">
-          <div className="glass-panel sticky top-6 rounded-3xl p-4 space-y-4">
-            <div className="flex items-center gap-2.5 px-2 pb-3 border-b border-border/50">
-              <div className="gradient-brand grid size-10 shrink-0 place-items-center rounded-2xl font-display text-lg font-bold text-primary-foreground">
-                K
+      
+      <div className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-4 sm:px-6 lg:px-8 sm:py-6 space-y-6">
+        
+        {/* TOP FLOATING HEADER NAVBAR (MENU ACIMA - DESIGN PEOPLEIO) */}
+        <header className="w-full">
+          <div className="flex items-center justify-between gap-4 rounded-3xl bg-card/90 p-3 px-5 shadow-sm shadow-brand/5 backdrop-blur-xl border border-border/50">
+            
+            {/* LOGO & BRANDING */}
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="gradient-brand grid size-10 place-items-center rounded-2xl font-display text-lg font-bold text-white shadow-md shadow-brand/20">
+                P
               </div>
-              <div className="min-w-0">
-                <p className="truncate font-display text-lg leading-none font-semibold">
-                  Kipi
-                </p>
-                <p className="text-[11px] text-muted-foreground truncate">
-                  {empresaAtual?.nome ?? "Gestão de Produção & Vendas"}
-                </p>
-              </div>
-            </div>
-
-            {/* Seletor de Empresa Ativa (Multi-Tenant) */}
-            <div className="glass-inset rounded-2xl p-2.5 space-y-1.5 border border-border/40">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider flex items-center gap-1">
-                  <Building2 className="size-3 text-brand" /> Empresa Selecionada
-                </span>
-                {ehAdmin && (
-                  <span className="text-[9px] font-bold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full">
-                    {listaEmpresas.length} cadastradas
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-xl font-extrabold tracking-tight">Kipi</span>
+                  <span className="text-[10px] font-extrabold text-brand bg-brand/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    {ehSuperAdmin ? "SaaS Master" : (empresaAtual?.nome ?? "Ateliê")}
                   </span>
-                )}
+                </div>
+                <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">Empower. Engage. Elevate.</p>
               </div>
-              <Select
-                value={usuario?.empresaAtivaId ?? listaEmpresas[0]?.id ?? ""}
-                onValueChange={(empId) => {
-                  alternarEmpresaAtiva(empId);
-                  toast.success("Empresa alternada com sucesso!");
-                }}
-              >
-                <SelectTrigger className="h-8 rounded-xl text-xs bg-background/80 font-medium border-border/60">
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl">
-                  {listaEmpresas
-                    .filter((emp) => ehSuperAdmin || usuario?.empresaIds?.includes(emp.id))
-                    .map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id} className="text-xs">
-                        {emp.nome}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
             </div>
 
-            {/* Badge de Usuário Logado */}
-            <div className="glass-inset rounded-2xl p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-                  Usuário Ativo
-                </span>
-                <span
-                  className={cn(
-                    "text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider",
-                    ehAdmin ? "bg-brand/15 text-brand" : "bg-blossom/15 text-blossom"
-                  )}
-                >
-                  {rotuloPapel(usuario?.papel)}
-                </span>
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-semibold">{usuario?.nome ?? "Camila"}</p>
-                <p className="truncate text-[11px] text-muted-foreground">{usuario?.email}</p>
-              </div>
+            {/* HORIZONTAL PILL NAVIGATION (MENU ACIMA) */}
+            <nav className="hidden lg:flex items-center gap-1.5 bg-muted/60 p-1.5 rounded-full border border-border/40">
+              {itensNav.map(({ para, rotulo, Icone }) => {
+                let textoExibido: string = rotulo;
+                if (ehSuperAdmin) {
+                  if (para === "/") textoExibido = "Dashboard";
+                  if (para === "/usuarios") textoExibido = "Empresas & Clientes";
+                  if (para === "/relatorios") textoExibido = "Relatórios Globais";
+                }
 
-              <div className="flex items-center gap-1.5 pt-1">
-                {ehAdmin ? (
-                  <Link to="/usuarios" className="flex-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-[11px] rounded-xl w-full gap-1"
-                    >
-                      <ShieldCheck className="size-3" /> Acessos
-                    </Button>
+                return (
+                  <Link
+                    key={para}
+                    to={para}
+                    activeOptions={{ exact: para === "/" }}
+                    activeProps={{
+                      className: "bg-brand text-white font-bold shadow-md shadow-brand/25",
+                    }}
+                    inactiveProps={{
+                      className: "text-muted-foreground hover:text-foreground hover:bg-background/80 font-medium",
+                    }}
+                    className="flex items-center gap-2 rounded-full px-4 py-2 text-xs transition-all duration-200"
+                  >
+                    <Icone className="size-3.5" />
+                    {textoExibido}
                   </Link>
-                ) : null}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-[11px] rounded-xl text-muted-foreground hover:text-destructive"
-                  onClick={() => {
-                    logout();
-                    toast.info("Sessão encerrada.");
-                  }}
-                >
-                  <LogOut className="size-3" /> Sair
-                </Button>
-              </div>
-            </div>
+                );
+              })}
+            </nav>
 
-            <Navegacao papel={usuario?.papel} />
+            {/* ACTION BUTTONS & PROFILE */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Multi-tenant selector */}
+              {listaEmpresas.length > 0 && !ehSuperAdmin && (
+                <div className="hidden md:block">
+                  <Select
+                    value={usuario?.empresaAtivaId ?? listaEmpresas[0]?.id ?? ""}
+                    onValueChange={(empId) => {
+                      alternarEmpresaAtiva(empId);
+                      toast.success("Empresa alternada!");
+                    }}
+                  >
+                    <SelectTrigger className="h-9 rounded-full text-xs bg-muted/50 font-semibold border-border/50 px-3">
+                      <Building2 className="size-3.5 mr-1.5 text-brand" />
+                      <SelectValue placeholder="Empresa..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      {listaEmpresas.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id} className="text-xs">
+                          {emp.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-            <div className="rounded-2xl bg-brand/10 p-3">
-              <p className="text-xs font-semibold">Tema da Interface</p>
+              {/* Theme Toggle */}
               <button
                 type="button"
                 onClick={alternar}
-                className="mt-2 flex w-full items-center justify-between rounded-xl bg-card/70 px-3 py-2 text-[11px] font-medium transition-colors hover:bg-card"
-              >
-                {tema === "dark" ? "Modo escuro" : "Modo claro"}
-                {tema === "dark" ? <Moon className="size-3.5" /> : <Sun className="size-3.5" />}
-              </button>
-            </div>
-          </div>
-        </aside>
-
-        {/* MAIN CONTENT AREA */}
-        <main className="min-w-0 flex-1 space-y-5">
-          <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-            <div className="min-w-0">
-              <p className="truncate text-[11px] font-medium tracking-[0.18em] text-muted-foreground uppercase">
-                {subtitulo ?? hoje()}
-              </p>
-              <h1 className="truncate text-2xl md:text-3xl">{titulo}</h1>
-            </div>
-            <div className="flex items-center gap-2">
-              {acao}
-              <button
-                type="button"
-                onClick={alternar}
-                aria-label="Alternar tema"
-                className="glass-panel grid size-11 shrink-0 place-items-center rounded-2xl lg:hidden"
+                className="grid size-9 place-items-center rounded-full bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                title="Alternar Tema"
               >
                 {tema === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
               </button>
+
+              {/* Profile Pill */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setProfileAberto(!profileAberto)}
+                  className="flex items-center gap-2 rounded-full bg-muted/60 hover:bg-muted p-1 pr-3 transition-colors border border-border/40"
+                >
+                  <div className="grid size-8 place-items-center rounded-full bg-brand text-white font-bold text-xs shadow-sm">
+                    {(usuario?.nome || "C").charAt(0).toUpperCase()}
+                  </div>
+                  <span className="hidden sm:inline text-xs font-bold truncate max-w-[100px]">{usuario?.nome ?? "Camila"}</span>
+                </button>
+
+                {profileAberto && (
+                  <div className="absolute right-0 mt-2 w-56 glass-panel rounded-3xl p-2 shadow-2xl border border-border/60 z-50 space-y-1">
+                    <div className="px-3 py-2 border-b border-border/40">
+                      <p className="text-xs font-bold">{usuario?.nome}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{usuario?.email}</p>
+                      <span className="inline-block mt-1 text-[9px] font-extrabold text-brand bg-brand/10 px-2 py-0.5 rounded-full uppercase">
+                        {rotuloPapel(usuario?.papel)}
+                      </span>
+                    </div>
+                    {ehAdmin && (
+                      <Link
+                        to="/usuarios"
+                        onClick={() => setProfileAberto(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl hover:bg-muted text-foreground"
+                      >
+                        <ShieldCheck className="size-4 text-brand" /> Controle de Acessos
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileAberto(false);
+                        logout();
+                        toast.info("Sessão encerrada.");
+                      }}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl text-destructive hover:bg-destructive/10 transition-colors"
+                    >
+                      <LogOut className="size-4" /> Sair do Sistema
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </header>
 
-          {children}
-
-          <div className="glass-panel sticky bottom-0 z-20 -mx-1 overflow-x-auto rounded-3xl p-2 lg:hidden">
-            <Navegacao papel={usuario?.papel} compacto />
           </div>
+        </header>
+
+        {/* TOP WELCOME & STATS BANNER ROW (REPRODUZINDO O TOPO DO ANEXO) */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/60 rounded-3xl p-5 border border-border/40">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
+              Welcome in, <span className="text-brand">{ehSuperAdmin ? "Master Kipi" : (usuario?.nome ?? "Ateliê")}</span>
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {subtitulo ?? "Acompanhe as métricas do seu sistema em tempo real e gestione sua produção com alta performance."}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Stat Pill 1 */}
+            <div className="flex items-center gap-2 bg-background/80 px-3.5 py-1.5 rounded-full border border-border/50 text-xs font-semibold">
+              <span className="bg-brand text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">18%</span>
+              <span className="text-muted-foreground">Conversão</span>
+            </div>
+
+            {/* Stat Pill 2 */}
+            <div className="flex items-center gap-2 bg-background/80 px-3.5 py-1.5 rounded-full border border-border/50 text-xs font-semibold">
+              <span className="bg-blossom text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">65%</span>
+              <span className="text-muted-foreground">Meta Mensal</span>
+            </div>
+
+            {/* Stat Pill 3 */}
+            <div className="hidden xl:flex items-center gap-2 bg-background/80 px-3.5 py-1.5 rounded-full border border-border/50 text-xs font-semibold">
+              <span className="bg-emerald-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">84%</span>
+              <span className="text-muted-foreground">Desempenho</span>
+            </div>
+
+            {acao}
+          </div>
+        </div>
+
+        {/* MAIN PAGE CONTENT */}
+        <main className="w-full space-y-6">
+          {children}
         </main>
+      </div>
+
+      {/* MOBILE BAR */}
+      <div className="lg:hidden fixed bottom-3 left-4 right-4 z-50 glass-panel rounded-full p-2 border border-border/60 shadow-2xl flex items-center justify-around">
+        {itensNav.slice(0, 5).map(({ para, rotulo, Icone }) => (
+          <Link
+            key={para}
+            to={para}
+            activeOptions={{ exact: para === "/" }}
+            activeProps={{ className: "bg-brand text-white font-bold" }}
+            inactiveProps={{ className: "text-muted-foreground" }}
+            className="flex flex-col items-center justify-center p-2 rounded-full size-10 transition-colors"
+            title={rotulo}
+          >
+            <Icone className="size-4" />
+          </Link>
+        ))}
       </div>
     </div>
   );

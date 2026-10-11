@@ -31,7 +31,32 @@ const CHAVE_SESSAO = "meu-atelie-sessao-v6";
 
 const id = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-export const empresasIniciais: Empresa[] = [];
+export const empresasIniciais: Empresa[] = [
+  {
+    id: "emp_1",
+    nome: "Ateliê Gourmet Bella",
+    documento: "12.345.678/0001-90",
+    plano: "Pro",
+    status: "ativa",
+    criadaEm: new Date().toISOString(),
+  },
+  {
+    id: "emp_2",
+    nome: "Confeitaria Doce Arte",
+    documento: "98.765.432/0001-10",
+    plano: "Enterprise",
+    status: "ativa",
+    criadaEm: new Date().toISOString(),
+  },
+  {
+    id: "emp_3",
+    nome: "Empório dos Bolos",
+    documento: "45.678.901/0001-23",
+    plano: "Starter",
+    status: "ativa",
+    criadaEm: new Date().toISOString(),
+  },
+];
 
 export const usuariosIniciais: Usuario[] = [
   {
