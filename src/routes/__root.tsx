@@ -79,6 +79,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              if (typeof window !== 'undefined') {
+                window.$_TSR = window.$_TSR || {
+                  buffer: [],
+                  p: function(s) { !this.initialized ? this.buffer.push(s) : s(); },
+                  h: function() { this.hydrated = true; this.c(); },
+                  e: function() { this.streamEnded = true; this.c(); },
+                  c: function() { if (this.hydrated && this.streamEnded) { delete window.$_TSR; } },
+                  router: { matches: [], manifest: {} }
+                };
+              }
               window.addEventListener('error', function(e) {
                 console.error("GLOBAL WINDOW ERROR:", e.error || e.message);
                 var existing = document.getElementById('debug-global-err-box');
