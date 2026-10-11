@@ -106,5 +106,40 @@ export const getRouter = () => {
     },
   });
 
+  // Polyfill HMR chunk replacement if invoked by Vite plugin
+  if (!(router as any)._replaceRouteChunk) {
+    (router as any)._replaceRouteChunk = () => {};
+  }
+
+  // Prevent _displayPending from freezing the client tree to a blank screen
+  const origUpdateMatch = router.updateMatch.bind(router);
+  router.updateMatch = (id: string, updater: any) => {
+    return origUpdateMatch(id, (prev: any) => {
+      const updated = typeof updater === "function" ? updater(prev) : updater;
+      if (updated && updated._displayPending) {
+        updated._displayPending = undefined;
+      }
+      return updated;
+    });
+  };
+
+  // On client, prefill window.$_TSR with exact matched routes before hydrate() checks isSpaMode
+  if (typeof window !== "undefined") {
+    try {
+      const pathname = window.location.pathname || "/";
+      const targetRoute = pathname === "/" ? "/_authenticated/" : `/_authenticated${pathname.replace(/\/$/, "")}`;
+      const lastId = targetRoute;
+      const initialMatches = [
+        { i: "__root__", s: "success", ssr: true, u: Date.now() },
+        { i: "/_authenticated", s: "success", ssr: true, u: Date.now() },
+        { i: lastId, s: "success", ssr: true, u: Date.now() },
+      ];
+      if ((window as any).$_TSR && (window as any).$_TSR.router) {
+        (window as any).$_TSR.router.matches = initialMatches;
+        (window as any).$_TSR.router.lastMatchId = lastId;
+      }
+    } catch {}
+  }
+
   return router;
 };

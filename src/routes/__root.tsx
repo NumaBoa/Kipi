@@ -81,16 +81,29 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             __html: `
               if (typeof window !== 'undefined') {
                 var safeRoutes = new Proxy({}, { get: function() { return { assets: [], scripts: [] }; } });
+                var path = window.location.pathname || '/';
+                var lastId = path === '/' ? '/_authenticated/' : ('/_authenticated' + path.replace(/\\/$/, ''));
+                var initialMatches = [
+                  { i: '__root__', s: 'success', ssr: true, u: Date.now() },
+                  { i: '/_authenticated', s: 'success', ssr: true, u: Date.now() },
+                  { i: lastId, s: 'success', ssr: true, u: Date.now() }
+                ];
                 window.$_TSR = window.$_TSR || {
                   buffer: [],
                   p: function(s) { !this.initialized ? this.buffer.push(s) : s(); },
                   h: function() { this.hydrated = true; },
                   e: function() { this.streamEnded = true; },
                   c: function() {},
-                  router: { matches: [], manifest: { routes: safeRoutes } }
+                  router: { matches: initialMatches, lastMatchId: lastId, manifest: { routes: safeRoutes } }
                 };
-                if (window.$_TSR.router && (!window.$_TSR.router.manifest || !window.$_TSR.router.manifest.routes)) {
-                  window.$_TSR.router.manifest = { routes: safeRoutes };
+                if (window.$_TSR.router) {
+                  if (!window.$_TSR.router.manifest || !window.$_TSR.router.manifest.routes) {
+                    window.$_TSR.router.manifest = { routes: safeRoutes };
+                  }
+                  if (!window.$_TSR.router.matches || window.$_TSR.router.matches.length === 0) {
+                    window.$_TSR.router.matches = initialMatches;
+                    window.$_TSR.router.lastMatchId = lastId;
+                  }
                 }
               }
             `,
