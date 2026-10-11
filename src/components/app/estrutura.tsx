@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   BarChart3,
+  Bell,
   Boxes,
   Building2,
   CakeSlice,
@@ -12,6 +13,7 @@ import {
   Moon,
   NotebookPen,
   Plus,
+  Settings,
   ShieldCheck,
   ShoppingBag,
   Sun,
@@ -60,13 +62,10 @@ const todosItens = [
 
 function Fundo() {
   return (
-    <div className="pointer-events-none fixed inset-0 overflow-hidden">
-      <div className="blob-a absolute -top-24 -left-24 h-96 w-96 rounded-full bg-brand/25 blur-3xl" />
-      <div className="blob-b absolute top-1/3 -right-16 h-[28rem] w-[28rem] rounded-full bg-blossom/20 blur-3xl" />
-      <div className="blob-a absolute -bottom-20 left-1/3 h-80 w-80 rounded-full bg-chart-3/25 blur-3xl" />
-    </div>
+    <div className="pointer-events-none fixed inset-0 overflow-hidden bg-[#F4F3F8] dark:bg-[#0F0E1A]" />
   );
 }
+
 
 function Navegacao({
   papel,
@@ -135,6 +134,7 @@ export function Estrutura({
     salvarUsuario,
     apagarUsuario,
     alternarEmpresaAtiva,
+    alternarModoVisao,
   } = useAuth();
   const navigate = useNavigate();
 
@@ -311,6 +311,50 @@ export function Estrutura({
                 </div>
               )}
 
+              {/* Quick View Switcher (Master SaaS vs Dono de Empresa) */}
+              <button
+                type="button"
+                onClick={() => {
+                  const proximo = ehSuperAdmin ? "admin" : "super_admin";
+                  alternarModoVisao(proximo);
+                  toast.success(proximo === "admin" ? "Visualizando como Dono da Empresa (Ateliê Bella)!" : "Visualizando como Master SaaS!");
+                }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black shadow-sm transition-all border",
+                  ehSuperAdmin
+                    ? "bg-[#FFC64F] text-[#084463] border-[#FFC64F] hover:bg-[#F5B83D]"
+                    : "bg-[#084463] text-white border-[#084463] hover:bg-[#06344C]"
+                )}
+                title="Alternar entre visão Master SaaS e visão do Cliente Dono"
+              >
+                <span>{ehSuperAdmin ? "🏪" : "👑"}</span>
+                <span className="hidden md:inline">{ehSuperAdmin ? "Ver como Dono de Empresa" : "Ver como Master SaaS"}</span>
+                <span className="md:hidden">{ehSuperAdmin ? "Dono" : "Master"}</span>
+              </button>
+
+              {/* Settings button pill */}
+              <button
+                type="button"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-300 dark:border-border text-xs font-semibold text-[#084463] dark:text-foreground hover:bg-slate-100 dark:hover:bg-muted transition-colors"
+              >
+                <Settings className="size-3.5" />
+                <span>Settings</span>
+              </button>
+
+              {/* Notification Bell with Badge */}
+              <div className="relative">
+                <button
+                  type="button"
+                  className="grid size-9 place-items-center rounded-full border border-slate-300 dark:border-border text-[#084463] dark:text-muted-foreground hover:text-foreground transition-colors"
+                  title="Notificações"
+                >
+                  <Bell className="size-4" />
+                </button>
+                <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-[#FFC64F] text-[9px] font-black text-[#084463] shadow-sm">
+                  3
+                </span>
+              </div>
+
               {/* Theme Toggle */}
               <button
                 type="button"
@@ -326,19 +370,17 @@ export function Estrutura({
                 <button
                   type="button"
                   onClick={() => setProfileAberto(!profileAberto)}
-                  className="flex items-center gap-2 rounded-full bg-muted/60 hover:bg-muted p-1 pr-3 transition-colors border border-border/40"
+                  className="grid size-9 place-items-center rounded-full bg-[#E8F4F8] dark:bg-muted border border-[#6BB9D4]/40 text-[#084463] dark:text-foreground font-black text-xs hover:bg-[#D5EDF5] transition-colors"
+                  title="Perfil"
                 >
-                  <div className="grid size-8 place-items-center rounded-full bg-brand text-white font-bold text-xs shadow-sm">
-                    {(usuario?.nome || "C").charAt(0).toUpperCase()}
-                  </div>
-                  <span className="hidden sm:inline text-xs font-bold truncate max-w-[100px]">{usuario?.nome ?? "Camila"}</span>
+                  {(usuario?.nome || "C").charAt(0).toUpperCase()}
                 </button>
 
                 {profileAberto && (
-                  <div className="absolute right-0 mt-2 w-56 glass-panel rounded-3xl p-2 shadow-2xl border border-border/60 z-50 space-y-1">
-                    <div className="px-3 py-2 border-b border-border/40">
-                      <p className="text-xs font-bold">{usuario?.nome}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{usuario?.email}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-card rounded-3xl p-2 shadow-2xl border border-slate-200 dark:border-border z-50 space-y-1">
+                    <div className="px-3 py-2 border-b border-slate-100 dark:border-border/40">
+                      <p className="text-xs font-bold text-[#084463] dark:text-foreground">{usuario?.nome}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-muted-foreground truncate">{usuario?.email}</p>
                       <span className="inline-block mt-1 text-[9px] font-extrabold text-brand bg-brand/10 px-2 py-0.5 rounded-full uppercase">
                         {rotuloPapel(usuario?.papel)}
                       </span>
@@ -347,7 +389,7 @@ export function Estrutura({
                       <Link
                         to="/usuarios"
                         onClick={() => setProfileAberto(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl hover:bg-muted text-foreground"
+                        className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground"
                       >
                         <ShieldCheck className="size-4 text-brand" /> Controle de Acessos
                       </Link>
@@ -371,37 +413,63 @@ export function Estrutura({
           </div>
         </header>
 
-        {/* TOP WELCOME & STATS BANNER ROW (REPRODUZINDO O TOPO DO ANEXO) */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card/60 rounded-3xl p-5 border border-border/40">
-          <div>
-            <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
-              Welcome in, <span className="text-brand">{ehSuperAdmin ? "Master Kipi" : (usuario?.nome ?? "Ateliê")}</span>
+        {/* TOP WELCOME & STATS BANNER ROW (PEACOCK & SAFFRON COASTAL PALETTE) */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white dark:bg-card rounded-[28px] p-6 shadow-sm border border-slate-200/70 dark:border-border/50">
+          <div className="space-y-3">
+            <h1 className="font-display text-3xl font-extrabold tracking-tight text-[#084463] dark:text-foreground">
+              Welcome in, <span className="text-[#084463] font-black">{ehSuperAdmin ? "Peoplexio" : (usuario?.nome ?? "Camila")}</span>
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {subtitulo ?? "Acompanhe as métricas do seu sistema em tempo real e gestione sua produção com alta performance."}
-            </p>
+            
+            <div className="flex flex-wrap items-center gap-2.5">
+              <div className="flex items-center gap-2 bg-[#084463] text-white px-5 py-2 rounded-full text-xs font-bold shadow-sm">
+                <span>Interviews</span>
+                <span className="bg-[#6BB9D4] text-[#084463] font-black px-2 py-0.5 rounded-full text-[10px]">18%</span>
+              </div>
+              <div className="flex items-center gap-2 bg-[#FFC64F] text-[#084463] px-5 py-2 rounded-full text-xs font-black shadow-sm">
+                <span>Hired</span>
+                <span className="bg-[#084463] text-white px-2 py-0.5 rounded-full text-[10px]">24%</span>
+              </div>
+              <div className="flex items-center gap-2 bg-[#E8F4F8] text-[#084463] dark:bg-muted dark:text-muted-foreground px-5 py-2 rounded-full text-xs font-bold">
+                <span>Project time</span>
+                <span className="text-[#084463] font-extrabold">65%</span>
+              </div>
+              <div className="flex items-center gap-2 border border-[#084463]/20 text-[#084463] dark:border-border px-5 py-2 rounded-full text-xs font-bold">
+                <span>Output</span>
+                <span className="text-[#084463] font-extrabold">12%</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Stat Pill 1 */}
-            <div className="flex items-center gap-2 bg-background/80 px-3.5 py-1.5 rounded-full border border-border/50 text-xs font-semibold">
-              <span className="bg-brand text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">18%</span>
-              <span className="text-muted-foreground">Conversão</span>
+          <div className="flex items-center gap-6 divide-x divide-slate-200 dark:divide-border shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-[#E8F4F8] dark:bg-slate-800 grid place-items-center text-[#084463]">
+                <Users className="size-5" />
+              </div>
+              <div>
+                <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">128</p>
+                <p className="text-xs text-slate-500 font-medium">Employees</p>
+              </div>
             </div>
 
-            {/* Stat Pill 2 */}
-            <div className="flex items-center gap-2 bg-background/80 px-3.5 py-1.5 rounded-full border border-border/50 text-xs font-semibold">
-              <span className="bg-blossom text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">65%</span>
-              <span className="text-muted-foreground">Meta Mensal</span>
+            <div className="pl-6 flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-[#FFF5DC] dark:bg-amber-950/40 grid place-items-center text-[#D97706]">
+                <Boxes className="size-5" />
+              </div>
+              <div>
+                <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">36</p>
+                <p className="text-xs text-slate-500 font-medium">Openings</p>
+              </div>
             </div>
 
-            {/* Stat Pill 3 */}
-            <div className="hidden xl:flex items-center gap-2 bg-background/80 px-3.5 py-1.5 rounded-full border border-border/50 text-xs font-semibold">
-              <span className="bg-emerald-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full">84%</span>
-              <span className="text-muted-foreground">Desempenho</span>
+            <div className="pl-6 flex items-center gap-3">
+              <div className="size-10 rounded-2xl bg-[#E8F4F8] dark:bg-slate-800 grid place-items-center text-[#6BB9D4]">
+                <Building2 className="size-5" />
+              </div>
+              <div>
+                <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">54</p>
+                <p className="text-xs text-slate-500 font-medium">Departments</p>
+              </div>
             </div>
-
-            {acao}
           </div>
         </div>
 

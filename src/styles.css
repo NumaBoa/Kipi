@@ -6,8 +6,8 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Design System "SaaS Modern Pill & Glass" — Inspirado na id visual Peoplexio.
- * Layout com Menu Acima, fontes moderníssimas (Plus Jakarta Sans + Outfit), e paleta roxo elétrico.
+ * Design System "Peacock & Saffron Coastal SaaS"
+ * Peacock (#084463), Icy Sky (#6BB9D4), Saffron (#FFC64F), Canvas (#F3F6F8)
  */
 
 @theme inline {
@@ -41,123 +41,88 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-blossom: var(--blossom);
+  --color-saffron: var(--saffron);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
-  --color-glass: var(--glass);
-  --color-glass-border: var(--glass-border);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  --shadow-glass: var(--shadow-glass);
 }
 
 :root {
-  --radius: 1.25rem;
-  --background: #F4F3F8;
-  --foreground: #18182B;
+  --radius: 1.5rem;
+  --background: #F3F6F8;
+  --foreground: #084463;
   --card: #FFFFFF;
-  --card-foreground: #18182B;
+  --card-foreground: #084463;
   --popover: #FFFFFF;
-  --popover-foreground: #18182B;
-  --primary: #5542F6;
+  --popover-foreground: #084463;
+  --primary: #084463;
   --primary-foreground: #FFFFFF;
-  --secondary: #EEECFF;
-  --secondary-foreground: #5542F6;
-  --muted: #F0EEF9;
-  --muted-foreground: #64748B;
-  --accent: #805AD5;
-  --accent-foreground: #FFFFFF;
+  --secondary: #E8F4F8;
+  --secondary-foreground: #084463;
+  --muted: #EBF1F5;
+  --muted-foreground: #557385;
+  --accent: #FFC64F;
+  --accent-foreground: #084463;
   --destructive: #EF4444;
   --destructive-foreground: #FFFFFF;
-  --border: rgba(24, 24, 43, 0.08);
-  --input: rgba(24, 24, 43, 0.12);
-  --ring: #5542F6;
+  --border: rgba(8, 68, 99, 0.08);
+  --input: rgba(8, 68, 99, 0.12);
+  --ring: #084463;
 
-  --brand: #5542F6;
-  --brand-strong: #4332D6;
-  --blossom: #9061F9;
+  --brand: #084463;
+  --brand-strong: #06344C;
+  --blossom: #6BB9D4;
+  --saffron: #FFC64F;
   --success: #10B981;
-  --warning: #F59E0B;
+  --warning: #FFC64F;
   --danger: #EF4444;
 
-  --glass: rgba(255, 255, 255, 0.88);
-  --glass-border: rgba(255, 255, 255, 0.95);
-  --shadow-glass: 0 10px 40px -10px rgba(85, 66, 246, 0.08);
-  --card-foreground: oklch(0.248 0.058 292);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.248 0.058 292);
-  --primary: oklch(0.607 0.211 279);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.94 0.014 292.8);
-  --secondary-foreground: oklch(0.248 0.058 292);
-  --muted: oklch(0.94 0.014 292.8);
-  --muted-foreground: oklch(0.538 0.044 291.4);
-  --accent: oklch(0.721 0.148 356);
-  --accent-foreground: oklch(1 0 0);
-  --destructive: oklch(0.577 0.215 27.3);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.248 0.058 292 / 10%);
-  --input: oklch(0.248 0.058 292 / 14%);
-  --ring: oklch(0.607 0.211 279);
-
-  --brand: oklch(0.607 0.211 279);
-  --brand-strong: oklch(0.552 0.224 277.3);
-  --blossom: oklch(0.721 0.148 356);
-  --success: oklch(0.596 0.127 163.2);
-  --warning: oklch(0.666 0.157 58.3);
-  --danger: oklch(0.577 0.215 27.3);
-
-  --glass: oklch(1 0 0 / 58%);
-  --glass-border: oklch(1 0 0 / 65%);
-  --shadow-glass: 0 20px 60px -24px oklch(0.248 0.058 292 / 28%);
-
-  --chart-1: oklch(0.607 0.211 279);
-  --chart-2: oklch(0.721 0.148 356);
-  --chart-3: oklch(0.811 0.101 293.6);
-  --chart-4: oklch(0.596 0.127 163.2);
-  --chart-5: oklch(0.666 0.157 58.3);
+  --chart-1: #084463;
+  --chart-2: #6BB9D4;
+  --chart-3: #FFC64F;
+  --chart-4: #10B981;
+  --chart-5: #F59E0B;
 }
 
 .dark {
-  --background: oklch(0.174 0.037 289.7);
-  --foreground: oklch(0.949 0.019 295.9);
-  --card: oklch(0.228 0.049 288.9);
-  --card-foreground: oklch(0.949 0.019 295.9);
-  --popover: oklch(0.228 0.049 288.9);
-  --popover-foreground: oklch(0.949 0.019 295.9);
-  --primary: oklch(0.684 0.171 282);
-  --primary-foreground: oklch(0.174 0.037 289.7);
-  --secondary: oklch(0.28 0.05 289);
-  --secondary-foreground: oklch(0.949 0.019 295.9);
-  --muted: oklch(0.28 0.05 289);
-  --muted-foreground: oklch(0.713 0.049 289.1);
-  --accent: oklch(0.774 0.122 353.9);
-  --accent-foreground: oklch(0.174 0.037 289.7);
-  --destructive: oklch(0.711 0.166 22.2);
-  --destructive-foreground: oklch(0.174 0.037 289.7);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --ring: oklch(0.684 0.171 282);
+  --background: #061B27;
+  --foreground: #F0F6F9;
+  --card: #0A2637;
+  --card-foreground: #F0F6F9;
+  --popover: #0A2637;
+  --popover-foreground: #F0F6F9;
+  --primary: #6BB9D4;
+  --primary-foreground: #061B27;
+  --secondary: #11364C;
+  --secondary-foreground: #F0F6F9;
+  --muted: #11364C;
+  --muted-foreground: #8EB3C7;
+  --accent: #FFC64F;
+  --accent-foreground: #061B27;
+  --destructive: #F87171;
+  --destructive-foreground: #FFFFFF;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: #6BB9D4;
 
-  --brand: oklch(0.684 0.171 282);
-  --brand-strong: oklch(0.607 0.211 279);
-  --blossom: oklch(0.774 0.122 353.9);
-  --success: oklch(0.773 0.153 163.2);
-  --warning: oklch(0.837 0.164 84.4);
-  --danger: oklch(0.711 0.166 22.2);
+  --brand: #6BB9D4;
+  --brand-strong: #084463;
+  --blossom: #FFC64F;
+  --saffron: #FFC64F;
+  --success: #34D399;
+  --warning: #FFC64F;
+  --danger: #F87171;
 
-  --glass: oklch(0.228 0.049 288.9 / 62%);
-  --glass-border: oklch(1 0 0 / 10%);
-  --shadow-glass: 0 24px 70px -28px oklch(0.1 0.03 290 / 75%);
-
-  --chart-1: oklch(0.684 0.171 282);
-  --chart-2: oklch(0.774 0.122 353.9);
-  --chart-3: oklch(0.811 0.101 293.6);
-  --chart-4: oklch(0.773 0.153 163.2);
-  --chart-5: oklch(0.837 0.164 84.4);
+  --chart-1: #6BB9D4;
+  --chart-2: #FFC64F;
+  --chart-3: #38BDF8;
+  --chart-4: #34D399;
+  --chart-5: #FBBF24;
 }
 
 @layer base {
@@ -174,66 +139,35 @@
 
   h1,
   h2,
-  h3 {
+  h3,
+  h4 {
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 700;
   }
 }
 
-/* Painel de vidro fosco — base visual de todo o sistema. */
+/* Painel nítido em branco puro com cantos arredondados e sombra extremamente suave */
 @utility glass-panel {
-  background-color: var(--glass);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--shadow-glass);
-  backdrop-filter: blur(28px) saturate(140%);
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px -2px rgba(8, 68, 99, 0.04);
 }
 
-/* Superfície interna, mais leve, para linhas e itens dentro de um painel. */
 @utility glass-inset {
-  background-color: color-mix(in oklab, var(--card) 45%, transparent);
-  border: 1px solid var(--glass-border);
+  background-color: #F8FAFB;
+  border: 1px solid rgba(8, 68, 99, 0.06);
+}
+
+.dark .glass-inset {
+  background-color: #0E3044;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 @utility gradient-brand {
-  background-image: linear-gradient(135deg, var(--brand), var(--blossom));
+  background-image: linear-gradient(135deg, #084463, #6BB9D4);
 }
 
-@keyframes blob-float-a {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(28px, -24px) scale(1.08);
-  }
-}
-
-@keyframes blob-float-b {
-  0%,
-  100% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(-30px, 22px) scale(1.12);
-  }
-}
-
-@utility blob-a {
-  animation: blob-float-a 13s ease-in-out infinite;
-}
-
-@utility blob-b {
-  animation: blob-float-b 17s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .blob-a,
-  .blob-b {
-    animation: none;
-  }
-}
-
-/* Scrollbar delicada e elegante para modais e contêineres */
+/* Scrollbar delicada e elegante */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -244,7 +178,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: oklch(0.607 0.211 279 / 30%);
+  background-color: rgba(8, 68, 99, 0.25);
   border-radius: 9999px;
 }
 
@@ -254,6 +188,6 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: oklch(0.607 0.211 279 / 35%) transparent;
+  scrollbar-color: rgba(8, 68, 99, 0.25) transparent;
 }
 

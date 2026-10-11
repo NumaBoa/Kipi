@@ -25,9 +25,9 @@ export type Usuario = {
   ultimoAcesso?: string;
 };
 
-const CHAVE_USUARIOS = "meu-atelie-usuarios-v6";
-const CHAVE_EMPRESAS = "meu-atelie-empresas-v6";
-const CHAVE_SESSAO = "meu-atelie-sessao-v6";
+const CHAVE_USUARIOS = "meu-atelie-usuarios-v7";
+const CHAVE_EMPRESAS = "meu-atelie-empresas-v7";
+const CHAVE_SESSAO = "meu-atelie-sessao-v7";
 
 const id = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -60,9 +60,21 @@ export const empresasIniciais: Empresa[] = [
 
 export const usuariosIniciais: Usuario[] = [
   {
-    id: "usr_super",
+    id: "usr_dono",
     nome: "Camila Lima",
     email: "camila.c.lima08@gmail.com",
+    senha: "P&ix1nh0!",
+    status: "ativo",
+    papel: "admin",
+    empresaIds: ["emp_1", "emp_2", "emp_3"],
+    empresaAtivaId: "emp_1",
+    criadoEm: new Date().toISOString(),
+    ultimoAcesso: new Date().toISOString(),
+  },
+  {
+    id: "usr_super",
+    nome: "Camila Lima (Master)",
+    email: "master@kipi.com.br",
     senha: "P&ix1nh0!",
     status: "ativo",
     papel: "super_admin",
@@ -120,13 +132,17 @@ export function gravarUsuarios(u: Usuario[]) {
 }
 
 export function lerSessao(): Usuario | null {
-  if (typeof window === "undefined") return null;
+  const padrao: Usuario = usuariosIniciais[0]!;
+  if (typeof window === "undefined") return padrao;
   const salvo = localStorage.getItem(CHAVE_SESSAO);
-  if (!salvo) return null;
+  if (!salvo) {
+    gravarSessao(padrao);
+    return padrao;
+  }
   try {
-    return (JSON.parse(salvo) as Usuario) ?? null;
+    return (JSON.parse(salvo) as Usuario) ?? padrao;
   } catch {
-    return null;
+    return padrao;
   }
 }
 
@@ -310,6 +326,27 @@ export function useAuth() {
     onSuccess: () => qc.invalidateQueries({ queryKey: CHAVE_EMPRESAS_QUERY }),
   });
 
+  const alternarModoVisaoMutation = useMutation({
+    mutationFn: async (novoPapel: PapelUsuario) => {
+      const padrao: Usuario = usuariosIniciais[0]!;
+      const sessaoAtual: Usuario = lerSessao() ?? padrao;
+      sessaoAtual.papel = novoPapel;
+      if (novoPapel === "admin") {
+        sessaoAtual.empresaAtivaId = listaEmpresas[0]?.id ?? "emp_1";
+        sessaoAtual.empresaIds = ["emp_1", "emp_2", "emp_3"];
+      } else {
+        sessaoAtual.empresaAtivaId = "";
+        sessaoAtual.empresaIds = [];
+      }
+      gravarSessao(sessaoAtual);
+      return sessaoAtual;
+    },
+    onSuccess: (dadosUser) => {
+      qc.setQueryData(CHAVE_AUTH_QUERY, dadosUser);
+      qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY });
+    },
+  });
+
   const ehSuperAdmin = usuario?.papel === "super_admin";
   const ehAdmin = usuario?.papel === "super_admin" || usuario?.papel === "admin";
 
@@ -326,6 +363,7 @@ export function useAuth() {
     toggleStatusUsuario: toggleStatusUsuarioMutation.mutateAsync,
     apagarUsuario: apagarUsuarioMutation.mutateAsync,
     alternarEmpresaAtiva: alternarEmpresaAtivaMutation.mutateAsync,
+    alternarModoVisao: alternarModoVisaoMutation.mutateAsync,
     salvarEmpresa: salvarEmpresaMutation.mutateAsync,
     apagarEmpresa: apagarEmpresaMutation.mutateAsync,
     isPending: loginMutation.isPending || logoutMutation.isPending,

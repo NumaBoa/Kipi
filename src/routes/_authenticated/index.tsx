@@ -1,5 +1,19 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Building2, CheckCircle2, Plus } from "lucide-react";
+import {
+  ArrowUpRight,
+  Boxes,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Laptop,
+  MoreVertical,
+  Pause,
+  Play,
+  Plus,
+  Timer,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 import { Estrutura } from "@/components/app/estrutura";
 import { CartaoIndicador, Etiqueta, Painel, TituloSecao, Vazio } from "@/components/app/painel";
@@ -28,6 +42,416 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+
+function PeoplexioGrid({ ehSuperAdmin = false }: { ehSuperAdmin?: boolean }) {
+  const [accordionAberto, setAccordionAberto] = useState<string | null>("devices");
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-12 xl:gap-6">
+      
+      {/* COLUMN 1: HERO PROFILE CARD & ACCORDION MENU (3 COLS) */}
+      <div className="lg:col-span-3 space-y-6">
+        {/* HERO FEATURED PROFILE CARD */}
+        <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-b from-[#E8F4F8] to-[#C9E7F2] p-5 pt-8 shadow-sm flex flex-col justify-end min-h-[320px]">
+          <img
+            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80"
+            alt={ehSuperAdmin ? "Ananya Sharma" : "Bella Silva"}
+            className="absolute inset-0 size-full object-cover object-top opacity-90"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#084463]/90 via-[#084463]/25 to-transparent" />
+          <div className="relative z-10 flex items-end justify-between gap-2 text-white">
+            <div>
+              <h3 className="font-display text-xl font-bold leading-tight">
+                {ehSuperAdmin ? "Ananya Sharma" : "Bella Silva"}
+              </h3>
+              <p className="text-xs text-cyan-100 font-medium">
+                {ehSuperAdmin ? "Senior HR Manager" : "Chef Confeiteira & Sócia"}
+              </p>
+            </div>
+            <div className="bg-[#FFC64F] text-[#084463] px-3 py-1.5 rounded-2xl shadow-sm text-right">
+              <p className="font-display text-sm font-black">
+                {ehSuperAdmin ? "₹95,000" : "R$ 42.500"}
+              </p>
+              <p className="text-[9px] uppercase tracking-wider font-extrabold opacity-90">
+                {ehSuperAdmin ? "Monthly Salary" : "Faturamento Mês"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ACCORDION MENU LIST CARD */}
+        <div className="bg-white dark:bg-card rounded-[28px] p-5 shadow-sm border border-slate-200/70 dark:border-border/50 space-y-3">
+          {/* Item 1 */}
+          <button
+            type="button"
+            onClick={() => setAccordionAberto(accordionAberto === "pension" ? null : "pension")}
+            className="flex w-full items-center justify-between py-2 text-xs font-bold text-[#084463] dark:text-foreground hover:text-[#6BB9D4] transition-colors"
+          >
+            <span>{ehSuperAdmin ? "Pension contributions" : "Custos Fixos & Despesas"}</span>
+            <ChevronDown className="size-4 text-slate-400" />
+          </button>
+
+          {/* Item 2: Devices (Expanded) */}
+          <div className="border-t border-slate-100 dark:border-border/40 pt-3">
+            <button
+              type="button"
+              onClick={() => setAccordionAberto(accordionAberto === "devices" ? null : "devices")}
+              className="flex w-full items-center justify-between pb-2 text-xs font-bold text-[#084463] dark:text-foreground hover:text-[#6BB9D4] transition-colors"
+            >
+              <span>{ehSuperAdmin ? "Devices" : "Dispositivos de Atendimento"}</span>
+              <ChevronUp className="size-4 text-[#084463]" />
+            </button>
+
+            {accordionAberto === "devices" && (
+              <div className="mt-2 flex items-center justify-between p-3 rounded-2xl bg-[#F8FAFB] dark:bg-muted/50 border border-slate-200/60 dark:border-border/40">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-[#084463] grid place-items-center text-white shadow-sm">
+                    <Laptop className="size-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#084463] dark:text-foreground">
+                      {ehSuperAdmin ? "MacBook Air" : "iPad Balcão de Pedidos"}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-medium">
+                      {ehSuperAdmin ? "Version M1" : "Terminal PDV Ativo"}
+                    </p>
+                  </div>
+                </div>
+                <button type="button" className="text-slate-400 hover:text-slate-600">
+                  <MoreVertical className="size-4" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Item 3 */}
+          <button
+            type="button"
+            onClick={() => setAccordionAberto(accordionAberto === "compensation" ? null : "compensation")}
+            className="flex w-full items-center justify-between border-t border-slate-100 dark:border-border/40 pt-3 text-xs font-bold text-[#084463] dark:text-foreground hover:text-[#6BB9D4] transition-colors"
+          >
+            <span>{ehSuperAdmin ? "Compensation Summary" : "Comissões de Revendedoras"}</span>
+            <ChevronDown className="size-4 text-slate-400" />
+          </button>
+
+          {/* Item 4 */}
+          <button
+            type="button"
+            onClick={() => setAccordionAberto(accordionAberto === "benefits" ? null : "benefits")}
+            className="flex w-full items-center justify-between border-t border-slate-100 dark:border-border/40 pt-3 text-xs font-bold text-[#084463] dark:text-foreground hover:text-[#6BB9D4] transition-colors"
+          >
+            <span>{ehSuperAdmin ? "Employee Benefits" : "Equipe da Cozinha & Produção"}</span>
+            <ChevronDown className="size-4 text-slate-400" />
+          </button>
+        </div>
+      </div>
+
+      {/* COLUMN 2 & 3: CENTER CHARTS & TIMELINE (6 COLS) */}
+      <div className="lg:col-span-6 space-y-6">
+        
+        {/* TOP ROW: PROGRESS & TIME TRACKER */}
+        <div className="grid gap-6 sm:grid-cols-2">
+          
+          {/* PROGRESS BAR CHART CARD */}
+          <div className="bg-white dark:bg-card rounded-[28px] p-6 shadow-sm border border-slate-200/70 dark:border-border/50 flex flex-col justify-between space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-sm font-bold text-[#084463] dark:text-foreground">
+                {ehSuperAdmin ? "Hiring Progress" : "Meta de Encomendas"}
+              </h3>
+              <ArrowUpRight className="size-4 text-slate-400" />
+            </div>
+
+            <div>
+              <p className="font-display text-3xl font-black text-[#084463] dark:text-foreground leading-none">24</p>
+              <p className="text-[11px] text-slate-500 font-medium mt-1">
+                {ehSuperAdmin ? "Hires this month" : "Encomendas entregues no mês"}
+              </p>
+              <div className="flex items-center gap-1 text-[11px] font-bold text-[#084463] mt-2">
+                <span>↑ 20% vs mês anterior</span>
+              </div>
+            </div>
+
+            {/* BAR CHART DISPLAY */}
+            <div className="relative pt-6">
+              {/* Badge 24 over Saturday */}
+              <div className="absolute top-0 right-0 bg-[#FFC64F] text-[#084463] text-[9px] font-black px-2.5 py-0.5 rounded-lg shadow-sm">
+                {ehSuperAdmin ? "24 Hires" : "24 Entregas"}
+              </div>
+
+              <div className="flex items-end justify-between gap-2 h-28 pt-4">
+                {[
+                  { day: "S", h: 40 },
+                  { day: "M", h: 60 },
+                  { day: "T", h: 75 },
+                  { day: "W", h: 65 },
+                  { day: "T", h: 80 },
+                  { day: "F", h: 50 },
+                  { day: "S", h: 95, active: true },
+                ].map((b, idx) => (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                    <div
+                      className={cn(
+                        "w-full rounded-t-lg transition-all",
+                        b.active ? "bg-[#084463]" : "bg-[#6BB9D4]/40 hover:bg-[#6BB9D4]/70"
+                      )}
+                      style={{ height: `${b.h}%` }}
+                    />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">{b.day}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* TIME TRACKER CIRCULAR PROGRESS CARD */}
+          <div className="bg-white dark:bg-card rounded-[28px] p-6 shadow-sm border border-slate-200/70 dark:border-border/50 flex flex-col justify-between space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-sm font-bold text-[#084463] dark:text-foreground">
+                {ehSuperAdmin ? "Time tracker" : "Tempo em Produção / Forno"}
+              </h3>
+              <ArrowUpRight className="size-4 text-slate-400" />
+            </div>
+
+            {/* CIRCULAR GAUGE SVG */}
+            <div className="relative size-36 mx-auto grid place-items-center">
+              <svg className="size-full -rotate-90" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  fill="none"
+                  stroke="#EBF1F5"
+                  strokeWidth="6"
+                  strokeDasharray="4 4"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="42"
+                  fill="none"
+                  stroke="#084463"
+                  strokeWidth="7"
+                  strokeDasharray="264"
+                  strokeDashoffset="75"
+                  strokeLinecap="round"
+                />
+              </svg>
+
+              <div className="absolute text-center">
+                <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">02:35</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-1">
+                  {ehSuperAdmin ? "Work Time" : "Tempo Ativo"}
+                </p>
+              </div>
+            </div>
+
+            {/* CONTROLS */}
+            <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center gap-2">
+                <button type="button" className="size-8 rounded-full border border-slate-200 grid place-items-center text-slate-700 hover:bg-slate-100 transition-colors">
+                  <Play className="size-3.5 fill-current ml-0.5" />
+                </button>
+                <button type="button" className="size-8 rounded-full border border-slate-200 grid place-items-center text-slate-700 hover:bg-slate-100 transition-colors">
+                  <Pause className="size-3.5 fill-current" />
+                </button>
+              </div>
+              <button type="button" className="size-9 rounded-full bg-[#084463] text-white grid place-items-center shadow-sm hover:bg-[#06344C] transition-colors">
+                <Timer className="size-4" />
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* BOTTOM ROW: CALENDAR TIMELINE WIDGET CARD */}
+        <div className="bg-white dark:bg-card rounded-[28px] p-6 shadow-sm border border-slate-200/70 dark:border-border/50 space-y-5">
+          {/* Calendar Month Header */}
+          <div className="flex items-center justify-between">
+            <button type="button" className="text-xs text-slate-400 font-bold flex items-center gap-1 hover:text-slate-700 transition-colors">
+              ‹ Outubro
+            </button>
+            <h3 className="font-display text-sm font-bold text-[#084463] dark:text-foreground">
+              {ehSuperAdmin ? "September 2024" : "Cronograma de Encomendas & Entregas"}
+            </h3>
+            <button type="button" className="text-xs text-slate-400 font-bold flex items-center gap-1 hover:text-slate-700 transition-colors">
+              Novembro ›
+            </button>
+          </div>
+
+          {/* Days selector row */}
+          <div className="grid grid-cols-6 gap-2 text-center border-b border-slate-100 dark:border-border/40 pb-4">
+            {[
+              { day: "Seg", date: 22 },
+              { day: "Ter", date: 23 },
+              { day: "Qua", date: 24, active: true },
+              { day: "Qui", date: 25 },
+              { day: "Sex", date: 26 },
+              { day: "Sáb", date: 27 },
+            ].map((d, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "p-2.5 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer",
+                  d.active
+                    ? "bg-[#084463] text-white font-bold shadow-md shadow-cyan-950/20"
+                    : "hover:bg-slate-100 dark:hover:bg-muted text-slate-600 dark:text-muted-foreground"
+                )}
+              >
+                <span className="text-[10px] font-medium opacity-80">{d.day}</span>
+                <span className="text-sm font-black mt-0.5">{d.date}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Timeline hours and event pills */}
+          <div className="space-y-3 pt-1 text-xs">
+            <div className="flex items-center gap-4">
+              <span className="text-slate-400 font-semibold w-16">09:00</span>
+              <div className="flex-1 border-t border-dashed border-slate-200" />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="text-slate-400 font-semibold w-16">10:00</span>
+              <div className="flex-1 bg-[#E8F4F8] dark:bg-muted/40 p-3 rounded-2xl border border-[#6BB9D4]/40 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-[#084463]">
+                    {ehSuperAdmin ? "Weekly Team Sync" : "Bolo de Casamento 3 Andares"}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    {ehSuperAdmin ? "Discuss progress on projects" : "Entrega agendada no Salão Luar"}
+                  </p>
+                </div>
+                <div className="flex -space-x-2">
+                  <div className="size-6 rounded-full bg-[#084463] border-2 border-white text-[9px] font-bold text-white grid place-items-center">🎂</div>
+                  <div className="size-6 rounded-full bg-[#6BB9D4] border-2 border-white text-[9px] font-bold text-[#084463] grid place-items-center">🧁</div>
+                  <div className="size-6 rounded-full bg-[#FFC64F] border-2 border-white text-[9px] font-bold text-[#084463] grid place-items-center">+2</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="text-slate-400 font-semibold w-16">11:00</span>
+              <div className="flex-1 border-t border-dashed border-slate-200" />
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="text-slate-400 font-semibold w-16">12:00</span>
+              <div className="flex-1 bg-[#FFF5DC] dark:bg-amber-950/30 p-3 rounded-2xl border border-[#FFC64F]/50 flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-[#92400E] dark:text-amber-200">
+                    {ehSuperAdmin ? "Onboarding Session" : "Kit 100 Doces Finos & Trufas"}
+                  </p>
+                  <p className="text-[10px] text-[#B45309] dark:text-amber-300/80 font-medium">
+                    {ehSuperAdmin ? "Introduction for new hires" : "Retirada balcão — Cliente Juliana"}
+                  </p>
+                </div>
+                <div className="flex -space-x-2">
+                  <div className="size-6 rounded-full bg-[#FFC64F] border-2 border-white text-[9px] font-bold text-[#084463] grid place-items-center">🍫</div>
+                  <div className="size-6 rounded-full bg-[#F59E0B] border-2 border-white text-[9px] font-bold text-white grid place-items-center">🎁</div>
+                  <div className="size-6 rounded-full bg-[#084463] border-2 border-white text-[9px] font-bold text-white grid place-items-center">+3</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="text-slate-400 font-semibold w-16">13:00</span>
+              <div className="flex-1 border-t border-dashed border-slate-200" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* COLUMN 4: RIGHT ONBOARDING & DARK PEACOCK TASK WIDGET (3 COLS) */}
+      <div className="lg:col-span-3 space-y-6">
+        
+        {/* ONBOARDING PROGRESS PERCENTAGE CARD */}
+        <div className="bg-white dark:bg-card rounded-[28px] p-6 shadow-sm border border-slate-200/70 dark:border-border/50 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-sm font-bold text-[#084463] dark:text-foreground">
+              {ehSuperAdmin ? "Onboarding" : "Metas Concluídas"}
+            </h3>
+            <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground">
+              {ehSuperAdmin ? "18%" : "82%"}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+            <span>{ehSuperAdmin ? "30%" : "60%"}</span>
+            <span>{ehSuperAdmin ? "25%" : "30%"}</span>
+            <span>{ehSuperAdmin ? "0%" : "10%"}</span>
+          </div>
+
+          {/* SEGMENTED PROGRESS PILL */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="h-9 rounded-2xl bg-[#084463] text-white flex items-center justify-center text-xs font-bold shadow-sm">
+              {ehSuperAdmin ? "Task" : "Produção"}
+            </div>
+            <div className="h-9 rounded-2xl bg-[#FFC64F] text-[#084463] flex items-center justify-center text-xs font-black">
+              {!ehSuperAdmin && "Vendas"}
+            </div>
+            <div className="h-9 rounded-2xl bg-[#E8F4F8] dark:bg-muted flex items-center justify-center text-xs font-bold">
+              {!ehSuperAdmin && "Giro"}
+            </div>
+          </div>
+        </div>
+
+        {/* DARK PEACOCK TASK HIGHLIGHT CARD (#084463) */}
+        <div className="bg-[#084463] text-white p-6 rounded-[28px] space-y-6 shadow-xl border border-white/10 relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-lg font-bold tracking-tight text-white">
+              {ehSuperAdmin ? "Onboarding Task" : "Tarefas do Ateliê"}
+            </h3>
+            <span className="font-display text-2xl font-black text-[#FFC64F]">2/5</span>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { id: 1, text: ehSuperAdmin ? "Welcome Kit" : "Confirmar Encomenda #104", done: true, time: "Hoje, 09:30" },
+              { id: 2, text: ehSuperAdmin ? "Team Meeting" : "Separar Cacau Belga & Frutas", done: true, time: "Hoje, 10:30" },
+              { id: 3, text: ehSuperAdmin ? "Project Update" : "Comprar Caixas Kraft & Fitas", done: false, time: "Amanhã, 12:00" },
+              { id: 4, text: ehSuperAdmin ? "Discuss OK Goals" : "Agendar com Revendedora Paula", done: false, time: "Quarta, 14:45" },
+              { id: 5, text: ehSuperAdmin ? "HR Policy Review" : "Calcular Custo da Fornada Trufas", done: false, time: "Quinta, 16:00" },
+            ].map((task) => (
+              <div
+                key={task.id}
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      "grid size-8 place-items-center rounded-xl transition-colors",
+                      task.done ? "bg-[#FFC64F] text-[#084463]" : "bg-white/10 text-cyan-200"
+                    )}
+                  >
+                    <CheckCircle2 className="size-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">{task.text}</p>
+                    <p className="text-[10px] text-cyan-200/70 font-medium">{task.time}</p>
+                  </div>
+                </div>
+
+                <div
+                  className={cn(
+                    "size-5 rounded-full border-2 grid place-items-center",
+                    task.done
+                      ? "bg-[#FFC64F] border-[#FFC64F] text-[#084463]"
+                      : "border-cyan-300/40 bg-transparent"
+                  )}
+                >
+                  {task.done && <CheckCircle2 className="size-3 fill-current" />}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 
 function PainelMasterSaaS({
   listaEmpresas,
@@ -60,18 +484,8 @@ function PainelMasterSaaS({
         </Button>
       }
     >
-      {/* BANNER RECEPTIVO MASTER */}
-      <Painel className="p-6 md:p-8 bg-gradient-to-r from-brand/15 via-blossom/10 to-transparent border border-brand/20 relative overflow-hidden">
-        <div className="relative z-10 space-y-2 max-w-3xl">
-          <Etiqueta tom="brand" className="px-3 py-1 text-xs">👑 Plataforma Master Kipi</Etiqueta>
-          <h2 className="font-display text-2xl md:text-3xl font-bold tracking-tight">
-            Desempenho Comercial do seu Software SaaS
-          </h2>
-          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
-            Bem-vinda ao seu centro de controle comercial. Acompanhe a contratação dos planos do seu site, total de empresas clientes ativas, receita recorrente mensal (MRR) e gestione o acesso das contas.
-          </p>
-        </div>
-      </Painel>
+      {/* PEOPLEIO EXACT 4-COLUMN DASHBOARD GRID */}
+      <PeoplexioGrid />
 
       {/* METRICAS CHAVE DO SAAS */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5">
@@ -129,13 +543,13 @@ function PainelMasterSaaS({
           </Painel>
 
           {/* PRO (RECOMENDADO) */}
-          <Painel className="p-6 space-y-4 border-2 border-brand/50 shadow-lg shadow-brand/10 relative overflow-hidden">
-            <div className="absolute top-0 right-0 bg-brand text-primary-foreground text-[9px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+          <Painel className="p-6 space-y-4 border-2 border-[#FFC64F] shadow-lg shadow-amber-500/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-[#FFC64F] text-[#084463] text-[9px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider">
               Popular
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-brand">Plano Pro</span>
-              <Etiqueta tom="brand">R$ 197 /mês</Etiqueta>
+              <span className="text-xs font-bold uppercase tracking-wider text-[#084463]">Plano Pro</span>
+              <Etiqueta tom="saffron">R$ 197 /mês</Etiqueta>
             </div>
             <div>
               <p className="font-display text-3xl font-bold text-brand">{empresasPro} <span className="text-xs font-normal text-muted-foreground">empresas</span></p>
@@ -163,127 +577,75 @@ function PainelMasterSaaS({
         </div>
       </section>
 
-      {/* TABELA DE EMPRESAS CONTRATANTES & WIDGET DARK */}
+      {/* TABELA DE EMPRESAS CONTRATANTES */}
       <section className="space-y-4">
         <TituloSecao
           titulo="Empresas Clientes Cadastradas & Status de Operação"
           descricao="Lista de ateliês e indústrias contratantes do seu sistema."
         />
 
-        <div className="grid gap-6 lg:grid-cols-12">
-          {/* TABELA (8 COLS) */}
-          <div className="lg:col-span-8 space-y-4">
-            {totalEmpresas === 0 ? (
-              <Painel className="p-12 text-center space-y-4 border-dashed border-2">
-                <div className="grid size-16 place-items-center rounded-3xl bg-brand/10 text-brand mx-auto">
-                  <Building2 className="size-8" />
-                </div>
-                <div className="space-y-1 max-w-md mx-auto">
-                  <h3 className="font-display text-lg font-bold">Nenhuma Empresa Contratante Cadastrada</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    O seu sistema Kipi está zerado e pronto para a comercialização. Cadastre a primeira empresa cliente para liberar as credenciais de acesso ao ateliê.
-                  </p>
-                </div>
-                <Button asChild className="rounded-full font-bold shadow-lg shadow-brand/25 h-11 px-6 bg-brand text-white">
-                  <Link to="/usuarios">
-                    <Plus className="size-4 mr-2" /> Cadastrar Primeira Empresa Cliente
-                  </Link>
-                </Button>
-              </Painel>
-            ) : (
-              <Painel className="p-0 overflow-hidden border border-border/60">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-muted/50 text-muted-foreground uppercase tracking-wider text-[10px] border-b border-border/50">
-                      <tr>
-                        <th className="py-3 px-4">Empresa</th>
-                        <th className="py-3 px-4">Documento</th>
-                        <th className="py-3 px-4">Plano</th>
-                        <th className="py-3 px-4">Status</th>
-                        <th className="py-3 px-4 text-right">Ação</th>
+        <div className="w-full">
+          {totalEmpresas === 0 ? (
+            <Painel className="p-12 text-center space-y-4 border-dashed border-2">
+              <div className="grid size-16 place-items-center rounded-3xl bg-brand/10 text-brand mx-auto">
+                <Building2 className="size-8" />
+              </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="font-display text-lg font-bold">Nenhuma Empresa Contratante Cadastrada</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  O seu sistema Kipi está zerado e pronto para a comercialização. Cadastre a primeira empresa cliente para liberar as credenciais de acesso ao ateliê.
+                </p>
+              </div>
+              <Button asChild className="rounded-full font-bold shadow-lg shadow-brand/25 h-11 px-6 bg-brand text-white">
+                <Link to="/usuarios">
+                  <Plus className="size-4 mr-2" /> Cadastrar Primeira Empresa Cliente
+                </Link>
+              </Button>
+            </Painel>
+          ) : (
+            <Painel className="p-0 overflow-hidden border border-border/60">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-muted/50 text-muted-foreground uppercase tracking-wider text-[10px] border-b border-border/50">
+                    <tr>
+                      <th className="py-3 px-4">Empresa</th>
+                      <th className="py-3 px-4">Documento</th>
+                      <th className="py-3 px-4">Plano</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4 text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {listaEmpresas.map((emp) => (
+                      <tr key={emp.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 px-4 font-semibold">{emp.nome}</td>
+                        <td className="py-3 px-4 text-muted-foreground">{emp.documento || "Não informado"}</td>
+                        <td className="py-3 px-4">
+                          <Etiqueta tom={emp.plano === "Enterprise" ? "blossom" : emp.plano === "Pro" ? "brand" : "neutro"}>
+                            {emp.plano}
+                          </Etiqueta>
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={cn(
+                            "inline-flex items-center gap-1.5 font-semibold text-[11px]",
+                            emp.status === "ativa" ? "text-emerald-500" : "text-amber-500"
+                          )}>
+                            <span className={cn("size-2 rounded-full", emp.status === "ativa" ? "bg-emerald-500" : "bg-amber-500")} />
+                            {emp.status === "ativa" ? "Ativa" : "Suspensa"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <Button asChild variant="ghost" size="sm" className="h-7 text-xs rounded-full">
+                            <Link to="/usuarios">Gerenciar</Link>
+                          </Button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/40">
-                      {listaEmpresas.map((emp) => (
-                        <tr key={emp.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-3 px-4 font-semibold">{emp.nome}</td>
-                          <td className="py-3 px-4 text-muted-foreground">{emp.documento || "Não informado"}</td>
-                          <td className="py-3 px-4">
-                            <Etiqueta tom={emp.plano === "Enterprise" ? "blossom" : emp.plano === "Pro" ? "brand" : "neutro"}>
-                              {emp.plano}
-                            </Etiqueta>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={cn(
-                              "inline-flex items-center gap-1.5 font-semibold text-[11px]",
-                              emp.status === "ativa" ? "text-emerald-500" : "text-amber-500"
-                            )}>
-                              <span className={cn("size-2 rounded-full", emp.status === "ativa" ? "bg-emerald-500" : "bg-amber-500")} />
-                              {emp.status === "ativa" ? "Ativa" : "Suspensa"}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right">
-                            <Button asChild variant="ghost" size="sm" className="h-7 text-xs rounded-full">
-                              <Link to="/usuarios">Gerenciar</Link>
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </Painel>
-            )}
-          </div>
-
-          {/* DARK HIGHLIGHT WIDGET CARD (EXATAMENTE COMO O CARD ESCURO DO ANEXO) */}
-          <div className="lg:col-span-4">
-            <div className="bg-[#18182B] text-white p-6 rounded-3xl space-y-6 shadow-2xl border border-white/10 relative overflow-hidden">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-display text-lg font-bold tracking-tight text-white">Tarefas & Onboarding</h3>
-                  <p className="text-[11px] text-slate-400">Status de Comercialização Kipi</p>
-                </div>
-                <span className="font-display text-xl font-extrabold text-brand bg-brand/20 px-3 py-1 rounded-2xl border border-brand/30">
-                  3/5
-                </span>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-
-              <div className="space-y-3">
-                {[
-                  { id: 1, text: "Configurar Domínio & SSL Vercel", done: true, time: "Concluído" },
-                  { id: 2, text: "Banco Multi-Tenant Supabase", done: true, time: "Concluído" },
-                  { id: 3, text: "Criar Conta Admin Master (Camila)", done: true, time: "Concluído" },
-                  { id: 4, text: "Cadastrar 1ª Empresa Contratante", done: false, time: "Em andamento" },
-                  { id: 5, text: "Lançar Campanhas de Divulgação", done: false, time: "Pendente" },
-                ].map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between p-3 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={cn(
-                          "grid size-7 place-items-center rounded-full transition-colors",
-                          task.done
-                            ? "bg-brand text-white shadow-md shadow-brand/40"
-                            : "border border-slate-600 text-transparent"
-                        )}
-                      >
-                        <CheckCircle2 className="size-4 fill-current text-white" />
-                      </div>
-                      <div>
-                        <p className={cn("text-xs font-semibold", task.done ? "line-through text-slate-400" : "text-white")}>
-                          {task.text}
-                        </p>
-                        <p className="text-[10px] text-slate-400">{task.time}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+            </Painel>
+          )}
         </div>
       </section>
     </Estrutura>
@@ -372,6 +734,9 @@ function PainelInicial() {
         </Button>
       }
     >
+      {/* PEOPLEIO EXACT 4-COLUMN DASHBOARD GRID */}
+      <PeoplexioGrid />
+
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5 2xl:gap-6">
         <CartaoIndicador
           rotulo="Faturamento hoje"
@@ -616,3 +981,4 @@ function PainelInicial() {
     </Estrutura>
   );
 }
+
