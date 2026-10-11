@@ -12,11 +12,11 @@ class GlobalErrorBoundary extends Component<{ children: ReactNode }, { error: Er
   static getDerivedStateFromError(error: Error) {
     return { error };
   }
-  componentDidCatch(error: Error, errorInfo: any) {
+  override componentDidCatch(error: Error, errorInfo: any) {
     console.error("CRITICAL CLIENT CRASH:", error, errorInfo);
     this.setState({ error, errorInfo });
   }
-  render() {
+  override render() {
     if (this.state.error) {
       return (
         <div style={{ padding: 32, fontFamily: "sans-serif", background: "#F8FAFB", color: "#084463", minHeight: "100vh" }}>

@@ -50,5 +50,35 @@ export const getRouter = () => {
     },
   });
 
+  let _stores: any = (router as any).stores;
+  Object.defineProperty(router, "stores", {
+    configurable: true,
+    enumerable: true,
+    get() {
+      if (_stores && !_stores.ids) {
+        _stores.ids = _stores.matchesId ?? { get: () => [] };
+      }
+      return _stores;
+    },
+    set(s: any) {
+      if (s && !s.ids) {
+        s.ids = s.matchesId ?? { get: () => [] };
+      }
+      _stores = s;
+    },
+  });
+  if (_stores && !_stores.ids) {
+    _stores.ids = _stores.matchesId ?? { get: () => [] };
+  }
+
+  const origUpdate = router.update.bind(router);
+  router.update = (newOptions: any) => {
+    origUpdate(newOptions);
+    if ((router as any).stores && !(router as any).stores.ids) {
+      (router as any).stores.ids = (router as any).stores.matchesId ?? { get: () => [] };
+    }
+    return router;
+  };
+
   return router;
 };
