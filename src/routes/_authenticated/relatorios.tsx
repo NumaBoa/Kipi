@@ -74,7 +74,7 @@ function PaginaRelatorios() {
   const topProdutos = useMemo(() => {
     const mapa = new Map<string, { nome: string; valor: number; unidades: number }>();
     for (const venda of validas) {
-      for (const item of venda.venda_itens) {
+      for (const item of venda.venda_itens || []) {
         const atual = mapa.get(item.nome_produto) ?? {
           nome: item.nome_produto,
           valor: 0,
@@ -98,7 +98,7 @@ function PaginaRelatorios() {
   const porCategoria = useMemo(() => {
     const mapa = new Map<string, number>();
     for (const venda of validas) {
-      for (const item of venda.venda_itens) {
+      for (const item of venda.venda_itens || []) {
         const produto = produtos.find((p) => p.id === item.produto_id);
         const chave = produto?.categoria ?? "outro";
         mapa.set(

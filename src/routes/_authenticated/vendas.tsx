@@ -1145,7 +1145,7 @@ function PaginaVendas() {
                           <div key={venda.id} className="glass-inset rounded-xl p-2.5 px-3 flex items-center justify-between text-xs">
                             <div>
                               <p className="font-medium">
-                                {venda.venda_itens.map((i) => `${num(i.quantidade, 0)}× ${i.nome_produto}`).join(", ")}
+                                {(venda.venda_itens || []).map((i) => `${num(i.quantidade, 0)}× ${i.nome_produto}`).join(", ")}
                               </p>
                               <p className="text-[11px] text-muted-foreground">
                                 {dataHora(venda.data)}

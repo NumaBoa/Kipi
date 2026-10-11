@@ -485,7 +485,7 @@ function PainelMasterSaaS({
       }
     >
       {/* PEOPLEIO EXACT 4-COLUMN DASHBOARD GRID */}
-      <PeoplexioGrid />
+      <PeoplexioGrid ehSuperAdmin={true} />
 
       {/* METRICAS CHAVE DO SAAS */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5">
@@ -735,7 +735,7 @@ function PainelInicial() {
       }
     >
       {/* PEOPLEIO EXACT 4-COLUMN DASHBOARD GRID */}
-      <PeoplexioGrid />
+      <PeoplexioGrid ehSuperAdmin={false} />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5 2xl:gap-6">
         <CartaoIndicador
@@ -947,7 +947,7 @@ function PainelInicial() {
                 </div>
                 <div className="min-w-0">
                   <p className="truncate font-medium">
-                    {venda.venda_itens.map((i) => `${num(i.quantidade, 0)}× ${i.nome_produto}`).join(", ") ||
+                    {(venda.venda_itens || []).map((i) => `${num(i.quantidade, 0)}× ${i.nome_produto}`).join(", ") ||
                       "Venda"}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">

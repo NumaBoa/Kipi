@@ -166,6 +166,7 @@ export function useAuth() {
   const { data: usuario = null } = useQuery<Usuario | null>({
     queryKey: CHAVE_AUTH_QUERY,
     queryFn: async () => lerSessao(),
+    initialData: () => lerSessao(),
   });
 
   const { data: listaUsuarios = usuariosIniciais } = useQuery({

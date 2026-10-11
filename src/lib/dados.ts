@@ -380,7 +380,10 @@ export function calcularProducaoPossivel(
 }
 
 export function statusInsumo(i: Insumo) {
-  return i.quantidade <= 0 ? "acabou" as const : i.quantidade <= i.minimo ? "baixo" as const : "ok" as const;
+  if (!i) return "ok" as const;
+  const qtd = Number(i.quantidade ?? 0);
+  const min = Number(i.minimo ?? 0);
+  return qtd <= 0 ? "acabou" as const : qtd <= min ? "baixo" as const : "ok" as const;
 }
 
 export function calcularComissaoRevendedora(venda: Venda, revendedora?: Revendedora | null): number {
@@ -388,7 +391,7 @@ export function calcularComissaoRevendedora(venda: Venda, revendedora?: Revended
   if (venda.status === "cancelado") return 0;
   
   if (revendedora.tipo_comissao === "valor_fixo") {
-    const qtdItens = venda.venda_itens.reduce((s, i) => s + i.quantidade, 0);
+    const qtdItens = (venda.venda_itens || []).reduce((s, i) => s + i.quantidade, 0);
     return qtdItens * Number(revendedora.comissao_fixa ?? 0);
   }
   
