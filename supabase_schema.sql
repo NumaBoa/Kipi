@@ -135,6 +135,18 @@ CREATE TABLE IF NOT EXISTS public.venda_itens (
   preco_unitario NUMERIC NOT NULL DEFAULT 0
 );
 
+-- GARANTIR COLUNA EMPRESA_ID CASO AS TABELAS JÁ EXISTAM
+ALTER TABLE public.categorias ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.insumos ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.revendedoras ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.revendedoras ADD COLUMN IF NOT EXISTS cliente_ids TEXT[] DEFAULT '{}';
+ALTER TABLE public.pagamentos_comissao ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.receitas ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.vendas ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.venda_itens ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+
 -- HABILITAR RLS PERMISSIVO
 ALTER TABLE public.empresas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.perfis ENABLE ROW LEVEL SECURITY;
@@ -148,7 +160,20 @@ ALTER TABLE public.receitas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.venda_itens ENABLE ROW LEVEL SECURITY;
 
--- POLÍTICAS DE ACESSO TOTAL PARA O APP
+-- REMOVER POLÍTICAS ANTIGAS SE EXISTIREM (EVITA ERRO 42710)
+DROP POLICY IF EXISTS "Acesso total empresas" ON public.empresas;
+DROP POLICY IF EXISTS "Acesso total perfis" ON public.perfis;
+DROP POLICY IF EXISTS "Acesso total categorias" ON public.categorias;
+DROP POLICY IF EXISTS "Acesso total insumos" ON public.insumos;
+DROP POLICY IF EXISTS "Acesso total produtos" ON public.produtos;
+DROP POLICY IF EXISTS "Acesso total clientes" ON public.clientes;
+DROP POLICY IF EXISTS "Acesso total revendedoras" ON public.revendedoras;
+DROP POLICY IF EXISTS "Acesso total pagamentos_comissao" ON public.pagamentos_comissao;
+DROP POLICY IF EXISTS "Acesso total receitas" ON public.receitas;
+DROP POLICY IF EXISTS "Acesso total vendas" ON public.vendas;
+DROP POLICY IF EXISTS "Acesso total venda_itens" ON public.venda_itens;
+
+-- RECRIAR POLÍTICAS DE ACESSO TOTAL PARA O APP
 CREATE POLICY "Acesso total empresas" ON public.empresas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total perfis" ON public.perfis FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total categorias" ON public.categorias FOR ALL USING (true) WITH CHECK (true);
@@ -161,7 +186,7 @@ CREATE POLICY "Acesso total receitas" ON public.receitas FOR ALL USING (true) WI
 CREATE POLICY "Acesso total vendas" ON public.vendas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total venda_itens" ON public.venda_itens FOR ALL USING (true) WITH CHECK (true);
 
--- DADOS INICIAIS DA EMPRESA MATRIZ E CONTAS
+-- DADOS INICIAIS DA EMPRESA MATRIZ
 INSERT INTO public.empresas (id, nome, documento, plano, status) VALUES
   ('emp_matriz', 'Ateliê Gourmet (Matriz)', '12.345.678/0001-90', 'Enterprise', 'ativa')
 ON CONFLICT (id) DO NOTHING;
