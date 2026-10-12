@@ -203,6 +203,7 @@ export function PaginaVendas() {
   const [modalNovoCliente, setModalNovoCliente] = useState(false);
   const [novoClienteNome, setNovoClienteNome] = useState("");
   const [novoClienteTelefone, setNovoClienteTelefone] = useState("");
+  const [novoClienteTag, setNovoClienteTag] = useState("");
   const [novoClienteBairro, setNovoClienteBairro] = useState("");
   const [novoClienteObs, setNovoClienteObs] = useState("");
 
@@ -219,6 +220,7 @@ export function PaginaVendas() {
         id: novoId,
         nome: novoClienteNome.trim(),
         telefone: novoClienteTelefone.trim() || null,
+        tag: novoClienteTag.trim() || null,
         bairro: novoClienteBairro.trim() || null,
         observacoes: novoClienteObs.trim() || null,
         tipo_contato: "cliente",
@@ -229,6 +231,7 @@ export function PaginaVendas() {
       setModalNovoCliente(false);
       setNovoClienteNome("");
       setNovoClienteTelefone("");
+      setNovoClienteTag("");
       setNovoClienteBairro("");
       setNovoClienteObs("");
       toast.success(`Cliente "${novoClienteNome.trim()}" cadastrado e selecionado!`);
@@ -865,19 +868,31 @@ export function PaginaVendas() {
                       <SelectContent className="max-h-60 rounded-2xl">
                         <SelectItem value="avulso">🛍️ Venda Balcão / Cliente Rápido</SelectItem>
                         {ehRevendedor ? (
-                          clientesDoRevendedor.map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              👤 {c.nome} {c.telefone ? `(${formatarTelefone(c.telefone)})` : ""}
-                            </SelectItem>
-                          ))
+                          clientesDoRevendedor.map((c) => {
+                            const rotuloExtra = c.tag?.trim()
+                              ? `(${c.tag.trim()})`
+                              : c.telefone
+                              ? `${formatarTelefone(c.telefone)}`
+                              : "";
+                            return (
+                              <SelectItem key={c.id} value={c.id}>
+                                👤 {c.nome} {rotuloExtra}
+                              </SelectItem>
+                            );
+                          })
                         ) : (
                           clientes.map((c) => {
                             const revNome = c.revendedora_id
                               ? revendedoras.find((r) => r.id === c.revendedora_id)?.nome
                               : null;
+                            const rotuloExtra = c.tag?.trim()
+                              ? `(${c.tag.trim()})`
+                              : c.telefone
+                              ? `${formatarTelefone(c.telefone)}`
+                              : "";
                             return (
                               <SelectItem key={c.id} value={c.id}>
-                                👤 {c.nome} {c.telefone ? `(${formatarTelefone(c.telefone)})` : ""}
+                                👤 {c.nome} {rotuloExtra}
                                 {revNome ? ` · 🏪 ${revNome}` : ""}
                               </SelectItem>
                             );
@@ -1257,14 +1272,24 @@ export function PaginaVendas() {
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-700">Bairro / Região</Label>
+                <Label className="text-xs font-bold text-slate-700">Tag / Identificador</Label>
                 <Input
-                  placeholder="Ex: Centro"
-                  value={novoClienteBairro}
-                  onChange={(e) => setNovoClienteBairro(e.target.value)}
+                  placeholder="Ex: Vizinha, Instagram, VIP"
+                  value={novoClienteTag}
+                  onChange={(e) => setNovoClienteTag(e.target.value)}
                   className="mt-1 rounded-xl"
                 />
               </div>
+            </div>
+
+            <div>
+              <Label className="text-xs font-bold text-slate-700">Bairro / Região</Label>
+              <Input
+                placeholder="Ex: Centro"
+                value={novoClienteBairro}
+                onChange={(e) => setNovoClienteBairro(e.target.value)}
+                className="mt-1 rounded-xl"
+              />
             </div>
 
             <div>

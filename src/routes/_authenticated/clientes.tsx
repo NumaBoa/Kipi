@@ -1063,6 +1063,11 @@ export function PaginaContatos() {
                   <div className="space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-black text-slate-900 text-base">{item.nome}</span>
+                      {item.clienteObj?.tag && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                          🏷️ {item.clienteObj.tag}
+                        </span>
+                      )}
                       
                       {item.perfil === "cliente" && (
                         <>
@@ -1506,15 +1511,26 @@ export function PaginaContatos() {
               />
             </div>
 
-            <div>
-              <Label className="text-xs font-bold text-slate-700">Telefone / WhatsApp</Label>
-              <Input
-                placeholder="(11) 99999-9999"
-                value={formCliente.telefone || ""}
-                onChange={(e) => setFormCliente({ ...formCliente, telefone: formatarTelefone(e.target.value) })}
-                maxLength={15}
-                className="mt-1 rounded-xl"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs font-bold text-slate-700">Telefone / WhatsApp</Label>
+                <Input
+                  placeholder="(11) 99999-9999"
+                  value={formCliente.telefone || ""}
+                  onChange={(e) => setFormCliente({ ...formCliente, telefone: formatarTelefone(e.target.value) })}
+                  maxLength={15}
+                  className="mt-1 rounded-xl"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-bold text-slate-700">Tag / Identificador (Exibido nas Vendas)</Label>
+                <Input
+                  placeholder="Ex: Vizinha, Instagram, VIP"
+                  value={formCliente.tag || ""}
+                  onChange={(e) => setFormCliente({ ...formCliente, tag: e.target.value })}
+                  className="mt-1 rounded-xl"
+                />
+              </div>
             </div>
 
             {/* CAMPOS ESPECÍFICOS DE REVENDEDOR */}
