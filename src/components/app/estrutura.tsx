@@ -62,6 +62,8 @@ const itensSuperAdmin = [
   { para: "/", rotulo: "Painel SaaS", Icone: LayoutDashboard },
   { para: "/usuarios", rotulo: "Empresas & Contas", Icone: ShieldCheck },
   { para: "/relatorios", rotulo: "Relatórios Globais", Icone: BarChart3 },
+  { para: "/vendas", rotulo: "Pedidos & Revenda", Icone: ShoppingBag },
+  { para: "/clientes", rotulo: "Meus Clientes", Icone: Users },
 ] as const;
 
 const itensRevendedor = [
@@ -95,6 +97,8 @@ function Navegacao({
           if (para === "/") textoExibido = "Painel SaaS";
           if (para === "/usuarios") textoExibido = "Empresas & Clientes";
           if (para === "/relatorios") textoExibido = "Relatórios Globais";
+          if (para === "/vendas") textoExibido = "Pedidos & Revenda";
+          if (para === "/clientes") textoExibido = "Meus Clientes";
         }
 
         return (
@@ -370,10 +374,28 @@ export function Estrutura({
                 </div>
               </label>
 
-              <div>
+              <div className="flex items-center gap-2">
                 <span className="font-display text-base sm:text-lg font-extrabold tracking-tight text-[#084463] dark:text-foreground">
                   {ehSuperAdmin ? "Kipi" : (empresaAtual?.nome ?? "Ateliê Gourmet Bella")}
                 </span>
+                {ehSuperAdmin && listaEmpresas.length > 1 && (
+                  <Select
+                    value={empresaAtual?.id}
+                    onValueChange={(val) => alternarEmpresaAtiva(val)}
+                  >
+                    <SelectTrigger className="h-7 text-[11px] font-bold rounded-lg border-slate-200 bg-white/80 dark:bg-card px-2 gap-1.5 text-[#084463] shadow-none">
+                      <Building2 className="size-3 text-brand" />
+                      <SelectValue placeholder="Empresa Ativa" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {listaEmpresas.map((emp) => (
+                        <SelectItem key={emp.id} value={emp.id} className="text-xs font-semibold">
+                          🏢 {emp.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
@@ -385,6 +407,8 @@ export function Estrutura({
                   if (para === "/") textoExibido = "Painel SaaS";
                   if (para === "/usuarios") textoExibido = "Clientes & Contas";
                   if (para === "/relatorios") textoExibido = "Relatórios";
+                  if (para === "/vendas") textoExibido = "Pedidos & Revenda";
+                  if (para === "/clientes") textoExibido = "Meus Clientes";
                 }
 
                 return (
