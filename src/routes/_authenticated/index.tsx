@@ -185,8 +185,19 @@ function PainelMasterSaaS({
   );
 }
 
+// Wrapper: apenas escolhe o painel. Nenhum hook condicional aqui,
+// evitando o React error #300 (número de hooks diferente entre renders).
 function PainelInicial() {
   const { ehSuperAdmin, listaEmpresas, listaUsuarios } = useAuth();
+
+  if (ehSuperAdmin) {
+    return <PainelMasterSaaS listaEmpresas={listaEmpresas} listaUsuarios={listaUsuarios} />;
+  }
+
+  return <PainelNegocio />;
+}
+
+function PainelNegocio() {
   const [abaAtiva, setAbaAtiva] = useState<"hoje" | "financeiro" | "compras">("hoje");
   const [modoGrafico, setModoGrafico] = useState<"divisao" | "faturamento">("divisao");
 
@@ -195,10 +206,6 @@ function PainelInicial() {
   const { data: produtos = [] } = useProdutos();
   const { data: clientes = [] } = useClientes();
   const { data: revendedoras = [] } = useRevendedoras();
-
-  if (ehSuperAdmin) {
-    return <PainelMasterSaaS listaEmpresas={listaEmpresas} listaUsuarios={listaUsuarios} />;
-  }
 
   const validas = useMemo(() => vendas.filter((v) => v.status !== "cancelado"), [vendas]);
 
