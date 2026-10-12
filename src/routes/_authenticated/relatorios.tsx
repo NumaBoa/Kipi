@@ -14,11 +14,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Trophy, Users } from "lucide-react";
 import { Estrutura } from "@/components/app/estrutura";
 import { CartaoIndicador, Painel, TituloSecao, Vazio } from "@/components/app/painel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, dataCurta, num } from "@/lib/format";
-import { useProdutos, useVendas } from "@/lib/dados";
+import { useClientes, useProdutos, useRevendedoras, useVendas } from "@/lib/dados";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/relatorios")({
   head: () => ({
@@ -41,15 +43,43 @@ export const Route = createFileRoute("/_authenticated/relatorios")({
 const CORES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
 function PaginaRelatorios() {
+  const { usuario } = useAuth();
   const { data: vendas = [] } = useVendas();
   const { data: produtos = [] } = useProdutos();
+  const { data: clientes = [] } = useClientes();
+  const { data: revendedoras = [] } = useRevendedoras();
+
+  const revendedorVinculado = useMemo(() => {
+    return (
+      revendedoras.find(
+        (r) =>
+          (r.usuario_id && r.usuario_id === usuario?.id) ||
+          (r.email && usuario?.email && r.email.toLowerCase() === usuario.email.toLowerCase()) ||
+          (r.nome && usuario?.nome && r.nome.toLowerCase() === usuario.nome.toLowerCase())
+      ) ?? null
+    );
+  }, [revendedoras, usuario]);
+
+  const ehRevendedor = usuario?.papel === "revendedor" || Boolean(revendedorVinculado);
+  const revendedorLogado = useMemo(() => {
+    if (!ehRevendedor) return null;
+    return revendedorVinculado ?? revendedoras[0] ?? null;
+  }, [ehRevendedor, revendedorVinculado, revendedoras]);
+
   const [periodo, setPeriodo] = useState<"7" | "30" | "90">("30");
 
   const dias = Number(periodo);
   const inicio = new Date(Date.now() - (dias - 1) * 86400000);
   inicio.setHours(0, 0, 0, 0);
 
-  const validas = vendas.filter((v) => v.status !== "cancelado" && new Date(v.data) >= inicio);
+  const validas = useMemo(() => {
+    const list = vendas.filter((v) => v.status !== "cancelado" && new Date(v.data) >= inicio);
+    if (ehRevendedor && revendedorLogado) {
+      return list.filter((v) => v.canal === "revendedora" && v.revendedora_id === revendedorLogado.id);
+    }
+    return list;
+  }, [vendas, inicio, ehRevendedor, revendedorLogado]);
+
   const faturamento = validas.reduce((s, v) => s + Number(v.total), 0);
   const custo = validas.reduce((s, v) => s + Number(v.custo_total), 0);
   const lucro = faturamento - custo;
@@ -70,6 +100,69 @@ function PaginaRelatorios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [vendas, periodo],
   );
+
+  // Top 3 Produtos mais vendidos (por quantidade)
+  const top3ProdutosQtd = useMemo(() => {
+    const mapa = new Map<string, { nome: string; quantidade: number; valorTotal: number }>();
+    for (const venda of validas) {
+      for (const item of venda.venda_itens || []) {
+        const nome = item.nome_produto?.trim() || "Produto";
+        const atual = mapa.get(nome) ?? { nome, quantidade: 0, valorTotal: 0 };
+        const qtd = Number(item.quantidade) || 0;
+        atual.quantidade += qtd;
+        atual.valorTotal += (Number(item.preco_unitario) || 0) * qtd;
+        mapa.set(nome, atual);
+      }
+    }
+    return [...mapa.values()]
+      .sort((a, b) => b.quantidade - a.quantidade || b.valorTotal - a.valorTotal)
+      .slice(0, 3);
+  }, [validas]);
+
+  // Top 3 Clientes que mais compram (por quantidade de itens/produtos)
+  const top3ClientesQtd = useMemo(() => {
+    const mapa = new Map<string, {
+      id: string;
+      nome: string;
+      tag?: string | null;
+      quantidadeItens: number;
+      totalPedidos: number;
+      valorTotal: number;
+    }>();
+
+    for (const v of validas) {
+      const cli = v.cliente_id ? clientes.find((c) => c.id === v.cliente_id) : null;
+      const nome = v.clientes?.nome || cli?.nome || (v.cliente_id ? "Cliente" : "Venda Balcão / Avulsa");
+      const tag = (cli as any)?.tag || null;
+      const chave = v.cliente_id || `balcao_${nome.toLowerCase()}`;
+
+      const qtdItens = (v.venda_itens || []).reduce((acc, item) => acc + (Number(item.quantidade) || 1), 0);
+      const val = Number(v.total) || 0;
+
+      const atual = mapa.get(chave) ?? {
+        id: chave,
+        nome,
+        tag,
+        quantidadeItens: 0,
+        totalPedidos: 0,
+        valorTotal: 0,
+      };
+
+      atual.quantidadeItens += qtdItens;
+      atual.totalPedidos += 1;
+      atual.valorTotal += val;
+      if (tag && !atual.tag) atual.tag = tag;
+      mapa.set(chave, atual);
+    }
+
+    const todos = Array.from(mapa.values());
+    const identificados = todos.filter((c) => !c.id.startsWith("balcao_"));
+    const listaParaOrdenar = identificados.length > 0 ? identificados : todos;
+
+    return listaParaOrdenar
+      .sort((a, b) => b.quantidadeItens - a.quantidadeItens || b.totalPedidos - a.totalPedidos)
+      .slice(0, 3);
+  }, [validas, clientes]);
 
   const topProdutos = useMemo(() => {
     const mapa = new Map<string, { nome: string; valor: number; unidades: number }>();
@@ -112,8 +205,12 @@ function PaginaRelatorios() {
 
   return (
     <Estrutura
-      titulo="Relatórios"
-      subtitulo="Resultado do período"
+      titulo={ehRevendedor ? "Relatórios do Revendedor" : "Relatórios"}
+      subtitulo={
+        ehRevendedor
+          ? `Desempenho e métricas de ${revendedorLogado?.nome || "Revenda Autorizada"} no período`
+          : "Resultado e métricas consolidadas do ateliê"
+      }
       acao={
         <Tabs value={periodo} onValueChange={(v) => setPeriodo(v as typeof periodo)}>
           <TabsList className="rounded-full">
@@ -141,6 +238,166 @@ function PaginaRelatorios() {
           tom="success"
         />
         <CartaoIndicador rotulo="Ticket médio" valor={brl(ticket)} etiqueta="por venda" tom="blossom" />
+      </section>
+
+      {/* TOP 3 PRODUTOS E TOP 3 CLIENTES (VISÃO REVENDEDORA / VISÃO DONA) */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* CARD: TOP 3 PRODUTOS MAIS VENDIDOS */}
+        <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-border/40">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 shadow-xs">
+                <Trophy className="size-4.5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-foreground">
+                  Top 3 Produtos Mais Vendidos
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  {ehRevendedor ? "No seu ponto de venda" : "Em todo o ateliê"} · por quantidade no período
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full border border-amber-200/60">
+              Quantidade (un)
+            </span>
+          </div>
+
+          {top3ProdutosQtd.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-4 text-center">
+              Nenhuma venda registrada no período selecionado.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {top3ProdutosQtd.map((p, idx) => {
+                const maxQtd = top3ProdutosQtd[0]?.quantidade || 1;
+                const perc = Math.round((p.quantidade / maxQtd) * 100);
+                const medalhas = ["🥇 1º", "🥈 2º", "🥉 3º"];
+                const coresMedalha = [
+                  "bg-amber-500 text-white shadow-xs",
+                  "bg-slate-400 text-white",
+                  "bg-amber-700/80 text-white",
+                ];
+
+                return (
+                  <div
+                    key={p.nome}
+                    className="p-2.5 sm:p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/30 border border-slate-100 dark:border-border/40 space-y-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${coresMedalha[idx]}`}>
+                          {medalhas[idx]}
+                        </span>
+                        <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {p.nome}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-foreground">
+                          {num(p.quantidade)} <span className="text-[11px] font-semibold text-slate-500">un</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {brl(p.valorTotal)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* BARRA DE PROGRESSO RELATIVO */}
+                    <div className="w-full h-1.5 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#084463] rounded-full transition-all duration-500"
+                        style={{ width: `${perc}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* CARD: TOP 3 CLIENTES QUE MAIS COMPRAM */}
+        <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-border/40">
+            <div className="flex items-center gap-2.5">
+              <div className="size-9 rounded-2xl bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
+                <Users className="size-4.5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-foreground">
+                  Top 3 Clientes Que Mais Compram
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  {ehRevendedor ? "No seu ponto de venda" : "Em todo o ateliê"} · por quantidade no período
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-full border border-purple-200/60">
+              Itens Comprados
+            </span>
+          </div>
+
+          {top3ClientesQtd.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-4 text-center">
+              Nenhum cliente com compras no período selecionado.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              {top3ClientesQtd.map((c, idx) => {
+                const maxQtd = top3ClientesQtd[0]?.quantidadeItens || 1;
+                const perc = Math.round((c.quantidadeItens / maxQtd) * 100);
+                const medalhas = ["🥇 1º", "🥈 2º", "🥉 3º"];
+                const coresMedalha = [
+                  "bg-purple-600 text-white shadow-xs",
+                  "bg-slate-400 text-white",
+                  "bg-amber-700/80 text-white",
+                ];
+
+                return (
+                  <div
+                    key={c.id}
+                    className="p-2.5 sm:p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/30 border border-slate-100 dark:border-border/40 space-y-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${coresMedalha[idx]}`}>
+                          {medalhas[idx]}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 truncate block">
+                            {c.nome}
+                          </span>
+                          {c.tag && (
+                            <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded-md inline-block">
+                              🏷️ {c.tag}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-foreground">
+                          {num(c.quantidadeItens)} <span className="text-[11px] font-semibold text-slate-500">itens</span>
+                        </span>
+                        <span className="text-[10px] text-slate-500 block">
+                          {c.totalPedidos} {c.totalPedidos === 1 ? "pedido" : "pedidos"} · {brl(c.valorTotal)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* BARRA DE PROGRESSO RELATIVO */}
+                    <div className="w-full h-1.5 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-purple-600 rounded-full transition-all duration-500"
+                        style={{ width: `${perc}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </section>
 
       <Painel className="p-6">
