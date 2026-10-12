@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, isSupabaseConfigured } from "./supabase";
+import { obterEmpresaAtivaId } from "./auth";
 
 export type Insumo = {
   id: string;
@@ -9,6 +10,7 @@ export type Insumo = {
   quantidade: number;
   minimo: number;
   custo_unitario: number;
+  empresa_id?: string | undefined;
 };
 export type Produto = {
   id: string;
@@ -23,6 +25,7 @@ export type Produto = {
   tempo_preparo_minutos?: number;
   valor_hora_trabalho?: number;
   rendimento_unidades?: number;
+  empresa_id?: string | undefined;
 };
 export type Cliente = {
   id: string;
@@ -35,6 +38,7 @@ export type Cliente = {
   observacoes: string | null;
   tipo_contato?: "cliente" | "revendedor" | "parceiro" | undefined;
   revendedora_id?: string | null | undefined;
+  empresa_id?: string | undefined;
 };
 export type Revendedora = {
   id: string;
@@ -49,6 +53,7 @@ export type Revendedora = {
   cliente_ids?: string[] | undefined;
   email?: string | null | undefined;
   usuario_id?: string | null | undefined;
+  empresa_id?: string | undefined;
 };
 export type PagamentoComissao = {
   id: string;
@@ -56,13 +61,15 @@ export type PagamentoComissao = {
   valor: number;
   data: string;
   observacoes: string | null;
+  empresa_id?: string | undefined;
 };
 export type Categoria = {
   id: string;
   nome: string;
+  empresa_id?: string | undefined;
 };
-export type ReceitaItem = { id: string; produto_id: string; insumo_id: string; quantidade: number };
-export type VendaItem = { id: string; venda_id: string; produto_id: string | null; nome_produto: string; quantidade: number; preco_unitario: number };
+export type ReceitaItem = { id: string; produto_id: string; insumo_id: string; quantidade: number; empresa_id?: string | undefined };
+export type VendaItem = { id: string; venda_id: string; produto_id: string | null; nome_produto: string; quantidade: number; preco_unitario: number; empresa_id?: string | undefined };
 export type Venda = {
   id: string;
   cliente_id: string | null;
@@ -84,6 +91,7 @@ export type Venda = {
   revendedoras?: { nome: string } | null;
   tipo_destino_lote?: "pronto" | "congelado" | undefined;
   baixar_insumos_lote?: boolean | undefined;
+  empresa_id?: string | undefined;
 };
 export type RemessaConsignacao = {
   id: string;
@@ -94,6 +102,7 @@ export type RemessaConsignacao = {
   data: string;
   observacoes?: string | null | undefined;
   baixar_estoque_atelie?: boolean | undefined;
+  empresa_id?: string | undefined;
 };
 
 export type ItemEstoqueConsignado = {
@@ -195,10 +204,14 @@ export const chaves = {
 
 // HOOKS DE CONSULTA (SUPABASE + LOCALSTORAGE FALLBACK)
 export const useInsumos = () => useQuery({
-  queryKey: chaves.insumos,
+  queryKey: [...chaves.insumos, obterEmpresaAtivaId()],
   queryFn: async () => {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("insumos").select("*");
+      const empId = obterEmpresaAtivaId();
+      const { data, error } = await supabase
+        .from("insumos")
+        .select("*")
+        .or(`empresa_id.eq.${empId},empresa_id.is.null`);
       if (error) throw error;
       const ins = (data || []) as Insumo[];
       const d = ler();
@@ -211,12 +224,16 @@ export const useInsumos = () => useQuery({
 });
 
 export const useProdutos = () => useQuery({
-  queryKey: chaves.produtos,
+  queryKey: [...chaves.produtos, obterEmpresaAtivaId()],
   queryFn: async () => {
     const dadosLocais = ler();
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase.from("produtos").select("*");
+        const empId = obterEmpresaAtivaId();
+        const { data, error } = await supabase
+          .from("produtos")
+          .select("*")
+          .or(`empresa_id.eq.${empId},empresa_id.is.null`);
         if (error) throw error;
         const produtosSupabase = (data || []) as Produto[];
         const map = new Map<string, Produto>();
@@ -246,10 +263,14 @@ export const useProdutos = () => useQuery({
 });
 
 export const useClientes = () => useQuery({
-  queryKey: chaves.clientes,
+  queryKey: [...chaves.clientes, obterEmpresaAtivaId()],
   queryFn: async () => {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("clientes").select("*");
+      const empId = obterEmpresaAtivaId();
+      const { data, error } = await supabase
+        .from("clientes")
+        .select("*")
+        .or(`empresa_id.eq.${empId},empresa_id.is.null`);
       if (error) throw error;
       return (data || []) as Cliente[];
     }
@@ -258,11 +279,15 @@ export const useClientes = () => useQuery({
 });
 
 export const useReceitas = () => useQuery({
-  queryKey: chaves.receitas,
+  queryKey: [...chaves.receitas, obterEmpresaAtivaId()],
   queryFn: async () => {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase.from("receitas").select("*");
+        const empId = obterEmpresaAtivaId();
+        const { data, error } = await supabase
+          .from("receitas")
+          .select("*")
+          .or(`empresa_id.eq.${empId},empresa_id.is.null`);
         if (error) throw error;
         const rec = (data || []) as ReceitaItem[];
         const d = ler();
@@ -278,14 +303,16 @@ export const useReceitas = () => useQuery({
 });
 
 export const useVendas = () => useQuery({
-  queryKey: chaves.vendas,
+  queryKey: [...chaves.vendas, obterEmpresaAtivaId()],
   queryFn: async () => {
     const dadosLocais = ler().vendas || [];
     if (isSupabaseConfigured) {
       try {
+        const empId = obterEmpresaAtivaId();
         const { data, error } = await supabase
           .from("vendas")
           .select("*, clientes(nome), revendedoras(nome), venda_itens(*)")
+          .or(`empresa_id.eq.${empId},empresa_id.is.null`)
           .order("data", { ascending: false });
         if (!error && data) {
           const map = new Map<string, Venda>();
@@ -319,10 +346,14 @@ export const useVendas = () => useQuery({
 });
 
 export const useRevendedoras = () => useQuery({
-  queryKey: chaves.revendedoras,
+  queryKey: [...chaves.revendedoras, obterEmpresaAtivaId()],
   queryFn: async () => {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("revendedoras").select("*");
+      const empId = obterEmpresaAtivaId();
+      const { data, error } = await supabase
+        .from("revendedoras")
+        .select("*")
+        .or(`empresa_id.eq.${empId},empresa_id.is.null`);
       if (error) throw error;
       return (data || []) as Revendedora[];
     }
@@ -331,10 +362,15 @@ export const useRevendedoras = () => useQuery({
 });
 
 export const usePagamentosComissao = () => useQuery({
-  queryKey: chaves.pagamentos_comissao,
+  queryKey: [...chaves.pagamentos_comissao, obterEmpresaAtivaId()],
   queryFn: async () => {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("pagamentos_comissao").select("*").order("data", { ascending: false });
+      const empId = obterEmpresaAtivaId();
+      const { data, error } = await supabase
+        .from("pagamentos_comissao")
+        .select("*")
+        .or(`empresa_id.eq.${empId},empresa_id.is.null`)
+        .order("data", { ascending: false });
       if (error) throw error;
       return (data || []) as PagamentoComissao[];
     }
@@ -343,10 +379,14 @@ export const usePagamentosComissao = () => useQuery({
 });
 
 export const useCategorias = () => useQuery({
-  queryKey: chaves.categorias,
+  queryKey: [...chaves.categorias, obterEmpresaAtivaId()],
   queryFn: async () => {
     if (isSupabaseConfigured) {
-      const { data, error } = await supabase.from("categorias").select("*");
+      const empId = obterEmpresaAtivaId();
+      const { data, error } = await supabase
+        .from("categorias")
+        .select("*")
+        .or(`empresa_id.eq.${empId},empresa_id.is.null`);
       if (error) throw error;
       return (data || []) as Categoria[];
     }
@@ -355,11 +395,16 @@ export const useCategorias = () => useQuery({
 });
 
 export const useRemessasConsignacao = () => useQuery({
-  queryKey: chaves.remessas_consignacao,
+  queryKey: [...chaves.remessas_consignacao, obterEmpresaAtivaId()],
   queryFn: async () => {
     if (isSupabaseConfigured) {
       try {
-        const { data, error } = await supabase.from("remessas_consignacao").select("*").order("data", { ascending: false });
+        const empId = obterEmpresaAtivaId();
+        const { data, error } = await supabase
+          .from("remessas_consignacao")
+          .select("*")
+          .or(`empresa_id.eq.${empId},empresa_id.is.null`)
+          .order("data", { ascending: false });
         if (!error && data) return (data || []) as RemessaConsignacao[];
       } catch (err) {
         console.warn("Supabase remessas_consignacao:", err);
@@ -567,6 +612,7 @@ export const useSalvarInsumo = () => {
         quantidade: Number(String(v.quantidade ?? 0).replace(",", ".")) || 0,
         minimo: Number(String(v.minimo ?? 0).replace(",", ".")) || 0,
         custo_unitario: Number(String(v.custo_unitario ?? 0).replace(",", ".")) || 0,
+        empresa_id: obterEmpresaAtivaId(),
       };
       if (isSupabaseConfigured) {
         const { error } = await supabase.from("insumos").upsert(item);
@@ -644,6 +690,7 @@ export const useSalvarProduto = () => {
         tempo_preparo_minutos: Number(v.tempo_preparo_minutos ?? existente?.tempo_preparo_minutos ?? 0),
         valor_hora_trabalho: Number(v.valor_hora_trabalho ?? existente?.valor_hora_trabalho ?? 0),
         rendimento_unidades: Number(v.rendimento_unidades ?? existente?.rendimento_unidades ?? 1),
+        empresa_id: obterEmpresaAtivaId(),
       };
 
       if (pos >= 0) {
@@ -652,12 +699,13 @@ export const useSalvarProduto = () => {
         d.produtos.push(produtoAtualizado);
       }
       if (catNome && !d.categorias.some((c) => c.nome.toLowerCase() === catNome.toLowerCase())) {
-        d.categorias.push({ id: id(), nome: catNome });
+        d.categorias.push({ id: id(), nome: catNome, empresa_id: obterEmpresaAtivaId() });
       }
       gravar(d);
 
       if (isSupabaseConfigured) {
         try {
+          const empId = obterEmpresaAtivaId();
           const dadosSupabase = {
             id: produtoAtualizado.id,
             nome: produtoAtualizado.nome,
@@ -665,11 +713,18 @@ export const useSalvarProduto = () => {
             preco: produtoAtualizado.preco,
             estoque: produtoAtualizado.estoque,
             ativo: produtoAtualizado.ativo,
+            empresa_id: empId,
+            estoque_congelado: produtoAtualizado.estoque_congelado,
+            disponibilidade: produtoAtualizado.disponibilidade,
+            custo_manual: produtoAtualizado.custo_manual,
+            tempo_preparo_minutos: produtoAtualizado.tempo_preparo_minutos,
+            valor_hora_trabalho: produtoAtualizado.valor_hora_trabalho,
+            rendimento_unidades: produtoAtualizado.rendimento_unidades,
           };
           const { error } = await supabase.from("produtos").upsert(dadosSupabase);
           if (error) console.warn("Supabase upsert produto aviso:", error.message);
           if (catNome) {
-            await supabase.from("categorias").upsert({ id: id(), nome: catNome }, { onConflict: "nome" }).select();
+            await supabase.from("categorias").upsert({ id: id(), nome: catNome, empresa_id: empId }, { onConflict: "nome" }).select();
           }
         } catch (err) {
           console.warn("Erro ao sincronizar produto no Supabase:", err);
@@ -712,12 +767,12 @@ export const useSalvarCategoria = () => {
       if (!nomeFormatado) return;
       const d = ler();
       if (!d.categorias.some((c) => c.nome.toLowerCase() === nomeFormatado.toLowerCase())) {
-        d.categorias.push({ id: id(), nome: nomeFormatado });
+        d.categorias.push({ id: id(), nome: nomeFormatado, empresa_id: obterEmpresaAtivaId() });
         gravar(d);
       }
       if (isSupabaseConfigured) {
         try {
-          const { error } = await supabase.from("categorias").insert({ id: id(), nome: nomeFormatado });
+          const { error } = await supabase.from("categorias").insert({ id: id(), nome: nomeFormatado, empresa_id: obterEmpresaAtivaId() });
           if (error) console.warn("Supabase categoria insert:", error.message);
         } catch (err) {
           console.warn("Erro ao salvar categoria no Supabase:", err);
@@ -749,6 +804,7 @@ export const useSalvarCliente = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: Partial<Cliente>) => {
+      const empId = obterEmpresaAtivaId();
       const novo: Cliente = {
         id: v.id ?? id(),
         nome: v.nome ?? "",
@@ -760,6 +816,7 @@ export const useSalvarCliente = () => {
         observacoes: v.observacoes ?? null,
         tipo_contato: v.tipo_contato ?? "cliente",
         revendedora_id: v.revendedora_id ?? null,
+        empresa_id: empId,
       };
 
       // 1. Salva localmente primeiro para garantir resposta instantânea
@@ -780,6 +837,9 @@ export const useSalvarCliente = () => {
             bairro: novo.bairro,
             complemento: novo.complemento,
             observacoes: novo.observacoes,
+            tipo_contato: novo.tipo_contato,
+            revendedora_id: novo.revendedora_id,
+            empresa_id: empId,
           };
           const { error } = await supabase.from("clientes").upsert(payloadSupabase);
           if (error) console.warn("Supabase clientes upsert:", error.message);
@@ -819,6 +879,7 @@ export const useSalvarRevendedora = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: Partial<Revendedora>) => {
+      const empId = obterEmpresaAtivaId();
       const novo: Revendedora = {
         id: v.id ?? id(),
         nome: v.nome ?? "",
@@ -832,6 +893,7 @@ export const useSalvarRevendedora = () => {
         cliente_ids: v.cliente_ids ?? [],
         email: v.email ?? null,
         usuario_id: v.usuario_id ?? null,
+        empresa_id: empId,
       };
 
       // 1. Salva localmente primeiro para garantir que NUNCA falhe no client
@@ -852,6 +914,11 @@ export const useSalvarRevendedora = () => {
             comissao_fixa: novo.comissao_fixa,
             observacoes: novo.observacoes,
             cliente_ids: novo.cliente_ids,
+            categoria_parceria: novo.categoria_parceria,
+            subtipo_parceria: novo.subtipo_parceria,
+            email: novo.email,
+            usuario_id: novo.usuario_id,
+            empresa_id: empId,
           };
           const { error } = await supabase.from("revendedoras").upsert(payloadSupabase);
           if (error) console.warn("Supabase revendedoras upsert:", error.message);
@@ -891,7 +958,8 @@ export const useSalvarPagamentoComissao = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: Omit<PagamentoComissao, "id">) => {
-      const novo: PagamentoComissao = { ...v, id: id() };
+      const empId = obterEmpresaAtivaId();
+      const novo: PagamentoComissao = { ...v, id: id(), empresa_id: empId };
       // 1. Salva localmente primeiro
       const d = ler();
       d.pagamentos_comissao.unshift(novo);
@@ -906,6 +974,7 @@ export const useSalvarPagamentoComissao = () => {
             valor: Number(novo.valor),
             data: novo.data,
             observacoes: novo.observacoes,
+            empresa_id: empId,
           };
           const { error } = await supabase.from("pagamentos_comissao").insert(payloadSupabase);
           if (error) console.warn("Supabase pagamentos_comissao insert:", error.message);
@@ -945,7 +1014,8 @@ export const useSalvarReceitaItem = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: Omit<ReceitaItem, "id">) => {
-      const novo = { ...v, id: id() };
+      const empId = obterEmpresaAtivaId();
+      const novo = { ...v, id: id(), empresa_id: empId };
       // Salva localmente primeiro para resposta instantânea e fallback
       const d = ler();
       d.receitas.push(novo);
@@ -1051,6 +1121,7 @@ export const useRegistrarVenda = () => {
       const dataFinal = v.data ? new Date(v.data).toISOString() : new Date().toISOString();
 
       if (isSupabaseConfigured) {
+        const empId = obterEmpresaAtivaId();
         const novaVenda: any = {
           id: vendaId,
           cliente_id: v.clienteId ?? null,
@@ -1067,6 +1138,7 @@ export const useRegistrarVenda = () => {
           total,
           custo_total: custo,
           observacoes: v.observacoes || null,
+          empresa_id: empId,
         };
 
         const { error: errVenda } = await supabase.from("vendas").insert(novaVenda);
@@ -1079,6 +1151,7 @@ export const useRegistrarVenda = () => {
           nome_produto: i.produto.nome,
           quantidade: i.quantidade,
           preco_unitario: i.produto.preco,
+          empresa_id: empId,
         }));
         const { error: errItens } = await supabase.from("venda_itens").insert(itensParaInserir);
         if (errItens) throw errItens;
@@ -1406,6 +1479,7 @@ export function useCriarOrdemLoteOuFornada() {
 
       if (isSupabaseConfigured) {
         try {
+          const empId = obterEmpresaAtivaId();
           await supabase.from("vendas").insert({
             id: novaVendaId,
             canal: "propria",
@@ -1415,6 +1489,7 @@ export function useCriarOrdemLoteOuFornada() {
             total: 0,
             custo_total: 0,
             observacoes: novaOrdem.observacoes,
+            empresa_id: empId,
           });
           await supabase.from("venda_itens").insert([
             {
@@ -1424,6 +1499,7 @@ export function useCriarOrdemLoteOuFornada() {
               nome_produto: prod.nome,
               quantidade,
               preco_unitario: prod.preco,
+              empresa_id: empId,
             },
           ]);
         } catch (sbErr) {
@@ -1620,8 +1696,10 @@ export const useSalvarRemessaConsignacao = () => {
       observacoes?: string | null;
       baixar_estoque_atelie?: boolean;
     }) => {
+      const empId = obterEmpresaAtivaId();
       const nova: RemessaConsignacao = {
         id: v.id ?? id(),
+        empresa_id: empId,
         revendedora_id: v.revendedora_id,
         produto_id: v.produto_id,
         nome_produto: v.nome_produto,
