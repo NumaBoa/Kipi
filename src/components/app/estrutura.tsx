@@ -260,9 +260,9 @@ export function Estrutura({
   const rotuloPapel = (papel?: PapelUsuario) => {
     switch (papel) {
       case "super_admin":
-        return "👑 Master Admin";
+        return "👑 Master SaaS";
       case "admin":
-        return "🛡️ Admin Empresa";
+        return "🛡️ Dono da Empresa";
       case "revendedor":
         return "🏪 Revendedor (PDV)";
       case "operador":
@@ -463,101 +463,48 @@ export function Estrutura({
                         <p className="text-[11px] text-slate-500 dark:text-muted-foreground truncate mt-0.5">{usuario?.email}</p>
                       </div>
 
-                      {/* MODO DE VISUALIZAÇÃO */}
-                      <div className="p-2.5 bg-slate-50 dark:bg-muted/50 rounded-2xl border border-slate-100 dark:border-border/60 space-y-1.5">
-                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-muted-foreground px-1">
-                          Modo de Visualização
-                        </p>
-                        <div className="grid grid-cols-1 gap-1">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              alternarModoVisao("admin");
-                              setProfileAberto(false);
-                              toast.success(`Visualizando como Dono da Empresa (${empresaAtual?.nome || "Meu Ateliê"})!`);
-                              navigate({ to: "/" });
-                            }}
-                            className={cn(
-                              "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left",
-                              usuario?.papel === "admin"
-                                ? "bg-[#084463] text-white shadow-xs"
-                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-muted"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <span>🏪</span>
-                              <span>Dono do Ateliê</span>
-                            </span>
-                            {usuario?.papel === "admin" && <CheckCircle2 className="size-3.5" />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              alternarModoVisao("super_admin");
-                              setProfileAberto(false);
-                              toast.success("Visualizando como Master SaaS (Kipi)!");
-                              navigate({ to: "/" });
-                            }}
-                            className={cn(
-                              "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left",
-                              usuario?.papel === "super_admin"
-                                ? "bg-[#FFC64F] text-[#084463] shadow-xs"
-                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-muted"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <span>👑</span>
-                              <span>Master SaaS</span>
-                            </span>
-                            {usuario?.papel === "super_admin" && <CheckCircle2 className="size-3.5" />}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              alternarModoVisao("revendedor");
-                              setProfileAberto(false);
-                              toast.success("Visualizando como Revendedor (PDV)!");
-                              navigate({ to: "/vendas" });
-                            }}
-                            className={cn(
-                              "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left",
-                              usuario?.papel === "revendedor"
-                                ? "bg-purple-600 text-white shadow-xs"
-                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-muted"
-                            )}
-                          >
-                            <span className="flex items-center gap-2">
-                              <span>🤝</span>
-                              <span>Revendedor (PDV)</span>
-                            </span>
-                            {usuario?.papel === "revendedor" && <CheckCircle2 className="size-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-
                       {/* AÇÕES E CONFIGURAÇÕES */}
-                      <div className="space-y-0.5 pt-1 border-t border-slate-100 dark:border-border/40">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProfileAberto(false);
-                            setModalConfiguracoes(true);
-                          }}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
-                        >
-                          <Settings className="size-4 text-brand" /> Configurações do Ateliê
-                        </button>
+                      <div className="space-y-0.5 pt-1">
+                        {ehSuperAdmin ? (
+                          <>
+                            <Link
+                              to="/usuarios"
+                              onClick={() => setProfileAberto(false)}
+                              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
+                            >
+                              <ShieldCheck className="size-4 text-brand" /> Gestão de Empresas & Contas
+                            </Link>
+                            <Link
+                              to="/relatorios"
+                              onClick={() => setProfileAberto(false)}
+                              className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
+                            >
+                              <BarChart3 className="size-4 text-brand" /> Relatórios Globais
+                            </Link>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProfileAberto(false);
+                                setModalConfiguracoes(true);
+                              }}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
+                            >
+                              <Settings className="size-4 text-brand" /> Configurações do Ateliê
+                            </button>
 
-                        {ehAdmin && !ehRevendedor && (
-                          <Link
-                            to="/usuarios"
-                            onClick={() => setProfileAberto(false)}
-                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
-                          >
-                            <ShieldCheck className="size-4 text-brand" /> Controle de Acessos
-                          </Link>
+                            {ehAdmin && !ehRevendedor && (
+                              <Link
+                                to="/usuarios"
+                                onClick={() => setProfileAberto(false)}
+                                className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
+                              >
+                                <ShieldCheck className="size-4 text-brand" /> Controle de Acessos
+                              </Link>
+                            )}
+                          </>
                         )}
 
                         <button

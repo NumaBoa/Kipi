@@ -49,7 +49,7 @@ export const usuariosIniciais: Usuario[] = [
     email: "camila.c.lima08@gmail.com",
     senha: "P&ix1nh0!",
     status: "ativo",
-    papel: "admin",
+    papel: "super_admin",
     empresaIds: ["emp_matriz"],
     empresaAtivaId: "emp_matriz",
     criadoEm: new Date().toISOString(),
@@ -94,9 +94,13 @@ export function lerUsuarios(): Usuario[] {
     const list = JSON.parse(salvo) as Usuario[];
     let precisaGravar = false;
     list.forEach((u) => {
-      if (u.id === "usr_dono" || u.email?.trim().toLowerCase() === "camila.c.lima08@gmail.com") {
-        if (!u.papel) {
-          u.papel = "admin";
+      if (
+        u.id === "usr_dono" ||
+        u.id === "usr_master" ||
+        u.email?.trim().toLowerCase() === "camila.c.lima08@gmail.com"
+      ) {
+        if (u.papel !== "super_admin") {
+          u.papel = "super_admin";
           precisaGravar = true;
         }
       }
@@ -125,7 +129,18 @@ export function lerSessao(): Usuario | null {
   try {
     const sessao = (JSON.parse(salvo) as Usuario) ?? null;
     if (!sessao || !sessao.id) return null;
-    if (!sessao.papel) sessao.papel = "admin";
+    if (
+      sessao.email?.trim().toLowerCase() === "camila.c.lima08@gmail.com" ||
+      sessao.id === "usr_dono" ||
+      sessao.id === "usr_master"
+    ) {
+      if (sessao.papel !== "super_admin") {
+        sessao.papel = "super_admin";
+        localStorage.setItem(CHAVE_SESSAO, JSON.stringify(sessao));
+      }
+    } else if (!sessao.papel) {
+      sessao.papel = "admin";
+    }
     return sessao;
   } catch {
     return null;
@@ -181,6 +196,13 @@ export function useAuth() {
       }
       if (achado.status === "pendente") {
         throw new Error("Aguardando liberação de acesso pelo administrador do sistema.");
+      }
+      if (
+        achado.id === "usr_dono" ||
+        achado.id === "usr_master" ||
+        achado.email.trim().toLowerCase() === "camila.c.lima08@gmail.com"
+      ) {
+        achado.papel = "super_admin";
       }
       achado.ultimoAcesso = new Date().toISOString();
       gravarSessao(achado);
@@ -339,9 +361,10 @@ export function useAuth() {
 
   const ehDonoMaster =
     usuario?.id === "usr_dono" ||
+    usuario?.id === "usr_master" ||
     usuario?.email?.trim().toLowerCase() === "camila.c.lima08@gmail.com";
-  const ehSuperAdmin = usuario?.papel === "super_admin";
-  const ehAdmin = usuario?.papel === "super_admin" || usuario?.papel === "admin" || ehDonoMaster;
+  const ehSuperAdmin = usuario?.papel === "super_admin" || ehDonoMaster;
+  const ehAdmin = ehSuperAdmin || usuario?.papel === "admin";
 
   return {
     usuario,
