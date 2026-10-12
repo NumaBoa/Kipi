@@ -11,6 +11,7 @@ export const getRouter = () => {
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
   });
+  (router.options as any).defaultSsr = false;
 
   // Compatibility between TanStack Router 1.170 and TanStack Start 1.168
   const origGetMatchedRoutes = router.getMatchedRoutes.bind(router);
