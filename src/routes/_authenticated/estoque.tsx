@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { brl, num } from "@/lib/format";
+import { brl, formatarTelefone, num } from "@/lib/format";
 import {
   calcularEstoqueConsignadoRevendedor,
   obterAlertasReposicaoRevendedores,
@@ -528,7 +528,7 @@ function PaginaEstoque() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {revendedora.telefone ? `WhatsApp: ${revendedora.telefone} · ` : ""}
+                      {revendedora.telefone ? `WhatsApp: ${formatarTelefone(revendedora.telefone)} · ` : ""}
                       Comissão: {revendedora.tipo_comissao === "porcentagem" ? `${revendedora.comissao_percentual}%` : brl(revendedora.comissao_fixa)}
                     </p>
                   </div>
