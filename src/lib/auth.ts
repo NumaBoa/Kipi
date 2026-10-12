@@ -25,9 +25,9 @@ export type Usuario = {
   ultimoAcesso?: string;
 };
 
-const CHAVE_USUARIOS = "meu-atelie-usuarios-v8";
+const CHAVE_USUARIOS = "meu-atelie-usuarios-v9";
 const CHAVE_EMPRESAS = "meu-atelie-empresas-v8";
-const CHAVE_SESSAO = "meu-atelie-sessao-v10";
+const CHAVE_SESSAO = "meu-atelie-sessao-v11";
 
 const id = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -50,18 +50,6 @@ export const usuariosIniciais: Usuario[] = [
     senha: "P&ix1nh0!",
     status: "ativo",
     papel: "admin",
-    empresaIds: ["emp_matriz"],
-    empresaAtivaId: "emp_matriz",
-    criadoEm: new Date().toISOString(),
-    ultimoAcesso: new Date().toISOString(),
-  },
-  {
-    id: "usr_super",
-    nome: "Camila Lima (Master)",
-    email: "master@kipi.com.br",
-    senha: "P&ix1nh0!",
-    status: "ativo",
-    papel: "super_admin",
     empresaIds: ["emp_matriz"],
     empresaAtivaId: "emp_matriz",
     criadoEm: new Date().toISOString(),
@@ -107,7 +95,7 @@ export function lerUsuarios(): Usuario[] {
     let precisaGravar = false;
     list.forEach((u) => {
       if (u.id === "usr_dono" || u.email?.trim().toLowerCase() === "camila.c.lima08@gmail.com") {
-        if (u.papel !== "admin") {
+        if (!u.papel) {
           u.papel = "admin";
           precisaGravar = true;
         }
@@ -246,9 +234,6 @@ export function useAuth() {
       // Se editou a si mesmo na sessão, atualiza sessão
       const sessaoAtual = lerSessao();
       if (sessaoAtual && sessaoAtual.id === item.id) {
-        if (sessaoAtual.id === "usr_dono") {
-          item.papel = "admin";
-        }
         gravarSessao(item);
       }
     },
@@ -357,8 +342,11 @@ export function useAuth() {
     },
   });
 
+  const ehDonoMaster =
+    usuario?.id === "usr_dono" ||
+    usuario?.email?.trim().toLowerCase() === "camila.c.lima08@gmail.com";
   const ehSuperAdmin = usuario?.papel === "super_admin";
-  const ehAdmin = usuario?.papel === "super_admin" || usuario?.papel === "admin";
+  const ehAdmin = usuario?.papel === "super_admin" || usuario?.papel === "admin" || ehDonoMaster;
 
   return {
     usuario,
@@ -388,14 +376,8 @@ export function temPermissaoRota(papel: PapelUsuario | undefined, rota: string):
     return rota === "/vendas" || rota === "/clientes";
   }
 
-  // Super Admin (Master Admin do SaaS): apenas visões estratégicas e comerciais da plataforma
-  if (papel === "super_admin") {
-    const rotasMaster = ["/", "/usuarios", "/relatorios"];
-    return rotasMaster.includes(rota);
-  }
-
-  // Admin da Empresa: Acessa todas as rotas operacionais do ateliê
-  if (papel === "admin") return true;
+  // Super Admin ou Admin: Acesso total a todas as rotas operacionais e estratégicas
+  if (papel === "super_admin" || papel === "admin") return true;
 
   // Operador só pode acessar Painel, Vendas, Produtos, Estoque, Clientes
   const rotasRestritasOperador = ["/receitas", "/relatorios", "/usuarios"];

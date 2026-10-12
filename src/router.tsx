@@ -113,20 +113,22 @@ export const getRouter = () => {
   }
 
   // Prevent _displayPending or _forcePending from freezing the client tree to a blank screen
-  const origUpdateMatch = router.updateMatch.bind(router);
-  router.updateMatch = (id: string, updater: any) => {
-    return origUpdateMatch(id, (prev: any) => {
-      const updated = typeof updater === "function" ? updater(prev) : updater;
-      if (updated) {
-        if (updated._displayPending) updated._displayPending = undefined;
-        if (updated._forcePending) updated._forcePending = undefined;
-        if (updated._nonReactive?.displayPendingPromise) {
-          updated._nonReactive.displayPendingPromise = undefined;
+  const origUpdateMatch = (router as any).updateMatch?.bind(router);
+  if (origUpdateMatch) {
+    (router as any).updateMatch = (id: string, updater: any) => {
+      return origUpdateMatch(id, (prev: any) => {
+        const updated = typeof updater === "function" ? updater(prev) : updater;
+        if (updated) {
+          if (updated._displayPending) updated._displayPending = undefined;
+          if (updated._forcePending) updated._forcePending = undefined;
+          if (updated._nonReactive?.displayPendingPromise) {
+            updated._nonReactive.displayPendingPromise = undefined;
+          }
         }
-      }
-      return updated;
-    });
-  };
+        return updated;
+      });
+    };
+  }
 
   const origMatchRoutes = router.matchRoutes.bind(router);
   (router as any).matchRoutes = (...args: any[]) => {

@@ -469,7 +469,7 @@ export function Estrutura({
                             onClick={() => {
                               alternarModoVisao("admin");
                               setProfileAberto(false);
-                              toast.success("Visualizando como Dono da Empresa (Ateliê Bella)!");
+                              toast.success(`Visualizando como Dono da Empresa (${empresaAtual?.nome || "Meu Ateliê"})!`);
                               navigate({ to: "/" });
                             }}
                             className={cn(
