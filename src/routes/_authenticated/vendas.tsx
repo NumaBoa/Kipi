@@ -159,8 +159,11 @@ export function PaginaVendas() {
   const [tipoPedido, setTipoPedido] = useState<"pronta_entrega" | "sob_encomenda">("pronta_entrega");
   const [clienteId, setClienteId] = useState<string>("avulso");
   const [canal, setCanal] = useState<"propria" | "revendedora">("propria");
-  const [revendedoraId, setRevendedoraId] = useState<string>("");
-  const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "cartao" | "transferencia">("pix");
+  const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "cartao" | "transferencia" | "pendente">("pix");
+  const [modalEditarPagamento, setModalEditarPagamento] = useState(false);
+  const [vendaEditandoPagamento, setVendaEditandoPagamento] = useState<Venda | null>(null);
+  const [novoPagamentoSelecionado, setNovoPagamentoSelecionado] = useState<"pix" | "dinheiro" | "cartao" | "transferencia" | "pendente">("pix");
+  const [quitarSaldoAoMudar, setQuitarSaldoAoMudar] = useState(true);
   const [dataEntrega, setDataEntrega] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3);
@@ -303,7 +306,7 @@ export function PaginaVendas() {
   }, [estoqueConsignadoRevendedor]);
 
   const pedidosComSaldoPendente = useMemo(() => {
-    return validas.filter((v) => Number(v.saldo_na_entrega || 0) > 0);
+    return validas.filter((v) => Number(v.saldo_na_entrega || 0) > 0 || v.pagamento === "pendente" || v.status === "pendente");
   }, [validas]);
 
   const pedidosComSaldoFiltrados = useMemo(() => {
@@ -344,17 +347,23 @@ export function PaginaVendas() {
         v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
       );
     } else if (tipoPedido === "pronta_entrega") {
-      setSinalPago(totalPedido);
-      setSinalPagoTexto(
-        totalPedido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      );
+      if (pagamento === "pendente") {
+        setSinalPago(0);
+        setSinalPagoTexto("0,00");
+      } else {
+        setSinalPago(totalPedido);
+        setSinalPagoTexto(
+          totalPedido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        );
+      }
     }
-  }, [totalPedido, tipoPedido, sinalCustomizado]);
+  }, [totalPedido, tipoPedido, sinalCustomizado, pagamento]);
 
   const saldoNaEntrega = useMemo(() => {
+    if (pagamento === "pendente") return totalPedido;
     if (tipoPedido === "pronta_entrega") return 0;
     return Math.max(0, totalPedido - (Number(sinalPago) || 0));
-  }, [totalPedido, sinalPago, tipoPedido]);
+  }, [totalPedido, sinalPago, tipoPedido, pagamento]);
 
   // Ações de Carrinho
   const adicionarAoCarrinho = (p: Produto) => {
@@ -388,7 +397,9 @@ export function PaginaVendas() {
     }
 
     try {
-
+      const ehPendente = pagamento === "pendente";
+      const saldoFinal = ehPendente ? totalPedido : saldoNaEntrega;
+      const sinalFinal = ehPendente ? 0 : (tipoPedido === "sob_encomenda" ? Number(sinalPago) || 0 : totalPedido);
 
       await registrarVenda.mutateAsync({
         itens: carrinho,
@@ -398,11 +409,11 @@ export function PaginaVendas() {
         data: new Date().toISOString(),
         tipo_pedido: tipoPedido,
         data_entrega_prometida: tipoPedido === "sob_encomenda" ? dataEntrega : null,
-        valor_sinal_pago: tipoPedido === "sob_encomenda" ? Number(sinalPago) || 0 : totalPedido,
-        saldo_na_entrega: saldoNaEntrega,
+        valor_sinal_pago: sinalFinal,
+        saldo_na_entrega: saldoFinal,
         status_producao: tipoPedido === "sob_encomenda" ? "a_fazer" : undefined,
         pagamento,
-        status: saldoNaEntrega > 0 ? "pendente" : "pago",
+        status: (saldoFinal > 0 || ehPendente) ? "pendente" : "pago",
         observacoes: personalizacao || "",
         receitas,
         insumos,
@@ -411,6 +422,8 @@ export function PaginaVendas() {
       toast.success(
         tipoPedido === "sob_encomenda"
           ? "Encomenda registrada! Enviada para a fila de Produção."
+          : ehPendente
+          ? "Venda registrada com pagamento pendente (a receber)!"
           : "Venda de pronta-entrega concluída com sucesso!"
       );
       setModalNovoPedido(false);
@@ -419,23 +432,52 @@ export function PaginaVendas() {
       setSinalCustomizado(false);
       setSinalPago(0);
       setSinalPagoTexto("0,00");
+      setPagamento("pix");
     } catch {
       toast.error("Erro ao registrar pedido.");
     }
   };
 
-  // Quitar saldo devedor de um pedido
-  const quitarSaldo = async (v: Venda) => {
+  // Abertura e salvamento de edição de pagamento
+  const abrirEditarPagamento = (v: Venda) => {
+    setVendaEditandoPagamento(v);
+    setNovoPagamentoSelecionado(v.pagamento === "pendente" ? "pix" : v.pagamento);
+    setQuitarSaldoAoMudar(true);
+    setModalEditarPagamento(true);
+  };
+
+  const handleSalvarEdicaoPagamento = async () => {
+    if (!vendaEditandoPagamento) return;
     try {
+      const quitando = novoPagamentoSelecionado !== "pendente" && quitarSaldoAoMudar;
       await atualizarVenda.mutateAsync({
-        ...v,
-        saldo_na_entrega: 0,
-        status: "pago",
+        ...vendaEditandoPagamento,
+        pagamento: novoPagamentoSelecionado,
+        saldo_na_entrega: quitando ? 0 : (novoPagamentoSelecionado === "pendente" ? vendaEditandoPagamento.total : vendaEditandoPagamento.saldo_na_entrega),
+        valor_sinal_pago: quitando ? vendaEditandoPagamento.total : (novoPagamentoSelecionado === "pendente" ? 0 : vendaEditandoPagamento.valor_sinal_pago),
+        status: quitando ? "pago" : (novoPagamentoSelecionado === "pendente" || (vendaEditandoPagamento.saldo_na_entrega && vendaEditandoPagamento.saldo_na_entrega > 0) ? "pendente" : "pago"),
       });
-      toast.success("Saldo quitado com sucesso!");
+
+      const nomeForma = novoPagamentoSelecionado === "pix" ? "PIX" :
+        novoPagamentoSelecionado === "cartao" ? "Cartão" :
+        novoPagamentoSelecionado === "dinheiro" ? "Dinheiro" :
+        novoPagamentoSelecionado === "transferencia" ? "Transferência" : "Pendente";
+
+      toast.success(
+        quitando
+          ? `Pagamento quitado com sucesso via ${nomeForma}!`
+          : `Forma de pagamento atualizada para ${nomeForma}!`
+      );
+      setModalEditarPagamento(false);
+      setVendaEditandoPagamento(null);
     } catch {
       toast.error("Erro ao atualizar pagamento.");
     }
+  };
+
+  // Quitar saldo devedor de um pedido abre a escolha da forma realizada
+  const quitarSaldo = (v: Venda) => {
+    abrirEditarPagamento(v);
   };
 
   // Filtragem de pedidos
@@ -444,7 +486,7 @@ export function PaginaVendas() {
       // Filtro tipo
       if (filtroTipo === "pronta_entrega" && v.tipo_pedido !== "pronta_entrega") return false;
       if (filtroTipo === "sob_encomenda" && v.tipo_pedido !== "sob_encomenda") return false;
-      if (filtroTipo === "saldo_pendente" && !(Number(v.saldo_na_entrega) > 0)) return false;
+      if (filtroTipo === "saldo_pendente" && !(Number(v.saldo_na_entrega) > 0 || v.pagamento === "pendente" || v.status === "pendente")) return false;
 
       // Filtro busca
       if (busca.trim()) {
@@ -674,7 +716,24 @@ export function PaginaVendas() {
                           🗓️ Entrega prevista: {entregaFormatada}
                         </span>
                       )}
-                      <span>Pagamento: <strong className="uppercase">{v.pagamento}</strong></span>
+                      <span className="inline-flex items-center gap-1.5">
+                        Pagamento:{" "}
+                        {v.pagamento === "pendente" ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <Clock className="size-3" /> Pendente
+                          </span>
+                        ) : (
+                          <strong className="uppercase">{v.pagamento}</strong>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => abrirEditarPagamento(v)}
+                          className="text-xs text-brand-primary hover:underline font-semibold ml-1 inline-flex items-center gap-0.5 cursor-pointer"
+                          title="Alterar forma de pagamento realizada"
+                        >
+                          <Pencil className="size-3" /> Editar
+                        </button>
+                      </span>
                       {v.canal === "revendedora" && (
                         <span className="text-indigo-800 font-semibold bg-indigo-50 px-2 py-0.5 rounded">
                           🏪 {v.revendedoras?.nome || "Revendedor"} · {v.tipo_pedido === "sob_encomenda" ? "📅 Encomenda" : "🛍️ Pronta-Entrega (Consignado)"}
@@ -1160,11 +1219,17 @@ export function PaginaVendas() {
                       <SelectItem value="dinheiro">Dinheiro</SelectItem>
                       <SelectItem value="cartao">Cartão de Crédito/Débito</SelectItem>
                       <SelectItem value="transferencia">Transferência</SelectItem>
+                      <SelectItem value="pendente">⏳ Pendente (A Receber / Fiado)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {tipoPedido === "sob_encomenda" ? (
+                {pagamento === "pendente" ? (
+                  <div className="flex items-center gap-2 pt-2 sm:pt-5 text-xs text-amber-800 font-semibold bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                    <Clock className="size-4 shrink-0 text-amber-600" />
+                    <span>Pagamento ficará pendente. Você poderá lançar a forma de pagamento realizada depois.</span>
+                  </div>
+                ) : tipoPedido === "sob_encomenda" ? (
                   <div>
                     <Label className="text-xs font-bold text-slate-700">Valor do Sinal Pago Agora</Label>
                     <div className="relative mt-1">
@@ -1207,14 +1272,21 @@ export function PaginaVendas() {
                   <span className="text-xs text-slate-500 block">Total do Pedido:</span>
                   <span className="text-2xl font-black text-slate-900">{brl(totalPedido)}</span>
                 </div>
-                {tipoPedido === "sob_encomenda" && (
+                {pagamento === "pendente" ? (
+                  <div className="text-left sm:text-right">
+                    <span className="text-xs font-bold text-amber-800 block">
+                      Saldo a Receber Posteriormente:
+                    </span>
+                    <span className="text-xl font-black text-amber-600">{brl(totalPedido)}</span>
+                  </div>
+                ) : tipoPedido === "sob_encomenda" ? (
                   <div className="text-left sm:text-right">
                     <span className="text-xs font-bold text-amber-700 block">
                       Saldo a Acertar na Entrega:
                     </span>
                     <span className="text-xl font-black text-amber-600">{brl(saldoNaEntrega)}</span>
                   </div>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
@@ -1690,6 +1762,124 @@ export function PaginaVendas() {
               onClick={() => setModalSaldosPendentes(false)}
             >
               Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: EDITAR FORMA DE PAGAMENTO / DAR BAIXA */}
+      <Dialog open={modalEditarPagamento} onOpenChange={setModalEditarPagamento}>
+        <DialogContent className="max-w-md rounded-3xl p-6">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="size-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0 shadow-xs">
+                <Wallet className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-black text-slate-900 dark:text-foreground">
+                  {vendaEditandoPagamento?.pagamento === "pendente" || (vendaEditandoPagamento?.saldo_na_entrega && vendaEditandoPagamento.saldo_na_entrega > 0)
+                    ? "Receber Pagamento / Dar Baixa"
+                    : "Editar Forma de Pagamento"}
+                </DialogTitle>
+                <DialogDescription>
+                  {vendaEditandoPagamento?.clientes?.nome
+                    ? `Cliente: ${vendaEditandoPagamento.clientes.nome}`
+                    : "Venda avulsa no balcão"}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {vendaEditandoPagamento && (
+            <div className="space-y-4 pt-2">
+              {/* RESUMO DO PEDIDO */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex justify-between items-center text-xs text-slate-500">
+                  <span>Total da Venda:</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{brl(vendaEditandoPagamento.total)}</span>
+                </div>
+                {Number(vendaEditandoPagamento.saldo_na_entrega || 0) > 0 && (
+                  <div className="flex justify-between items-center text-xs text-amber-700 font-semibold bg-amber-50 dark:bg-amber-950/40 p-2 rounded-xl border border-amber-200/80">
+                    <span className="flex items-center gap-1">
+                      <AlertCircle className="size-3.5" /> Saldo em aberto:
+                    </span>
+                    <span className="font-extrabold text-sm">{brl(vendaEditandoPagamento.saldo_na_entrega || 0)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center text-xs text-slate-500 pt-1 border-t border-slate-200/60">
+                  <span>Forma registrada atualmente:</span>
+                  <span className="font-bold uppercase text-slate-700 dark:text-slate-300">
+                    {vendaEditandoPagamento.pagamento === "pendente" ? "⏳ Pendente" : vendaEditandoPagamento.pagamento}
+                  </span>
+                </div>
+              </div>
+
+              {/* SELEÇÃO DA NOVA FORMA DE PAGAMENTO */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Forma de Pagamento Realizada / Destino
+                </Label>
+                <Select
+                  value={novoPagamentoSelecionado}
+                  onValueChange={(val: any) => setNovoPagamentoSelecionado(val)}
+                >
+                  <SelectTrigger className="rounded-xl bg-white dark:bg-card h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="cartao">Cartão de Crédito/Débito</SelectItem>
+                    <SelectItem value="transferencia">Transferência</SelectItem>
+                    <SelectItem value="pendente">⏳ Manter Pendente (A Receber)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* OPÇÃO DE DAR BAIXA / QUITAR SALDO */}
+              {novoPagamentoSelecionado !== "pendente" && (
+                <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={quitarSaldoAoMudar}
+                      onChange={(e) => setQuitarSaldoAoMudar(e.target.checked)}
+                      className="mt-0.5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <div className="text-xs">
+                      <span className="font-bold text-emerald-900 block">
+                        Dar baixa total e marcar como recebido
+                      </span>
+                      <span className="text-emerald-700">
+                        Zera o saldo a receber deste pedido e define o status como pago.
+                      </span>
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl w-full sm:w-auto"
+              onClick={() => {
+                setModalEditarPagamento(false);
+                setVendaEditandoPagamento(null);
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl font-bold bg-[#084463] text-white hover:bg-[#06344C] w-full sm:w-auto gap-1.5"
+              onClick={handleSalvarEdicaoPagamento}
+              disabled={atualizarVenda.isPending}
+            >
+              <CheckCircle2 className="size-4" />
+              {atualizarVenda.isPending ? "Salvando..." : "Confirmar e Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
