@@ -7,7 +7,7 @@ export function Painel({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("bg-white dark:bg-card border border-slate-200/70 dark:border-border/50 rounded-[28px] shadow-sm shadow-indigo-500/5 transition-all duration-200", className)} {...props}>
+    <div className={cn("bg-white dark:bg-card border border-slate-200/70 dark:border-border/50 rounded-2xl sm:rounded-[28px] shadow-sm shadow-indigo-500/5 transition-all duration-200", className)} {...props}>
       {children}
     </div>
   );
@@ -88,20 +88,20 @@ export function CartaoIndicador({
     <Painel
       onClick={onClick}
       className={cn(
-        "p-6",
+        "p-4 sm:p-6",
         onClick &&
           "cursor-pointer hover:border-[#084463]/50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all select-none group",
         className
       )}
     >
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <p className="min-w-0 truncate text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider group-hover:text-[#084463] transition-colors">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:gap-3">
+        <p className="min-w-0 truncate text-[11px] sm:text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider group-hover:text-[#084463] transition-colors">
           {rotulo}
         </p>
-        {etiqueta ? <Etiqueta tom={tom}>{etiqueta}</Etiqueta> : null}
+        {etiqueta ? <Etiqueta tom={tom} className="px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-[11px]">{etiqueta}</Etiqueta> : null}
       </div>
-      <p className="mt-3 font-display text-3xl font-extrabold text-[#084463] dark:text-foreground tracking-tight">{valor}</p>
-      {detalhe ? <p className="mt-1 text-xs text-slate-500 dark:text-muted-foreground font-medium">{detalhe}</p> : null}
+      <p className="mt-2 sm:mt-3 font-display text-2xl sm:text-3xl font-extrabold text-[#084463] dark:text-foreground tracking-tight">{valor}</p>
+      {detalhe ? <p className="mt-1 text-[11px] sm:text-xs text-slate-500 dark:text-muted-foreground font-medium leading-tight">{detalhe}</p> : null}
     </Painel>
   );
 }

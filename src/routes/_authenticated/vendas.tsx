@@ -607,7 +607,7 @@ export function PaginaVendas() {
       }
     >
       {/* CARDS DE INDICADORES */}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <CartaoIndicador
           rotulo={ehRevendedor ? "Minhas Vendas Realizadas" : "Total Vendido"}
           valor={brl(totalFaturado)}
@@ -820,12 +820,12 @@ export function PaginaVendas() {
       </section>
 
       {/* FILTROS E BUSCA */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between mt-2">
-        <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 items-stretch md:items-center justify-between mt-2">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2">
           <Button
             size="sm"
             variant={filtroTipo === "todos" ? "default" : "outline"}
-            className={filtroTipo === "todos" ? "bg-[#084463] text-white font-bold" : "rounded-xl"}
+            className={filtroTipo === "todos" ? "bg-[#084463] text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
             onClick={() => setFiltroTipo("todos")}
           >
             Todos ({validas.length})
@@ -833,7 +833,7 @@ export function PaginaVendas() {
           <Button
             size="sm"
             variant={filtroTipo === "pronta_entrega" ? "default" : "outline"}
-            className={filtroTipo === "pronta_entrega" ? "bg-[#084463] text-white font-bold" : "rounded-xl"}
+            className={filtroTipo === "pronta_entrega" ? "bg-[#084463] text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
             onClick={() => setFiltroTipo("pronta_entrega")}
           >
             🛍️ Pronta-Entrega ({qtdProntaEntrega})
@@ -841,7 +841,7 @@ export function PaginaVendas() {
           <Button
             size="sm"
             variant={filtroTipo === "sob_encomenda" ? "default" : "outline"}
-            className={filtroTipo === "sob_encomenda" ? "bg-[#084463] text-white font-bold" : "rounded-xl"}
+            className={filtroTipo === "sob_encomenda" ? "bg-[#084463] text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
             onClick={() => setFiltroTipo("sob_encomenda")}
           >
             📅 Sob Encomenda ({validas.filter((v) => v.tipo_pedido === "sob_encomenda").length})
@@ -849,7 +849,7 @@ export function PaginaVendas() {
           <Button
             size="sm"
             variant={filtroTipo === "saldo_pendente" ? "default" : "outline"}
-            className={filtroTipo === "saldo_pendente" ? "bg-amber-600 text-white font-bold" : "rounded-xl text-amber-700 border-amber-300"}
+            className={filtroTipo === "saldo_pendente" ? "bg-amber-600 text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl text-amber-700 border-amber-300 h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
             onClick={() => setFiltroTipo("saldo_pendente")}
           >
             ⚠️ Saldo a Receber ({validas.filter((v) => Number(v.saldo_na_entrega) > 0).length})
@@ -862,11 +862,11 @@ export function PaginaVendas() {
               placeholder="Buscar por cliente ou item..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="rounded-xl border-slate-300"
+              className="rounded-xl border-slate-300 h-9 sm:h-10 text-xs sm:text-sm"
             />
           </div>
           <Button
-            className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 h-10 shrink-0"
+            className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0"
             onClick={() => setModalNovoPedido(true)}
           >
             <Plus className="size-4" /> Novo Pedido
@@ -978,9 +978,9 @@ export function PaginaVendas() {
                     )}
                   </div>
 
-                  <div className="flex md:flex-col items-end justify-between md:justify-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
-                    <div className="text-right">
-                      <div className="text-lg font-black text-slate-900">{brl(v.total)}</div>
+                  <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-end justify-between md:justify-center gap-2 border-t md:border-t-0 pt-3 md:pt-0">
+                    <div className="flex items-center justify-between sm:block text-left sm:text-right">
+                      <div className="text-base sm:text-lg font-black text-slate-900">{brl(v.total)}</div>
                       {temSaldo && (
                         <div className="text-xs text-amber-700 font-semibold">
                           Sinal: {brl(v.valor_sinal_pago || 0)}
@@ -988,11 +988,11 @@ export function PaginaVendas() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 justify-end">
                       {temSaldo && (
                         <Button
                           size="sm"
-                          className="h-8 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg"
+                          className="h-8 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded-lg flex-1 sm:flex-initial"
                           onClick={() => quitarSaldo(v)}
                         >
                           Receber Saldo
@@ -1001,7 +1001,7 @@ export function PaginaVendas() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 text-xs gap-1 rounded-lg text-emerald-700 border-emerald-300 hover:bg-emerald-50"
+                        className="h-8 text-xs gap-1 rounded-lg text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex-1 sm:flex-initial"
                         onClick={() => copiarComprovanteWhatsApp(v)}
                         title="Copiar comprovante para WhatsApp"
                       >
@@ -1010,7 +1010,7 @@ export function PaginaVendas() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600"
+                        className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 shrink-0"
                         onClick={() => {
                           if (confirm("Excluir este pedido?")) {
                             apagarVenda.mutate(v.id);
@@ -1030,7 +1030,7 @@ export function PaginaVendas() {
 
       {/* MODAL: NOVO PEDIDO */}
       <Dialog open={modalNovoPedido} onOpenChange={setModalNovoPedido}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463]">Registrar Novo Pedido</DialogTitle>
             <DialogDescription>
@@ -1631,7 +1631,7 @@ export function PaginaVendas() {
 
       {/* MODAL: DETALHES DO ESTOQUE DO REVENDEDOR (ABERTO VIA KPI) */}
       <Dialog open={modalEstoquePdv} onOpenChange={setModalEstoquePdv}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="size-11 rounded-2xl bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center text-purple-700 dark:text-purple-300 shrink-0 shadow-xs">
@@ -1805,7 +1805,7 @@ export function PaginaVendas() {
 
       {/* MODAL: QUEM FALTA PAGAR (ABERTO VIA KPI) */}
       <Dialog open={modalSaldosPendentes} onOpenChange={setModalSaldosPendentes}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="size-11 rounded-2xl bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0 shadow-xs">
@@ -1993,7 +1993,7 @@ export function PaginaVendas() {
 
       {/* MODAL: EDITAR FORMA DE PAGAMENTO / DAR BAIXA */}
       <Dialog open={modalEditarPagamento} onOpenChange={setModalEditarPagamento}>
-        <DialogContent className="max-w-md rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="size-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0 shadow-xs">

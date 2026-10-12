@@ -335,11 +335,11 @@ export function Estrutura({
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground font-sans">
       <Fundo />
       
-      <div className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-4 sm:px-6 lg:px-8 sm:py-6 space-y-6">
+      <div className="relative z-10 mx-auto w-full max-w-[1920px] px-3.5 sm:px-6 lg:px-8 pt-3 sm:pt-6 pb-24 lg:pb-8 space-y-4 sm:space-y-6">
         
         {/* TOP FLOATING HEADER NAVBAR (MENU ACIMA - DESIGN PEOPLEIO) */}
         <header className="w-full">
-          <div className="flex items-center justify-between gap-4 rounded-3xl bg-card/90 p-3 px-5 shadow-sm shadow-brand/5 backdrop-blur-xl border border-border/50">
+          <div className="flex items-center justify-between gap-2.5 sm:gap-4 rounded-2xl sm:rounded-3xl bg-card/90 p-2.5 px-3.5 sm:p-3 sm:px-5 shadow-sm shadow-brand/5 backdrop-blur-xl border border-border/50">
             
             {/* LOGO & BRANDING (FOTO DA MARCA COM UPLOAD + NOME DO ATELIÊ) */}
             <div className="flex items-center gap-3 shrink-0">
@@ -374,8 +374,8 @@ export function Estrutura({
                 </div>
               </label>
 
-              <div className="flex items-center gap-2">
-                <span className="font-display text-base sm:text-lg font-extrabold tracking-tight text-[#084463] dark:text-foreground">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <span className="font-display text-sm sm:text-base lg:text-lg font-extrabold tracking-tight text-[#084463] dark:text-foreground truncate max-w-[130px] xs:max-w-[180px] sm:max-w-none">
                   {ehSuperAdmin ? "Kipi" : (empresaAtual?.nome ?? "Ateliê Gourmet Bella")}
                 </span>
                 {ehSuperAdmin && listaEmpresas.length > 1 && (
@@ -778,18 +778,18 @@ export function Estrutura({
       </Dialog>
 
       {/* MOBILE BAR */}
-      <div className="lg:hidden fixed bottom-3 left-4 right-4 z-50 glass-panel rounded-full p-2 border border-border/60 shadow-2xl flex items-center justify-around">
+      <div className="lg:hidden fixed bottom-3 left-3 right-3 sm:left-4 sm:right-4 z-50 glass-panel rounded-full p-1.5 sm:p-2 border border-border/60 shadow-2xl flex items-center justify-around bg-card/95 backdrop-blur-xl">
         {itensNav.slice(0, 5).map(({ para, rotulo, Icone }) => (
           <Link
             key={para}
             to={para}
             activeOptions={{ exact: para === "/" }}
-            activeProps={{ className: "bg-brand text-white font-bold" }}
-            inactiveProps={{ className: "text-muted-foreground" }}
-            className="flex flex-col items-center justify-center p-2 rounded-full size-10 transition-colors"
+            activeProps={{ className: "bg-[#084463] text-white font-bold shadow-md shadow-[#084463]/25 scale-105" }}
+            inactiveProps={{ className: "text-[#557385] dark:text-muted-foreground hover:text-[#084463] dark:hover:text-foreground" }}
+            className="flex flex-col items-center justify-center p-1.5 rounded-full size-11 transition-all active:scale-95"
             title={rotulo}
           >
-            <Icone className="size-4" />
+            <Icone className="size-5 shrink-0" />
           </Link>
         ))}
       </div>

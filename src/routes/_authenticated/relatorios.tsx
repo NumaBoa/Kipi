@@ -212,8 +212,8 @@ function PaginaRelatorios() {
           : "Resultado e métricas consolidadas do ateliê"
       }
       acao={
-        <Tabs value={periodo} onValueChange={(v) => setPeriodo(v as typeof periodo)}>
-          <TabsList className="rounded-full">
+        <Tabs value={periodo} onValueChange={(v) => setPeriodo(v as typeof periodo)} className="w-full sm:w-auto">
+          <TabsList className="rounded-full w-full sm:w-auto grid grid-cols-3 sm:inline-flex h-9 sm:h-10">
             <TabsTrigger value="7" className="rounded-full text-xs">
               7 dias
             </TabsTrigger>
@@ -227,7 +227,7 @@ function PaginaRelatorios() {
         </Tabs>
       }
     >
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:gap-5 2xl:gap-6">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 xl:gap-5 2xl:gap-6">
         <CartaoIndicador rotulo="Faturamento" valor={brl(faturamento)} detalhe={`${validas.length} vendas`} />
         <CartaoIndicador rotulo="Custo de produção" valor={brl(custo)} etiqueta="insumos" tom="warning" />
         <CartaoIndicador
@@ -241,7 +241,7 @@ function PaginaRelatorios() {
       </section>
 
       {/* TOP 3 PRODUTOS E TOP 3 CLIENTES (VISÃO REVENDEDORA / VISÃO DONA) */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {/* CARD: TOP 3 PRODUTOS MAIS VENDIDOS */}
         <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 shadow-xs space-y-3.5">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-border/40">

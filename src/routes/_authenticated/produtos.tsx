@@ -610,10 +610,10 @@ export function PaginaCatalogoEstoque() {
     >
       {/* NAVEGAÇÃO DE ABAS INTERNAS COM BOTÕES NA MESMA LINHA */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-2">
-        <div className="flex items-center overflow-x-auto">
+        <div className="flex items-center overflow-x-auto no-scrollbar -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
           <button
             type="button"
-            className={`py-2 px-5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            className={`py-2 px-3.5 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               abaAtiva === "produtos"
                 ? "border-[#084463] text-[#084463]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -626,7 +626,7 @@ export function PaginaCatalogoEstoque() {
 
           <button
             type="button"
-            className={`py-2 px-5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            className={`py-2 px-3.5 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               abaAtiva === "materiais"
                 ? "border-[#084463] text-[#084463]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -644,7 +644,7 @@ export function PaginaCatalogoEstoque() {
 
           <button
             type="button"
-            className={`py-2 px-5 font-bold text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
+            className={`py-2 px-3.5 sm:px-5 font-bold text-xs sm:text-sm border-b-2 transition-all flex items-center gap-2 whitespace-nowrap ${
               abaAtiva === "receitas"
                 ? "border-[#084463] text-[#084463]"
                 : "border-transparent text-slate-500 hover:text-slate-800"
@@ -656,10 +656,10 @@ export function PaginaCatalogoEstoque() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
           {abaAtiva === "produtos" ? (
             <Button
-              className="rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-5 h-10"
+              className="rounded-xl sm:rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 sm:px-5 h-9 sm:h-10 text-xs sm:text-sm"
               onClick={() => abrirModalProduto()}
             >
               <Plus className="size-4" /> Novo Produto
@@ -668,7 +668,7 @@ export function PaginaCatalogoEstoque() {
             <>
               <Button
                 variant="outline"
-                className="rounded-2xl gap-1.5 font-bold border-slate-300 text-slate-700 h-10 text-xs"
+                className="rounded-xl sm:rounded-2xl gap-1.5 font-bold border-slate-300 text-slate-700 h-9 sm:h-10 text-xs px-3 sm:px-4"
                 onClick={() => {
                   if (insumos.length > 0 && !materialEntradaId) {
                     setMaterialEntradaId(insumos[0]?.id ?? "");
@@ -679,7 +679,7 @@ export function PaginaCatalogoEstoque() {
                 <Plus className="size-4" /> Entrada de Compra
               </Button>
               <Button
-                className="rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-5 h-10"
+                className="rounded-xl sm:rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 sm:px-5 h-9 sm:h-10 text-xs sm:text-sm"
                 onClick={() => abrirModalInsumo()}
               >
                 <Plus className="size-4" /> Novo Material
@@ -689,7 +689,7 @@ export function PaginaCatalogoEstoque() {
             <>
               <Button
                 variant="outline"
-                className="rounded-2xl gap-1.5 text-xs border-[#084463]/40 text-[#084463] bg-[#084463]/5 hover:bg-[#084463]/10 font-bold h-10"
+                className="rounded-xl sm:rounded-2xl gap-1.5 text-xs border-[#084463]/40 text-[#084463] bg-[#084463]/5 hover:bg-[#084463]/10 font-bold h-9 sm:h-10 px-3 sm:px-4"
                 onClick={() => {
                   setNovoValorHoraPadrao(valorHoraPadrao);
                   setNovoValorHoraPadraoTexto(
@@ -698,11 +698,11 @@ export function PaginaCatalogoEstoque() {
                   setModalValorHora(true);
                 }}
               >
-                <Clock className="size-3.5" /> Hora Fixada: {brl(valorHoraPadrao)}/h
+                <Clock className="size-3.5" /> Hora: {brl(valorHoraPadrao)}/h
               </Button>
 
               <Button
-                className="rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-5 h-10"
+                className="rounded-xl sm:rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 sm:px-5 h-9 sm:h-10 text-xs sm:text-sm"
                 onClick={() => {
                   setFormNovaReceita({
                     nome: "",
@@ -728,7 +728,7 @@ export function PaginaCatalogoEstoque() {
       {abaAtiva === "produtos" && (
         <div className="space-y-4 pt-2">
           {/* CARDS INDICADORES */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <CartaoIndicador
               rotulo="Total de Produtos"
               valor={String(produtos.length)}
@@ -1277,7 +1277,7 @@ export function PaginaCatalogoEstoque() {
       {abaAtiva === "receitas" && (
         <div className="space-y-4 pt-2">
           {/* CARDS INDICADORES */}
-          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
             <CartaoIndicador
               rotulo="Fichas ativas"
               valor={String(totalComReceita)}
@@ -1637,7 +1637,7 @@ export function PaginaCatalogoEstoque() {
 
       {/* MODAL: NOVO PRODUTO */}
       <Dialog open={modalProduto} onOpenChange={setModalProduto}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463]">
               {formProduto.id ? "Editar Produto" : "Novo Produto no Catálogo"}
@@ -1798,7 +1798,7 @@ export function PaginaCatalogoEstoque() {
 
       {/* MODAL: NOVO MATERIAL / INSUMO */}
       <Dialog open={modalInsumo} onOpenChange={setModalInsumo}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463]">
               {formInsumo.id ? "Editar Material" : "Cadastrar Material / Embalagem"}
@@ -1942,7 +1942,7 @@ export function PaginaCatalogoEstoque() {
 
       {/* MODAL: ENTRADA DE COMPRA */}
       <Dialog open={modalEntradaCompra} onOpenChange={setModalEntradaCompra}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463] flex items-center gap-2">
               <Plus className="size-5" /> Entrada de Compra de Materiais
@@ -2032,7 +2032,7 @@ export function PaginaCatalogoEstoque() {
       </Dialog>
       {/* MODAL EDITAR VALOR DA HORA PADRÃO DO ATELIÊ */}
       <Dialog open={modalValorHora} onOpenChange={setModalValorHora}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-bold text-slate-800">Sua Hora Fixada (Padrão do Ateliê)</DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
@@ -2088,7 +2088,7 @@ export function PaginaCatalogoEstoque() {
 
       {/* MODAL CRIAR NOVA RECEITA / PRODUTO */}
       <Dialog open={modalNovaReceita} onOpenChange={setModalNovaReceita}>
-        <DialogContent className="sm:max-w-md rounded-3xl p-6 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-md rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display text-xl font-bold text-slate-800">Criar Nova Receita / Produto</DialogTitle>
             <DialogDescription className="text-xs text-slate-500">
@@ -2226,7 +2226,7 @@ export function PaginaCatalogoEstoque() {
 
       {/* MODAL: NOVA CATEGORIA */}
       <Dialog open={modalNovaCategoria} onOpenChange={setModalNovaCategoria}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463] flex items-center gap-2">
               <Plus className="size-5" /> Cadastrar Nova Categoria
@@ -2272,7 +2272,7 @@ export function PaginaCatalogoEstoque() {
       </Dialog>
       {/* MODAL: ASSAR / FINALIZAR CONGELADO */}
       <Dialog open={modalAssar} onOpenChange={setModalAssar}>
-        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto rounded-3xl p-6">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
               <span className="p-2 rounded-2xl bg-amber-100 text-amber-700">
