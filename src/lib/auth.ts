@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export type PapelUsuario = "super_admin" | "admin" | "operador";
+export type PapelUsuario = "super_admin" | "admin" | "operador" | "revendedor";
 export type StatusUsuario = "ativo" | "bloqueado" | "pendente";
 
 export type Empresa = {
@@ -25,34 +25,18 @@ export type Usuario = {
   ultimoAcesso?: string;
 };
 
-const CHAVE_USUARIOS = "meu-atelie-usuarios-v7";
-const CHAVE_EMPRESAS = "meu-atelie-empresas-v7";
-const CHAVE_SESSAO = "meu-atelie-sessao-v7";
+const CHAVE_USUARIOS = "meu-atelie-usuarios-v8";
+const CHAVE_EMPRESAS = "meu-atelie-empresas-v8";
+const CHAVE_SESSAO = "meu-atelie-sessao-v10";
 
 const id = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 export const empresasIniciais: Empresa[] = [
   {
-    id: "emp_1",
-    nome: "Ateliê Gourmet Bella",
+    id: "emp_matriz",
+    nome: "Meu Ateliê",
     documento: "12.345.678/0001-90",
     plano: "Pro",
-    status: "ativa",
-    criadaEm: new Date().toISOString(),
-  },
-  {
-    id: "emp_2",
-    nome: "Confeitaria Doce Arte",
-    documento: "98.765.432/0001-10",
-    plano: "Enterprise",
-    status: "ativa",
-    criadaEm: new Date().toISOString(),
-  },
-  {
-    id: "emp_3",
-    nome: "Empório dos Bolos",
-    documento: "45.678.901/0001-23",
-    plano: "Starter",
     status: "ativa",
     criadaEm: new Date().toISOString(),
   },
@@ -66,8 +50,8 @@ export const usuariosIniciais: Usuario[] = [
     senha: "P&ix1nh0!",
     status: "ativo",
     papel: "admin",
-    empresaIds: ["emp_1", "emp_2", "emp_3"],
-    empresaAtivaId: "emp_1",
+    empresaIds: ["emp_matriz"],
+    empresaAtivaId: "emp_matriz",
     criadoEm: new Date().toISOString(),
     ultimoAcesso: new Date().toISOString(),
   },
@@ -78,8 +62,8 @@ export const usuariosIniciais: Usuario[] = [
     senha: "P&ix1nh0!",
     status: "ativo",
     papel: "super_admin",
-    empresaIds: [],
-    empresaAtivaId: "",
+    empresaIds: ["emp_matriz"],
+    empresaAtivaId: "emp_matriz",
     criadoEm: new Date().toISOString(),
     ultimoAcesso: new Date().toISOString(),
   },
@@ -119,7 +103,20 @@ export function lerUsuarios(): Usuario[] {
     return usuariosIniciais;
   }
   try {
-    return JSON.parse(salvo) as Usuario[];
+    const list = JSON.parse(salvo) as Usuario[];
+    let precisaGravar = false;
+    list.forEach((u) => {
+      if (u.id === "usr_dono" || u.email?.trim().toLowerCase() === "camila.c.lima08@gmail.com") {
+        if (u.papel !== "admin") {
+          u.papel = "admin";
+          precisaGravar = true;
+        }
+      }
+    });
+    if (precisaGravar) {
+      gravarUsuarios(list);
+    }
+    return list;
   } catch {
     return usuariosIniciais;
   }
@@ -134,13 +131,17 @@ export function gravarUsuarios(u: Usuario[]) {
 export function lerSessao(): Usuario | null {
   const padrao: Usuario = usuariosIniciais[0]!;
   if (typeof window === "undefined") return padrao;
+  // Limpar sessões antigas se existirem
+  ["meu-atelie-sessao-v6", "meu-atelie-sessao-v7", "meu-atelie-sessao-v8"].forEach((k) => localStorage.removeItem(k));
   const salvo = localStorage.getItem(CHAVE_SESSAO);
   if (!salvo) {
     gravarSessao(padrao);
     return padrao;
   }
   try {
-    return (JSON.parse(salvo) as Usuario) ?? padrao;
+    const sessao = (JSON.parse(salvo) as Usuario) ?? padrao;
+    if (!sessao.papel) sessao.papel = "admin";
+    return sessao;
   } catch {
     return padrao;
   }
@@ -233,6 +234,11 @@ export function useAuth() {
         criadoEm: novo.criadoEm ?? new Date().toISOString(),
         ...(novo.ultimoAcesso ? { ultimoAcesso: novo.ultimoAcesso } : {}),
       };
+      // REGRA DE SEGURANÇA: Dono do sistema (Camila Lima) NUNCA perde privilégio de admin
+      if (item.id === "usr_dono" || item.email.trim().toLowerCase() === "camila.c.lima08@gmail.com") {
+        item.papel = "admin";
+      }
+
       if (pos >= 0) todos.splice(pos, 1, item);
       else todos.push(item);
       gravarUsuarios(todos);
@@ -240,6 +246,9 @@ export function useAuth() {
       // Se editou a si mesmo na sessão, atualiza sessão
       const sessaoAtual = lerSessao();
       if (sessaoAtual && sessaoAtual.id === item.id) {
+        if (sessaoAtual.id === "usr_dono") {
+          item.papel = "admin";
+        }
         gravarSessao(item);
       }
     },
@@ -332,9 +341,9 @@ export function useAuth() {
       const padrao: Usuario = usuariosIniciais[0]!;
       const sessaoAtual: Usuario = lerSessao() ?? padrao;
       sessaoAtual.papel = novoPapel;
-      if (novoPapel === "admin") {
+      if (novoPapel === "admin" || novoPapel === "revendedor") {
         sessaoAtual.empresaAtivaId = listaEmpresas[0]?.id ?? "emp_1";
-        sessaoAtual.empresaIds = ["emp_1", "emp_2", "emp_3"];
+        sessaoAtual.empresaIds = [listaEmpresas[0]?.id ?? "emp_1"];
       } else {
         sessaoAtual.empresaAtivaId = "";
         sessaoAtual.empresaIds = [];
@@ -373,6 +382,11 @@ export function useAuth() {
 
 export function temPermissaoRota(papel: PapelUsuario | undefined, rota: string): boolean {
   if (!papel) return true;
+
+  // Revendedor: Acesso às telas de Vendas e Gestão de Clientes
+  if (papel === "revendedor") {
+    return rota === "/vendas" || rota === "/clientes";
+  }
 
   // Super Admin (Master Admin do SaaS): apenas visões estratégicas e comerciais da plataforma
   if (papel === "super_admin") {

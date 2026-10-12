@@ -73,17 +73,31 @@ export function CartaoIndicador({
   detalhe,
   etiqueta,
   tom = "brand",
+  onClick,
+  className,
 }: {
   rotulo: string;
   valor: string;
-  detalhe?: string;
-  etiqueta?: string;
-  tom?: Tom;
+  detalhe?: string | undefined;
+  etiqueta?: string | undefined;
+  tom?: Tom | undefined;
+  onClick?: (() => void) | undefined;
+  className?: string | undefined;
 }) {
   return (
-    <Painel className="p-6">
+    <Painel
+      onClick={onClick}
+      className={cn(
+        "p-6",
+        onClick &&
+          "cursor-pointer hover:border-[#084463]/50 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all select-none group",
+        className
+      )}
+    >
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <p className="min-w-0 truncate text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider">{rotulo}</p>
+        <p className="min-w-0 truncate text-xs font-bold text-slate-500 dark:text-muted-foreground uppercase tracking-wider group-hover:text-[#084463] transition-colors">
+          {rotulo}
+        </p>
         {etiqueta ? <Etiqueta tom={tom}>{etiqueta}</Etiqueta> : null}
       </div>
       <p className="mt-3 font-display text-3xl font-extrabold text-[#084463] dark:text-foreground tracking-tight">{valor}</p>

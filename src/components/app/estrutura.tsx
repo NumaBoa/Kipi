@@ -5,6 +5,7 @@ import {
   Boxes,
   Building2,
   CakeSlice,
+  Camera,
   CalendarRange,
   CheckCircle2,
   KeyRound,
@@ -23,11 +24,12 @@ import {
   Users,
   XCircle,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useTema } from "@/lib/theme";
 import { hoje } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useAuth, temPermissaoRota, type PapelUsuario, type Usuario } from "@/lib/auth";
+import { lerValorHoraPadrao, gravarValorHoraPadrao } from "@/lib/dados";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,16 +50,23 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-const todosItens = [
-  { para: "/", rotulo: "Painel", Icone: LayoutDashboard },
-  { para: "/vendas", rotulo: "Vendas", Icone: ShoppingBag },
-  { para: "/produtos", rotulo: "Produtos", Icone: CakeSlice },
-  { para: "/estoque", rotulo: "Estoque", Icone: Boxes },
-  { para: "/receitas", rotulo: "Receitas", Icone: NotebookPen },
-  { para: "/planejamento", rotulo: "Planejamento", Icone: CalendarRange },
-  { para: "/clientes", rotulo: "Clientes", Icone: Users },
-  { para: "/relatorios", rotulo: "Relatórios", Icone: BarChart3 },
-  { para: "/usuarios", rotulo: "Controle de Acesso", Icone: ShieldCheck },
+const itensNegocio = [
+  { para: "/", rotulo: "Início", Icone: LayoutDashboard },
+  { para: "/vendas", rotulo: "Pedidos", Icone: ShoppingBag },
+  { para: "/planejamento", rotulo: "Produção", Icone: CalendarRange },
+  { para: "/produtos", rotulo: "Catálogo & Estoque", Icone: Boxes },
+  { para: "/clientes", rotulo: "Contatos", Icone: Users },
+] as const;
+
+const itensSuperAdmin = [
+  { para: "/", rotulo: "Painel SaaS", Icone: LayoutDashboard },
+  { para: "/usuarios", rotulo: "Empresas & Contas", Icone: ShieldCheck },
+  { para: "/relatorios", rotulo: "Relatórios Globais", Icone: BarChart3 },
+] as const;
+
+const itensRevendedor = [
+  { para: "/vendas", rotulo: "Pedidos & Vendas", Icone: ShoppingBag },
+  { para: "/clientes", rotulo: "Meus Clientes", Icone: Users },
 ] as const;
 
 function Fundo() {
@@ -74,8 +83,9 @@ function Navegacao({
   papel: PapelUsuario | undefined;
   compacto?: boolean;
 }) {
-  const itens = todosItens.filter((item) => temPermissaoRota(papel, item.para));
   const ehSuperAdmin = papel === "super_admin";
+  const ehRevendedor = papel === "revendedor";
+  const itens = ehSuperAdmin ? itensSuperAdmin : ehRevendedor ? itensRevendedor : itensNegocio;
 
   return (
     <nav className={cn("space-y-1 text-sm font-medium", compacto && "flex gap-1 space-y-0")}>
@@ -115,11 +125,13 @@ export function Estrutura({
   subtitulo,
   acao,
   children,
+  exibirBannerBoasVindas = false,
 }: {
   titulo: string;
   subtitulo?: string;
   acao?: ReactNode;
   children: ReactNode;
+  exibirBannerBoasVindas?: boolean;
 }) {
   const { tema, alternar } = useTema();
   const {
@@ -135,6 +147,7 @@ export function Estrutura({
     apagarUsuario,
     alternarEmpresaAtiva,
     alternarModoVisao,
+    salvarEmpresa,
   } = useAuth();
   const navigate = useNavigate();
 
@@ -142,6 +155,74 @@ export function Estrutura({
   const [loginSenha, setLoginSenha] = useState("");
   const [loginCarregando, setLoginCarregando] = useState(false);
   const [profileAberto, setProfileAberto] = useState(false);
+  const [logoMarca, setLogoMarca] = useState<string | null>(null);
+
+  // Modal de Configurações
+  const [modalConfiguracoes, setModalConfiguracoes] = useState(false);
+  const [configNomeAtelie, setConfigNomeAtelie] = useState(empresaAtual?.nome || "Ateliê Gourmet Bella");
+  const [configDocumento, setConfigDocumento] = useState(empresaAtual?.documento || "12.345.678/0001-90");
+  const [configValorHora, setConfigValorHora] = useState(() => String(lerValorHoraPadrao()));
+
+  useEffect(() => {
+    if (empresaAtual) {
+      setConfigNomeAtelie(empresaAtual.nome);
+      setConfigDocumento(empresaAtual.documento);
+    }
+  }, [empresaAtual]);
+
+  const handleSalvarConfiguracoes = async () => {
+    try {
+      if (empresaAtual) {
+        await salvarEmpresa({
+          id: empresaAtual.id,
+          nome: configNomeAtelie.trim() || empresaAtual.nome,
+          documento: configDocumento.trim() || empresaAtual.documento,
+        });
+      }
+      const vHoraNum = Number(configValorHora.replace(",", ".")) || 25;
+      gravarValorHoraPadrao(vHoraNum);
+      toast.success("Configurações do Ateliê salvas com sucesso!");
+      setModalConfiguracoes(false);
+    } catch {
+      toast.error("Erro ao salvar configurações.");
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const chave = `meu-atelie-logo-${empresaAtual?.id ?? "padrao"}`;
+      setLogoMarca(localStorage.getItem(chave));
+    }
+  }, [empresaAtual?.id]);
+
+  const handleUploadLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione uma imagem válida (PNG, JPG, SVG ou WebP).");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("A foto deve ter no máximo 3MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setLogoMarca(dataUrl);
+        if (typeof window !== "undefined") {
+          const chave = `meu-atelie-logo-${empresaAtual?.id ?? "padrao"}`;
+          localStorage.setItem(chave, dataUrl);
+        }
+        toast.success("Foto da marca atualizada com sucesso!");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,12 +241,25 @@ export function Estrutura({
     }
   };
 
+  const ehRevendedor = usuario?.papel === "revendedor";
+
+  useEffect(() => {
+    if (ehRevendedor && typeof window !== "undefined") {
+      const pathname = window.location.pathname;
+      if (pathname !== "/vendas") {
+        navigate({ to: "/vendas" });
+      }
+    }
+  }, [ehRevendedor, navigate]);
+
   const rotuloPapel = (papel?: PapelUsuario) => {
     switch (papel) {
       case "super_admin":
         return "👑 Master Admin";
       case "admin":
         return "🛡️ Admin Empresa";
+      case "revendedor":
+        return "🏪 Revendedor (PDV)";
       case "operador":
       default:
         return "👤 Operador";
@@ -183,7 +277,7 @@ export function Estrutura({
             </div>
             <h1 className="font-display text-2xl font-bold tracking-tight">Kipi — Acessar Conta</h1>
             <p className="text-xs text-muted-foreground">
-              Informe seu e-mail e senha de administrador para acessar o painel de gestão.
+              Informe seu e-mail e senha para acessar o painel de gestão.
             </p>
           </div>
 
@@ -226,7 +320,7 @@ export function Estrutura({
     );
   }
 
-  const itensNav = todosItens.filter((item) => temPermissaoRota(usuario?.papel, item.para));
+  const itensNav = ehSuperAdmin ? itensSuperAdmin : ehRevendedor ? itensRevendedor : itensNegocio;
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-background text-foreground font-sans">
@@ -238,30 +332,54 @@ export function Estrutura({
         <header className="w-full">
           <div className="flex items-center justify-between gap-4 rounded-3xl bg-card/90 p-3 px-5 shadow-sm shadow-brand/5 backdrop-blur-xl border border-border/50">
             
-            {/* LOGO & BRANDING */}
+            {/* LOGO & BRANDING (FOTO DA MARCA COM UPLOAD + NOME DO ATELIÊ) */}
             <div className="flex items-center gap-3 shrink-0">
-              <div className="gradient-brand grid size-10 place-items-center rounded-2xl font-display text-lg font-bold text-white shadow-md shadow-brand/20">
-                P
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-display text-xl font-extrabold tracking-tight">Kipi</span>
-                  <span className="text-[10px] font-extrabold text-brand bg-brand/10 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                    {ehSuperAdmin ? "SaaS Master" : (empresaAtual?.nome ?? "Ateliê")}
-                  </span>
+              <input
+                id="upload-logo-marca"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleUploadLogo}
+              />
+              <label
+                htmlFor="upload-logo-marca"
+                className="group relative size-11 rounded-2xl overflow-hidden border border-slate-200/80 dark:border-border/60 shadow-sm cursor-pointer grid place-items-center bg-gradient-to-br from-[#E8F4F8] to-[#C9E7F2] dark:from-slate-800 dark:to-slate-900 transition-all hover:ring-2 hover:ring-[#084463]/40 shrink-0"
+                title="Clique para enviar a foto da marca"
+              >
+                {logoMarca ? (
+                  <img
+                    src={logoMarca}
+                    alt={empresaAtual?.nome ?? "Logo da marca"}
+                    className="size-full object-cover transition-transform group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-[#084463] dark:text-[#6BB9D4]">
+                    <CakeSlice className="size-5" />
+                  </div>
+                )}
+
+                {/* Overlay no hover para troca de foto */}
+                <div className="absolute inset-0 bg-[#084463]/80 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white transition-opacity">
+                  <Camera className="size-4" />
+                  <span className="text-[8px] font-bold uppercase tracking-wider mt-0.5">Trocar</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground font-medium hidden sm:block">Empower. Engage. Elevate.</p>
+              </label>
+
+              <div>
+                <span className="font-display text-base sm:text-lg font-extrabold tracking-tight text-[#084463] dark:text-foreground">
+                  {ehSuperAdmin ? "Kipi" : (empresaAtual?.nome ?? "Ateliê Gourmet Bella")}
+                </span>
               </div>
             </div>
 
-            {/* HORIZONTAL PILL NAVIGATION (MENU ACIMA) */}
-            <nav className="hidden lg:flex items-center gap-1.5 bg-muted/60 p-1.5 rounded-full border border-border/40">
+            {/* HORIZONTAL PILL NAVIGATION (MENU ACIMA - 100% RESPONSIVO E ALINHADO) */}
+            <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 bg-muted/60 p-1 rounded-full border border-border/40 overflow-x-auto no-scrollbar shrink-0">
               {itensNav.map(({ para, rotulo, Icone }) => {
                 let textoExibido: string = rotulo;
                 if (ehSuperAdmin) {
-                  if (para === "/") textoExibido = "Dashboard";
-                  if (para === "/usuarios") textoExibido = "Empresas & Clientes";
-                  if (para === "/relatorios") textoExibido = "Relatórios Globais";
+                  if (para === "/") textoExibido = "Painel SaaS";
+                  if (para === "/usuarios") textoExibido = "Clientes & Contas";
+                  if (para === "/relatorios") textoExibido = "Relatórios";
                 }
 
                 return (
@@ -270,15 +388,16 @@ export function Estrutura({
                     to={para}
                     activeOptions={{ exact: para === "/" }}
                     activeProps={{
-                      className: "bg-brand text-white font-bold shadow-md shadow-brand/25",
+                      className: "bg-[#084463] text-white font-bold shadow-md shadow-[#084463]/25",
                     }}
                     inactiveProps={{
-                      className: "text-muted-foreground hover:text-foreground hover:bg-background/80 font-medium",
+                      className: "text-[#557385] dark:text-muted-foreground hover:text-[#084463] dark:hover:text-foreground hover:bg-background/80 font-semibold",
                     }}
-                    className="flex items-center gap-2 rounded-full px-4 py-2 text-xs transition-all duration-200"
+                    className="flex items-center gap-1 xl:gap-1.5 rounded-full px-2 xl:px-3 py-1.5 text-[11px] xl:text-xs whitespace-nowrap shrink-0 transition-all duration-200"
+                    title={rotulo}
                   >
-                    <Icone className="size-3.5" />
-                    {textoExibido}
+                    <Icone className="size-3.5 shrink-0" />
+                    <span>{textoExibido}</span>
                   </Link>
                 );
               })}
@@ -286,61 +405,6 @@ export function Estrutura({
 
             {/* ACTION BUTTONS & PROFILE */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              {/* Multi-tenant selector */}
-              {listaEmpresas.length > 0 && !ehSuperAdmin && (
-                <div className="hidden md:block">
-                  <Select
-                    value={usuario?.empresaAtivaId ?? listaEmpresas[0]?.id ?? ""}
-                    onValueChange={(empId) => {
-                      alternarEmpresaAtiva(empId);
-                      toast.success("Empresa alternada!");
-                    }}
-                  >
-                    <SelectTrigger className="h-9 rounded-full text-xs bg-muted/50 font-semibold border-border/50 px-3">
-                      <Building2 className="size-3.5 mr-1.5 text-brand" />
-                      <SelectValue placeholder="Empresa..." />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      {listaEmpresas.map((emp) => (
-                        <SelectItem key={emp.id} value={emp.id} className="text-xs">
-                          {emp.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Quick View Switcher (Master SaaS vs Dono de Empresa) */}
-              <button
-                type="button"
-                onClick={() => {
-                  const proximo = ehSuperAdmin ? "admin" : "super_admin";
-                  alternarModoVisao(proximo);
-                  toast.success(proximo === "admin" ? "Visualizando como Dono da Empresa (Ateliê Bella)!" : "Visualizando como Master SaaS!");
-                }}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black shadow-sm transition-all border",
-                  ehSuperAdmin
-                    ? "bg-[#FFC64F] text-[#084463] border-[#FFC64F] hover:bg-[#F5B83D]"
-                    : "bg-[#084463] text-white border-[#084463] hover:bg-[#06344C]"
-                )}
-                title="Alternar entre visão Master SaaS e visão do Cliente Dono"
-              >
-                <span>{ehSuperAdmin ? "🏪" : "👑"}</span>
-                <span className="hidden md:inline">{ehSuperAdmin ? "Ver como Dono de Empresa" : "Ver como Master SaaS"}</span>
-                <span className="md:hidden">{ehSuperAdmin ? "Dono" : "Master"}</span>
-              </button>
-
-              {/* Settings button pill */}
-              <button
-                type="button"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-300 dark:border-border text-xs font-semibold text-[#084463] dark:text-foreground hover:bg-slate-100 dark:hover:bg-muted transition-colors"
-              >
-                <Settings className="size-3.5" />
-                <span>Settings</span>
-              </button>
-
               {/* Notification Bell with Badge */}
               <div className="relative">
                 <button
@@ -365,47 +429,146 @@ export function Estrutura({
                 {tema === "dark" ? <Moon className="size-4" /> : <Sun className="size-4" />}
               </button>
 
-              {/* Profile Pill */}
+              {/* Profile Pill & User Menu */}
               <div className="relative">
                 <button
                   type="button"
                   onClick={() => setProfileAberto(!profileAberto)}
                   className="grid size-9 place-items-center rounded-full bg-[#E8F4F8] dark:bg-muted border border-[#6BB9D4]/40 text-[#084463] dark:text-foreground font-black text-xs hover:bg-[#D5EDF5] transition-colors"
-                  title="Perfil"
+                  title="Perfil e Configurações"
                 >
                   {(usuario?.nome || "C").charAt(0).toUpperCase()}
                 </button>
 
                 {profileAberto && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-card rounded-3xl p-2 shadow-2xl border border-slate-200 dark:border-border z-50 space-y-1">
-                    <div className="px-3 py-2 border-b border-slate-100 dark:border-border/40">
-                      <p className="text-xs font-bold text-[#084463] dark:text-foreground">{usuario?.nome}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-muted-foreground truncate">{usuario?.email}</p>
-                      <span className="inline-block mt-1 text-[9px] font-extrabold text-brand bg-brand/10 px-2 py-0.5 rounded-full uppercase">
-                        {rotuloPapel(usuario?.papel)}
-                      </span>
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setProfileAberto(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-card rounded-3xl p-3 shadow-2xl border border-slate-200 dark:border-border z-50 space-y-2.5">
+                      {/* DADOS DO USUÁRIO */}
+                      <div className="px-2 py-1.5 border-b border-slate-100 dark:border-border/40">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-bold text-[#084463] dark:text-foreground">{usuario?.nome}</p>
+                          <span className="text-[9px] font-extrabold text-brand bg-brand/10 px-2 py-0.5 rounded-full uppercase">
+                            {rotuloPapel(usuario?.papel)}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-muted-foreground truncate mt-0.5">{usuario?.email}</p>
+                      </div>
+
+                      {/* MODO DE VISUALIZAÇÃO */}
+                      <div className="p-2.5 bg-slate-50 dark:bg-muted/50 rounded-2xl border border-slate-100 dark:border-border/60 space-y-1.5">
+                        <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-muted-foreground px-1">
+                          Modo de Visualização
+                        </p>
+                        <div className="grid grid-cols-1 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              alternarModoVisao("admin");
+                              setProfileAberto(false);
+                              toast.success("Visualizando como Dono da Empresa (Ateliê Bella)!");
+                              navigate({ to: "/" });
+                            }}
+                            className={cn(
+                              "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left",
+                              usuario?.papel === "admin"
+                                ? "bg-[#084463] text-white shadow-xs"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-muted"
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>🏪</span>
+                              <span>Dono do Ateliê</span>
+                            </span>
+                            {usuario?.papel === "admin" && <CheckCircle2 className="size-3.5" />}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              alternarModoVisao("super_admin");
+                              setProfileAberto(false);
+                              toast.success("Visualizando como Master SaaS (Kipi)!");
+                              navigate({ to: "/" });
+                            }}
+                            className={cn(
+                              "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left",
+                              usuario?.papel === "super_admin"
+                                ? "bg-[#FFC64F] text-[#084463] shadow-xs"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-muted"
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>👑</span>
+                              <span>Master SaaS</span>
+                            </span>
+                            {usuario?.papel === "super_admin" && <CheckCircle2 className="size-3.5" />}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              alternarModoVisao("revendedor");
+                              setProfileAberto(false);
+                              toast.success("Visualizando como Revendedor (PDV)!");
+                              navigate({ to: "/vendas" });
+                            }}
+                            className={cn(
+                              "flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition-all text-left",
+                              usuario?.papel === "revendedor"
+                                ? "bg-purple-600 text-white shadow-xs"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-muted"
+                            )}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span>🤝</span>
+                              <span>Revendedor (PDV)</span>
+                            </span>
+                            {usuario?.papel === "revendedor" && <CheckCircle2 className="size-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* AÇÕES E CONFIGURAÇÕES */}
+                      <div className="space-y-0.5 pt-1 border-t border-slate-100 dark:border-border/40">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileAberto(false);
+                            setModalConfiguracoes(true);
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
+                        >
+                          <Settings className="size-4 text-brand" /> Configurações do Ateliê
+                        </button>
+
+                        {ehAdmin && !ehRevendedor && (
+                          <Link
+                            to="/usuarios"
+                            onClick={() => setProfileAberto(false)}
+                            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground transition-colors"
+                          >
+                            <ShieldCheck className="size-4 text-brand" /> Controle de Acessos
+                          </Link>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProfileAberto(false);
+                            logout();
+                            toast.info("Sessão encerrada.");
+                          }}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                        >
+                          <LogOut className="size-4" /> Sair do Sistema
+                        </button>
+                      </div>
                     </div>
-                    {ehAdmin && (
-                      <Link
-                        to="/usuarios"
-                        onClick={() => setProfileAberto(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl hover:bg-slate-100 dark:hover:bg-muted text-foreground"
-                      >
-                        <ShieldCheck className="size-4 text-brand" /> Controle de Acessos
-                      </Link>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProfileAberto(false);
-                        logout();
-                        toast.info("Sessão encerrada.");
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl text-destructive hover:bg-destructive/10 transition-colors"
-                    >
-                      <LogOut className="size-4" /> Sair do Sistema
-                    </button>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -413,71 +576,229 @@ export function Estrutura({
           </div>
         </header>
 
-        {/* TOP WELCOME & STATS BANNER ROW (PEACOCK & SAFFRON COASTAL PALETTE) */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white dark:bg-card rounded-[28px] p-6 shadow-sm border border-slate-200/70 dark:border-border/50">
-          <div className="space-y-3">
-            <h1 className="font-display text-3xl font-extrabold tracking-tight text-[#084463] dark:text-foreground">
-              Welcome in, <span className="text-[#084463] font-black">{ehSuperAdmin ? "Peoplexio" : (usuario?.nome ?? "Camila")}</span>
-            </h1>
-            
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="flex items-center gap-2 bg-[#084463] text-white px-5 py-2 rounded-full text-xs font-bold shadow-sm">
-                <span>Interviews</span>
-                <span className="bg-[#6BB9D4] text-[#084463] font-black px-2 py-0.5 rounded-full text-[10px]">18%</span>
+        {/* BANNER DE BOAS-VINDAS: APENAS NO PAINEL DO GESTOR SAAS (100% EM PORTUGUÊS) */}
+        {exibirBannerBoasVindas && ehSuperAdmin ? (
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white dark:bg-card rounded-[28px] p-6 shadow-sm border border-slate-200/70 dark:border-border/50">
+            <div className="space-y-3">
+              <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight text-[#084463] dark:text-foreground">
+                Bem-vinda de volta, <span className="text-[#084463] font-black">{usuario?.nome ?? "Camila Lima"}</span>
+              </h1>
+              <p className="text-xs text-slate-500 font-medium">
+                Visão geral da sua plataforma SaaS, clientes ativos e assinaturas comercializadas.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                <div className="flex items-center gap-2 bg-[#084463] text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
+                  <span>Assinaturas Ativas</span>
+                  <span className="bg-[#6BB9D4] text-[#084463] font-black px-2 py-0.5 rounded-full text-[10px]">24%</span>
+                </div>
+                <div className="flex items-center gap-2 bg-[#FFC64F] text-[#084463] px-4 py-1.5 rounded-full text-xs font-black shadow-sm">
+                  <span>Novos Clientes</span>
+                  <span className="bg-[#084463] text-white px-2 py-0.5 rounded-full text-[10px]">18%</span>
+                </div>
+                <div className="flex items-center gap-2 bg-[#E8F4F8] text-[#084463] dark:bg-muted dark:text-muted-foreground px-4 py-1.5 rounded-full text-xs font-bold">
+                  <span>Uso da Plataforma</span>
+                  <span className="text-[#084463] font-extrabold">65%</span>
+                </div>
+                <div className="flex items-center gap-2 border border-[#084463]/20 text-[#084463] dark:border-border px-4 py-1.5 rounded-full text-xs font-bold">
+                  <span>Retenção</span>
+                  <span className="text-[#084463] font-extrabold">98%</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 bg-[#FFC64F] text-[#084463] px-5 py-2 rounded-full text-xs font-black shadow-sm">
-                <span>Hired</span>
-                <span className="bg-[#084463] text-white px-2 py-0.5 rounded-full text-[10px]">24%</span>
+
+              {acao && <div className="pt-2">{acao}</div>}
+            </div>
+
+            <div className="flex items-center gap-6 divide-x divide-slate-200 dark:divide-border shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-2xl bg-[#E8F4F8] dark:bg-slate-800 grid place-items-center text-[#084463]">
+                  <Users className="size-5" />
+                </div>
+                <div>
+                  <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">128</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Usuários Ativos</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 bg-[#E8F4F8] text-[#084463] dark:bg-muted dark:text-muted-foreground px-5 py-2 rounded-full text-xs font-bold">
-                <span>Project time</span>
-                <span className="text-[#084463] font-extrabold">65%</span>
+
+              <div className="pl-6 flex items-center gap-3">
+                <div className="size-10 rounded-2xl bg-[#FFF5DC] dark:bg-amber-950/40 grid place-items-center text-[#D97706]">
+                  <Boxes className="size-5" />
+                </div>
+                <div>
+                  <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">36</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Empresas Clientes</p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 border border-[#084463]/20 text-[#084463] dark:border-border px-5 py-2 rounded-full text-xs font-bold">
-                <span>Output</span>
-                <span className="text-[#084463] font-extrabold">12%</span>
+
+              <div className="pl-6 flex items-center gap-3">
+                <div className="size-10 rounded-2xl bg-[#E8F4F8] dark:bg-slate-800 grid place-items-center text-[#6BB9D4]">
+                  <Building2 className="size-5" />
+                </div>
+                <div>
+                  <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">54</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">Planos Ativos</p>
+                </div>
               </div>
             </div>
           </div>
-
-          <div className="flex items-center gap-6 divide-x divide-slate-200 dark:divide-border shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-[#E8F4F8] dark:bg-slate-800 grid place-items-center text-[#084463]">
-                <Users className="size-5" />
-              </div>
-              <div>
-                <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">128</p>
-                <p className="text-xs text-slate-500 font-medium">Employees</p>
-              </div>
-            </div>
-
-            <div className="pl-6 flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-[#FFF5DC] dark:bg-amber-950/40 grid place-items-center text-[#D97706]">
-                <Boxes className="size-5" />
-              </div>
-              <div>
-                <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">36</p>
-                <p className="text-xs text-slate-500 font-medium">Openings</p>
-              </div>
-            </div>
-
-            <div className="pl-6 flex items-center gap-3">
-              <div className="size-10 rounded-2xl bg-[#E8F4F8] dark:bg-slate-800 grid place-items-center text-[#6BB9D4]">
-                <Building2 className="size-5" />
-              </div>
-              <div>
-                <p className="font-display text-2xl font-black text-[#084463] dark:text-foreground leading-none">54</p>
-                <p className="text-xs text-slate-500 font-medium">Departments</p>
-              </div>
-            </div>
+        ) : acao ? (
+          /* LINHA DE AÇÃO COMPACTA (SEM TÍTULOS GRANDES PARA MAXIMIZAR O ESPAÇO EM TELA) */
+          <div className="flex items-center justify-end -mb-2">
+            <div className="shrink-0">{acao}</div>
           </div>
-        </div>
+        ) : null}
 
         {/* MAIN PAGE CONTENT */}
         <main className="w-full space-y-6">
           {children}
         </main>
       </div>
+
+      {/* MODAL DE CONFIGURAÇÕES DO ATELIÊ */}
+      <Dialog open={modalConfiguracoes} onOpenChange={setModalConfiguracoes}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black text-[#084463] dark:text-foreground flex items-center gap-2">
+              <Settings className="size-5 text-brand" /> Configurações do Ateliê
+            </DialogTitle>
+            <DialogDescription>
+              Ajuste as informações da empresa, identidade da marca e parâmetros de custo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* LOGO DA MARCA */}
+            <div>
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Foto / Logo da Marca</Label>
+              <div className="flex items-center gap-4 mt-2">
+                <div className="size-16 rounded-2xl overflow-hidden border border-slate-200 dark:border-border bg-slate-50 dark:bg-muted grid place-items-center shrink-0">
+                  {logoMarca ? (
+                    <img src={logoMarca} alt="Logo" className="size-full object-cover" />
+                  ) : (
+                    <CakeSlice className="size-7 text-[#084463]" />
+                  )}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="upload-logo-modal"
+                    className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#084463] text-white hover:bg-[#06344C] transition-colors"
+                  >
+                    <Camera className="size-3.5" /> Alterar Foto
+                  </label>
+                  <input
+                    id="upload-logo-modal"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleUploadLogo}
+                  />
+                  {logoMarca && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoMarca(null);
+                        if (typeof window !== "undefined") {
+                          localStorage.removeItem(`meu-atelie-logo-${empresaAtual?.id ?? "padrao"}`);
+                        }
+                        toast.info("Foto removida.");
+                      }}
+                      className="text-[11px] text-rose-600 hover:underline font-semibold text-left"
+                    >
+                      Remover foto
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* NOME DO ATELIÊ */}
+            <div>
+              <Label htmlFor="cfg-nome" className="text-xs font-bold text-slate-700 dark:text-slate-300">Nome Fantasia do Ateliê</Label>
+              <Input
+                id="cfg-nome"
+                value={configNomeAtelie}
+                onChange={(e) => setConfigNomeAtelie(e.target.value)}
+                placeholder="Ex: Ateliê Gourmet Bella"
+                className="mt-1 rounded-xl text-xs font-semibold"
+              />
+            </div>
+
+            {/* CNPJ / DOCUMENTO */}
+            <div>
+              <Label htmlFor="cfg-doc" className="text-xs font-bold text-slate-700 dark:text-slate-300">Documento (CNPJ ou CPF)</Label>
+              <Input
+                id="cfg-doc"
+                value={configDocumento}
+                onChange={(e) => setConfigDocumento(e.target.value)}
+                placeholder="00.000.000/0001-00"
+                className="mt-1 rounded-xl text-xs font-semibold"
+              />
+            </div>
+
+            {/* VALOR DA HORA DE TRABALHO PADRÃO */}
+            <div className="p-3.5 bg-slate-50 dark:bg-muted/40 rounded-2xl border border-slate-200 dark:border-border/60 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="cfg-hora" className="text-xs font-extrabold text-slate-800 dark:text-foreground">
+                  Valor da Hora de Mão de Obra
+                </Label>
+                <span className="text-[11px] font-bold text-brand">R$ / hora</span>
+              </div>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-xs font-bold text-slate-400">R$</span>
+                <Input
+                  id="cfg-hora"
+                  type="text"
+                  inputMode="decimal"
+                  value={configValorHora}
+                  onChange={(e) => setConfigValorHora(e.target.value)}
+                  placeholder="25,00"
+                  className="pl-9 rounded-xl font-bold text-sm bg-white dark:bg-card"
+                />
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-muted-foreground pt-0.5">
+                Utilizado para o cálculo automático do custo de mão de obra nas receitas, fornadas e produtos.
+              </p>
+            </div>
+
+            {/* TEMA VISUAL */}
+            <div>
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">Tema do Sistema</Label>
+              <div className="grid grid-cols-2 gap-2 mt-1.5">
+                <Button
+                  type="button"
+                  variant={tema === "light" ? "default" : "outline"}
+                  size="sm"
+                  className={cn("rounded-xl text-xs font-bold gap-1.5", tema === "light" && "bg-[#084463] text-white")}
+                  onClick={() => { if (tema !== "light") alternar(); }}
+                >
+                  <Sun className="size-3.5" /> Modo Claro
+                </Button>
+                <Button
+                  type="button"
+                  variant={tema === "dark" ? "default" : "outline"}
+                  size="sm"
+                  className={cn("rounded-xl text-xs font-bold gap-1.5", tema === "dark" && "bg-[#084463] text-white")}
+                  onClick={() => { if (tema !== "dark") alternar(); }}
+                >
+                  <Moon className="size-3.5" /> Modo Escuro
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-5 gap-2">
+            <Button variant="outline" className="rounded-xl text-xs" onClick={() => setModalConfiguracoes(false)}>
+              Cancelar
+            </Button>
+            <Button
+              className="rounded-xl font-bold bg-[#084463] text-white hover:bg-[#06344C] px-5 text-xs"
+              onClick={handleSalvarConfiguracoes}
+            >
+              Salvar Configurações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* MOBILE BAR */}
       <div className="lg:hidden fixed bottom-3 left-4 right-4 z-50 glass-panel rounded-full p-2 border border-border/60 shadow-2xl flex items-center justify-around">

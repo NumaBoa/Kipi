@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Estrutura } from "@/components/app/estrutura";
 import { useAuth, type Empresa, type PapelUsuario, type StatusUsuario, type Usuario } from "@/lib/auth";
+import { useRevendedoras, useSalvarRevendedora } from "@/lib/dados";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +59,9 @@ function PaginaControleAcesso() {
     salvarEmpresa,
     apagarEmpresa,
   } = useAuth();
+
+  const { data: revendedoras = [] } = useRevendedoras();
+  const salvarRevendedora = useSalvarRevendedora();
 
   const [abaAtiva, setAbaAtiva] = useState<"usuarios" | "empresas">("usuarios");
 
@@ -167,16 +171,42 @@ function PaginaControleAcesso() {
       return;
     }
     try {
+      const targetUserId = formUsuario.id || `usr_${Date.now()}`;
       await salvarUsuario({
-        ...(formUsuario.id ? { id: formUsuario.id } : {}),
-        nome: formUsuario.nome,
-        email: formUsuario.email,
+        id: targetUserId,
+        nome: formUsuario.nome.trim(),
+        email: formUsuario.email.trim(),
         senha: formUsuario.senha,
         status: formUsuario.status,
         papel: formUsuario.papel,
         empresaIds: formUsuario.empresaIds,
         empresaAtivaId: formUsuario.empresaIds[0] ?? "",
       });
+
+      // Se for revendedor, garante que existe o ponto de revenda correspondente
+      if (formUsuario.papel === "revendedor") {
+        const existeRev = revendedoras.find(
+          (r) =>
+            (r.usuario_id && r.usuario_id === targetUserId) ||
+            (r.email && r.email.toLowerCase() === formUsuario.email.trim().toLowerCase()) ||
+            r.nome.toLowerCase() === formUsuario.nome.trim().toLowerCase()
+        );
+        if (!existeRev) {
+          await salvarRevendedora.mutateAsync({
+            id: `rev_${Date.now()}`,
+            nome: formUsuario.nome.trim(),
+            email: formUsuario.email.trim(),
+            usuario_id: targetUserId,
+            telefone: null,
+            tipo_comissao: "porcentagem",
+            comissao_percentual: 10,
+            comissao_fixa: 0,
+            categoria_parceria: "revendedor",
+            observacoes: "Ponto de revenda criado via controle de acesso",
+          });
+        }
+      }
+
       toast.success(
         usuarioEditando
           ? "Usuário e permissões atualizados!"
@@ -277,6 +307,8 @@ function PaginaControleAcesso() {
         return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">👑 Master Admin</span>;
       case "admin":
         return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30">🛡️ Admin Empresa</span>;
+      case "revendedor":
+        return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30">🏪 Revendedor (PDV)</span>;
       case "operador":
       default:
         return <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">👤 Operador</span>;
@@ -311,22 +343,6 @@ function PaginaControleAcesso() {
     <Estrutura
       titulo="Controle de Acesso & Gestão Comercial (SaaS)"
       subtitulo="Cadastre usuários, libere acessos e atribua permissões por empresa contratante"
-      acao={
-        <Button
-          onClick={abaAtiva === "usuarios" ? abrirModalNovoUsuario : abrirModalNovaEmpresa}
-          className="rounded-2xl gap-2 shadow-lg shadow-brand/20"
-        >
-          {abaAtiva === "usuarios" ? (
-            <>
-              <UserPlus className="size-4" /> Novo Usuário
-            </>
-          ) : (
-            <>
-              <Building2 className="size-4" /> Nova Empresa
-            </>
-          )}
-        </Button>
-      }
     >
       <div className="space-y-6">
         {/* CARDS DE RESUMO KPI */}
@@ -378,16 +394,33 @@ function PaginaControleAcesso() {
           </div>
         </div>
 
-        {/* NAVEGAÇÃO ENTRE ABAS */}
+        {/* NAVEGAÇÃO ENTRE ABAS + BOTÃO DE AÇÃO ENCAIXADO AO LADO */}
         <Tabs value={abaAtiva} onValueChange={(v) => setAbaAtiva(v as "usuarios" | "empresas")} className="w-full">
-          <TabsList className="glass-panel p-1 rounded-2xl h-12 w-full sm:w-auto grid grid-cols-2">
-            <TabsTrigger value="usuarios" className="rounded-xl font-semibold text-xs sm:text-sm gap-2">
-              <Users className="size-4" /> Usuários & Liberações ({listaUsuarios.length})
-            </TabsTrigger>
-            <TabsTrigger value="empresas" className="rounded-xl font-semibold text-xs sm:text-sm gap-2">
-              <Building2 className="size-4" /> Empresas / Tenants ({listaEmpresas.length})
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <TabsList className="glass-panel p-1 rounded-2xl h-11 w-full sm:w-auto inline-flex">
+              <TabsTrigger value="usuarios" className="rounded-xl font-semibold text-xs sm:text-sm px-4 gap-2">
+                <Users className="size-4" /> Usuários ({listaUsuarios.length})
+              </TabsTrigger>
+              <TabsTrigger value="empresas" className="rounded-xl font-semibold text-xs sm:text-sm px-4 gap-2">
+                <Building2 className="size-4" /> Empresas ({listaEmpresas.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <Button
+              onClick={abaAtiva === "usuarios" ? abrirModalNovoUsuario : abrirModalNovaEmpresa}
+              className="rounded-2xl gap-2 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/20 px-5 h-11 shrink-0"
+            >
+              {abaAtiva === "usuarios" ? (
+                <>
+                  <UserPlus className="size-4" /> Novo Usuário
+                </>
+              ) : (
+                <>
+                  <Building2 className="size-4" /> Nova Empresa
+                </>
+              )}
+            </Button>
+          </div>
 
           {/* TAB 1: GESTÃO DE USUÁRIOS */}
           <TabsContent value="usuarios" className="space-y-4 mt-4">
@@ -733,6 +766,7 @@ function PaginaControleAcesso() {
                       <SelectItem value="super_admin">👑 Master Admin (Dono SaaS)</SelectItem>
                       <SelectItem value="admin">🛡️ Admin Empresa</SelectItem>
                       <SelectItem value="operador">👤 Operador (Atendente)</SelectItem>
+                      <SelectItem value="revendedor">🏪 Revendedor (Apenas Vendas)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
