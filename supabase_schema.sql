@@ -13,7 +13,21 @@ CREATE TABLE IF NOT EXISTS public.empresas (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 2. TABELA DE PERFIS DE USUÁRIOS (VINCULADA AO AUTH E EMPRESAS)
+-- 2. TABELA DE USUÁRIOS (SISTEMA MULTI-TENANT & CONTROLE DE ACESSO GLOBAL)
+CREATE TABLE IF NOT EXISTS public.usuarios (
+  id TEXT PRIMARY KEY,
+  nome TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  senha TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ativo' CHECK (status IN ('ativo', 'pendente', 'bloqueado')),
+  papel TEXT NOT NULL DEFAULT 'operador' CHECK (papel IN ('super_admin', 'admin', 'operador', 'revendedor')),
+  empresa_ids TEXT[] DEFAULT '{}',
+  empresa_ativa_id TEXT REFERENCES public.empresas(id) ON DELETE SET NULL,
+  criado_em TIMESTAMPTZ DEFAULT now(),
+  ultimo_acesso TIMESTAMPTZ
+);
+
+-- 2.1 TABELA DE PERFIS DE USUÁRIOS (COMPATIBILIDADE SUPABASE AUTH)
 CREATE TABLE IF NOT EXISTS public.perfis (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE,
@@ -206,6 +220,7 @@ ALTER TABLE public.perfis ADD CONSTRAINT perfis_papel_check CHECK (papel IN ('su
 -- HABILITAR RLS PERMISSIVO PARA TODAS AS TABELAS
 -- ==============================================================================
 ALTER TABLE public.empresas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.perfis ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.insumos ENABLE ROW LEVEL SECURITY;
@@ -220,6 +235,7 @@ ALTER TABLE public.remessas_consignacao ENABLE ROW LEVEL SECURITY;
 
 -- REMOVER POLÍTICAS ANTIGAS SE EXISTIREM (EVITA ERRO 42710)
 DROP POLICY IF EXISTS "Acesso total empresas" ON public.empresas;
+DROP POLICY IF EXISTS "Acesso total usuarios" ON public.usuarios;
 DROP POLICY IF EXISTS "Acesso total perfis" ON public.perfis;
 DROP POLICY IF EXISTS "Acesso total categorias" ON public.categorias;
 DROP POLICY IF EXISTS "Acesso total insumos" ON public.insumos;
@@ -234,6 +250,7 @@ DROP POLICY IF EXISTS "Acesso total remessas_consignacao" ON public.remessas_con
 
 -- RECRIAR POLÍTICAS DE ACESSO TOTAL PARA O APP
 CREATE POLICY "Acesso total empresas" ON public.empresas FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso total usuarios" ON public.usuarios FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total perfis" ON public.perfis FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total categorias" ON public.categorias FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total insumos" ON public.insumos FOR ALL USING (true) WITH CHECK (true);
