@@ -87,8 +87,8 @@ CREATE TABLE IF NOT EXISTS public.revendedoras (
   email TEXT,
   usuario_id TEXT,
   tipo_comissao TEXT NOT NULL CHECK (tipo_comissao IN ('porcentagem', 'valor_fixo')),
-  comissao_percentual NUMERIC NOT NULL DEFAULT 0,
-  comissao_fixa NUMERIC NOT NULL DEFAULT 0,
+  comissao_percentual NUMERIC,
+  comissao_fixa NUMERIC,
   categoria_parceria TEXT DEFAULT 'revendedor',
   subtipo_parceria TEXT,
   observacoes TEXT,
@@ -267,3 +267,14 @@ CREATE POLICY "Acesso total remessas_consignacao" ON public.remessas_consignacao
 INSERT INTO public.empresas (id, nome, documento, plano, status) VALUES
   ('emp_matriz', 'Meu Ateliê', '12.345.678/0001-90', 'Enterprise', 'ativa')
 ON CONFLICT (id) DO NOTHING;
+
+-- AJUSTE DE COLUNAS DE COMISSÃO (PERMITIR NULL CONFORME O TIPO_COMISSAO)
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_percentual DROP NOT NULL;
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_percentual DROP DEFAULT;
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_fixa DROP NOT NULL;
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_fixa DROP DEFAULT;
+
+-- LIMPEZA DE DADOS EXISTENTES (ZERA / ANULA O CAMPO NÃO UTILIZADO)
+UPDATE public.revendedoras SET comissao_percentual = NULL WHERE tipo_comissao = 'valor_fixo';
+UPDATE public.revendedoras SET comissao_fixa = NULL WHERE tipo_comissao = 'porcentagem';
+
