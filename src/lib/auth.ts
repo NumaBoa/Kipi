@@ -107,6 +107,21 @@ export async function lerEmpresas(): Promise<Empresa[]> {
         remotas.unshift(empresasIniciais[0]!);
       }
 
+      // Sincronizar empresas locais que ainda não existam no Supabase
+      for (const eLocal of locais) {
+        if (!remotas.some((r) => r.id === eLocal.id || r.nome.trim().toLowerCase() === eLocal.nome.trim().toLowerCase())) {
+          remotas.push(eLocal);
+          supabase.from("empresas").upsert({
+            id: eLocal.id,
+            nome: eLocal.nome,
+            documento: eLocal.documento,
+            plano: eLocal.plano,
+            status: eLocal.status,
+            created_at: eLocal.criadaEm,
+          }).catch(() => {});
+        }
+      }
+
       gravarEmpresasLocais(remotas);
       return remotas;
     }
