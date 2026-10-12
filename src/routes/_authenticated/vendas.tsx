@@ -129,20 +129,9 @@ export function PaginaVendas() {
     );
   }, [revendedoras, usuario]);
 
-  const [visaoAtiva, setVisaoAtiva] = useState<"revendedor" | "atelie">(() => {
-    if (usuario?.papel === "revendedor") return "revendedor";
-    return revendedorVinculado ? "revendedor" : "atelie";
-  });
-
-  useEffect(() => {
-    if (usuario?.papel === "revendedor") {
-      setVisaoAtiva("revendedor");
-    } else if (revendedorVinculado) {
-      setVisaoAtiva("revendedor");
-    }
-  }, [usuario, revendedorVinculado]);
-
-  const ehRevendedor = usuario?.papel === "revendedor" || (visaoAtiva === "revendedor" && Boolean(revendedorVinculado));
+  // Se o usuário possui vínculo de revendedora nesta loja ou seu papel for revendedor,
+  // sua visão é SEMPRE e EXCLUSIVAMENTE de Revendedor (protegendo a privacidade dos dados do ateliê do cliente)
+  const ehRevendedor = usuario?.papel === "revendedor" || Boolean(revendedorVinculado);
 
   const revendedorLogado = useMemo(() => {
     if (!ehRevendedor) return null;
@@ -248,15 +237,10 @@ export function PaginaVendas() {
     }
   };
 
-  // Separação de clientes do revendedor vs outros
+  // Clientes do revendedor
   const clientesDoRevendedor = useMemo(() => {
     if (!ehRevendedor || !revendedorLogado) return [];
     return clientes.filter((c) => c.revendedora_id === revendedorLogado.id);
-  }, [ehRevendedor, revendedorLogado, clientes]);
-
-  const outrosClientes = useMemo(() => {
-    if (!ehRevendedor || !revendedorLogado) return clientes;
-    return clientes.filter((c) => c.revendedora_id !== revendedorLogado.id);
   }, [ehRevendedor, revendedorLogado, clientes]);
 
   // Se for revendedor logado, trava canal na revendedora correspondente
@@ -513,38 +497,6 @@ export function PaginaVendas() {
           : "Pronta-entrega e encomendas sob medida com controle de prazos e pagamentos"
       }
     >
-      {/* SELETOR DE VISÃO: CASO O USUÁRIO SEJA ADMIN/DONO MAS TAMBÉM TENHA UM PONTO DE REVENDA CADASTRADO */}
-      {usuario?.papel === "super_admin" && revendedorVinculado && (
-        <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 via-white to-blue-50 border border-purple-200/80 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-700">Alternar Visão:</span>
-            <span className="text-xs font-extrabold text-purple-950">
-              {visaoAtiva === "revendedor" ? `🏪 Ponto Revendedor (${revendedorVinculado.nome})` : "🏢 Ateliê (Juliana / Dono)"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
-            <Button
-              type="button"
-              size="sm"
-              variant={visaoAtiva === "revendedor" ? "default" : "ghost"}
-              className={visaoAtiva === "revendedor" ? "bg-purple-900 text-white font-bold h-7 text-xs rounded-lg shadow-xs" : "h-7 text-xs text-slate-600 rounded-lg hover:bg-slate-200"}
-              onClick={() => setVisaoAtiva("revendedor")}
-            >
-              🏪 Ver como Revendedora ({revendedorVinculado.nome})
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={visaoAtiva === "atelie" ? "default" : "ghost"}
-              className={visaoAtiva === "atelie" ? "bg-[#084463] text-white font-bold h-7 text-xs rounded-lg shadow-xs" : "h-7 text-xs text-slate-600 rounded-lg hover:bg-slate-200"}
-              onClick={() => setVisaoAtiva("atelie")}
-            >
-              🏢 Ver como Ateliê (Dono)
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* CARDS DE INDICADORES */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <CartaoIndicador
@@ -912,32 +864,25 @@ export function PaginaVendas() {
                       </SelectTrigger>
                       <SelectContent className="max-h-60 rounded-2xl">
                         <SelectItem value="avulso">🛍️ Venda Balcão / Cliente Rápido</SelectItem>
-                        {ehRevendedor && clientesDoRevendedor.length > 0 && (
-                          <>
-                            <div className="px-2 py-1 text-[10px] font-black uppercase text-purple-700 bg-purple-50 rounded-lg my-1">
-                              Meus Clientes ({clientesDoRevendedor.length})
-                            </div>
-                            {clientesDoRevendedor.map((c) => (
-                              <SelectItem key={c.id} value={c.id}>
-                                👤 {c.nome} {c.telefone ? `(${formatarTelefone(c.telefone)})` : ""}
-                              </SelectItem>
-                            ))}
-                            <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-500 bg-slate-50 rounded-lg my-1">
-                              Outros Clientes do Ateliê
-                            </div>
-                          </>
-                        )}
-                        {(ehRevendedor ? outrosClientes : clientes).map((c) => {
-                          const revNome = c.revendedora_id
-                            ? revendedoras.find((r) => r.id === c.revendedora_id)?.nome
-                            : null;
-                          return (
+                        {ehRevendedor ? (
+                          clientesDoRevendedor.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               👤 {c.nome} {c.telefone ? `(${formatarTelefone(c.telefone)})` : ""}
-                              {!ehRevendedor && revNome ? ` · 🏪 ${revNome}` : ""}
                             </SelectItem>
-                          );
-                        })}
+                          ))
+                        ) : (
+                          clientes.map((c) => {
+                            const revNome = c.revendedora_id
+                              ? revendedoras.find((r) => r.id === c.revendedora_id)?.nome
+                              : null;
+                            return (
+                              <SelectItem key={c.id} value={c.id}>
+                                👤 {c.nome} {c.telefone ? `(${formatarTelefone(c.telefone)})` : ""}
+                                {revNome ? ` · 🏪 ${revNome}` : ""}
+                              </SelectItem>
+                            );
+                          })
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

@@ -107,18 +107,22 @@ export function PaginaContatos() {
   const { data: remessas = [] } = useRemessasConsignacao();
 
   const { listaUsuarios, salvarUsuario, empresaAtual, usuario } = useAuth();
-  const ehRevendedor = usuario?.papel === "revendedor";
-  const revendedorLogado = useMemo(() => {
-    if (!ehRevendedor) return null;
+  const revendedorVinculado = useMemo(() => {
     return (
       revendedoras.find(
         (r) =>
           (r.usuario_id && r.usuario_id === usuario?.id) ||
-          (r.email && r.email.toLowerCase() === usuario?.email.toLowerCase()) ||
-          r.nome.toLowerCase() === usuario?.nome.toLowerCase()
-      ) ?? revendedoras[0] ?? null
+          (r.email && usuario?.email && r.email.toLowerCase() === usuario.email.toLowerCase()) ||
+          (r.nome && usuario?.nome && r.nome.toLowerCase() === usuario.nome.toLowerCase())
+      ) ?? null
     );
-  }, [ehRevendedor, revendedoras, usuario]);
+  }, [revendedoras, usuario]);
+
+  const ehRevendedor = usuario?.papel === "revendedor" || Boolean(revendedorVinculado);
+  const revendedorLogado = useMemo(() => {
+    if (!ehRevendedor) return null;
+    return revendedorVinculado ?? revendedoras[0] ?? null;
+  }, [ehRevendedor, revendedorVinculado, revendedoras]);
 
   const salvarCliente = useSalvarCliente();
   const apagarCliente = useApagarCliente();
