@@ -397,8 +397,18 @@ export function PaginaContatos() {
       );
       setSenhaRevendedor(user?.senha || "");
     } else {
-      setFormCliente({});
-      setPerfilSelecionado(filtroTipo === "revendedores" ? "revendedor" : filtroTipo === "parceiros" ? "parceiro" : "cliente");
+      setFormCliente({
+        revendedora_id: ehRevendedor && revendedorLogado ? revendedorLogado.id : null,
+      });
+      setPerfilSelecionado(
+        ehRevendedor
+          ? "cliente"
+          : filtroTipo === "revendedores"
+          ? "revendedor"
+          : filtroTipo === "parceiros"
+          ? "parceiro"
+          : "cliente"
+      );
       setTipoComissao("porcentagem");
       setComissaoPercentual(15);
       setComissaoFixa(0);
@@ -758,7 +768,9 @@ export function PaginaContatos() {
         : null;
 
       toast.success(
-        revNome
+        ehRevendedor
+          ? `Cliente "${formCliente.nome.trim()}" cadastrado com sucesso!`
+          : revNome
           ? `Cliente "${formCliente.nome.trim()}" salvo e vinculado a ${revNome}!`
           : "Cliente cadastrado com sucesso!"
       );
@@ -1398,61 +1410,71 @@ export function PaginaContatos() {
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl p-5 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463]">
-              {formCliente.id ? "Editar Contato" : "Novo Contato"}
+              {ehRevendedor
+                ? formCliente.id
+                  ? "Editar Cliente"
+                  : "Novo Cliente"
+                : formCliente.id
+                ? "Editar Contato"
+                : "Novo Contato"}
             </DialogTitle>
             <DialogDescription>
-              Selecione o perfil da pessoa ou empresa para aplicar as regras corretas.
+              {ehRevendedor
+                ? "Cadastre as informações do seu cliente para gerenciar pedidos e contatos."
+                : "Selecione o perfil da pessoa ou empresa para aplicar as regras corretas."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            {/* SELEÇÃO DO PERFIL DO CONTATO */}
-            <div>
-              <Label className="text-xs font-bold text-slate-700 block mb-1.5">Perfil do Contato</Label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  className={`py-2.5 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
-                    perfilSelecionado === "cliente"
-                      ? "bg-blue-50 text-blue-900 border-blue-500 shadow-xs"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                  }`}
-                  onClick={() => setPerfilSelecionado("cliente")}
-                >
-                  <User className="size-4 text-blue-600" />
-                  <span>👤 Cliente</span>
-                  <span className="text-[10px] font-normal text-slate-400">Consumo próprio</span>
-                </button>
+            {/* SELEÇÃO DO PERFIL DO CONTATO (APENAS PARA DONO / SUPER_ADMIN) */}
+            {!ehRevendedor && (
+              <div>
+                <Label className="text-xs font-bold text-slate-700 block mb-1.5">Perfil do Contato</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    className={`py-2.5 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
+                      perfilSelecionado === "cliente"
+                        ? "bg-blue-50 text-blue-900 border-blue-500 shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                    onClick={() => setPerfilSelecionado("cliente")}
+                  >
+                    <User className="size-4 text-blue-600" />
+                    <span>👤 Cliente</span>
+                    <span className="text-[10px] font-normal text-slate-400">Consumo próprio</span>
+                  </button>
 
-                <button
-                  type="button"
-                  className={`py-2.5 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
-                    perfilSelecionado === "revendedor"
-                      ? "bg-purple-50 text-purple-900 border-purple-500 shadow-xs"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                  }`}
-                  onClick={() => setPerfilSelecionado("revendedor")}
-                >
-                  <Store className="size-4 text-purple-600" />
-                  <span>🏪 Revendedor</span>
-                  <span className="text-[10px] font-normal text-slate-400">Loja / Consignação</span>
-                </button>
+                  <button
+                    type="button"
+                    className={`py-2.5 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
+                      perfilSelecionado === "revendedor"
+                        ? "bg-purple-50 text-purple-900 border-purple-500 shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                    onClick={() => setPerfilSelecionado("revendedor")}
+                  >
+                    <Store className="size-4 text-purple-600" />
+                    <span>🏪 Revendedor</span>
+                    <span className="text-[10px] font-normal text-slate-400">Loja / Consignação</span>
+                  </button>
 
-                <button
-                  type="button"
-                  className={`py-2.5 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
-                    perfilSelecionado === "parceiro"
-                      ? "bg-emerald-50 text-emerald-900 border-emerald-500 shadow-xs"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
-                  }`}
-                  onClick={() => setPerfilSelecionado("parceiro")}
-                >
-                  <Handshake className="size-4 text-emerald-600" />
-                  <span>🤝 Parceiro</span>
-                  <span className="text-[10px] font-normal text-slate-400">Indicação / Colab</span>
-                </button>
+                  <button
+                    type="button"
+                    className={`py-2.5 px-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border transition-all ${
+                      perfilSelecionado === "parceiro"
+                        ? "bg-emerald-50 text-emerald-900 border-emerald-500 shadow-xs"
+                        : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                    }`}
+                    onClick={() => setPerfilSelecionado("parceiro")}
+                  >
+                    <Handshake className="size-4 text-emerald-600" />
+                    <span>🤝 Parceiro</span>
+                    <span className="text-[10px] font-normal text-slate-400">Indicação / Colab</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <Label className="text-xs font-bold text-slate-700">
@@ -1691,8 +1713,8 @@ export function PaginaContatos() {
               </div>
             )}
 
-            {/* ORIGEM DO CLIENTE: VÍNCULO COM REVENDEDOR (APENAS PARA CLIENTES) */}
-            {perfilSelecionado === "cliente" && (
+            {/* ORIGEM DO CLIENTE: VÍNCULO COM REVENDEDOR (APENAS PARA DONO DO ATELIÊ QUANDO CADASTRA CLIENTE) */}
+            {perfilSelecionado === "cliente" && !ehRevendedor && (
               <div className="p-3.5 bg-purple-50/70 border border-purple-200 rounded-2xl space-y-2">
                 <Label className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
                   <Store className="size-3.5 text-purple-700" />
