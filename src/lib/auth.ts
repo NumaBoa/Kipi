@@ -111,14 +111,14 @@ export async function lerEmpresas(): Promise<Empresa[]> {
       for (const eLocal of locais) {
         if (!remotas.some((r) => r.id === eLocal.id || r.nome.trim().toLowerCase() === eLocal.nome.trim().toLowerCase())) {
           remotas.push(eLocal);
-          supabase.from("empresas").upsert({
+          void supabase.from("empresas").upsert({
             id: eLocal.id,
             nome: eLocal.nome,
             documento: eLocal.documento,
             plano: eLocal.plano,
             status: eLocal.status,
             created_at: eLocal.criadaEm,
-          }).catch(() => {});
+          });
         }
       }
 
@@ -210,7 +210,7 @@ export async function lerUsuarios(): Promise<Usuario[]> {
       for (const uLocal of locais) {
         if (!remotas.some((r) => r.email.trim().toLowerCase() === uLocal.email.trim().toLowerCase())) {
           remotas.push(uLocal);
-          supabase.from("usuarios").upsert({
+          void supabase.from("usuarios").upsert({
             id: uLocal.id,
             nome: uLocal.nome,
             email: uLocal.email.trim().toLowerCase(),
@@ -221,7 +221,7 @@ export async function lerUsuarios(): Promise<Usuario[]> {
             empresa_ativa_id: uLocal.empresaAtivaId,
             criado_em: uLocal.criadoEm,
             ultimo_acesso: uLocal.ultimoAcesso || null,
-          }).catch(() => {});
+          });
         }
       }
 
@@ -377,11 +377,10 @@ export function useAuth() {
 
       // Atualizar último acesso no Supabase em background
       if (isSupabaseConfigured) {
-        supabase
+        void supabase
           .from("usuarios")
           .update({ ultimo_acesso: achado.ultimoAcesso })
-          .eq("id", achado.id)
-          .catch(() => {});
+          .eq("id", achado.id);
       }
 
       return achado;
@@ -521,11 +520,10 @@ export function useAuth() {
       }
 
       if (isSupabaseConfigured) {
-        supabase
+        void supabase
           .from("usuarios")
           .update({ empresa_ativa_id: empresaId })
-          .eq("id", sessaoAtual.id)
-          .catch(() => {});
+          .eq("id", sessaoAtual.id);
       }
     },
     onSuccess: () => {
