@@ -872,7 +872,7 @@ export function PaginaContatos() {
     >
       {/* INDICADORES */}
       {ehRevendedor ? (
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
           <CartaoIndicador
             rotulo="Clientes na Minha Carteira"
             valor={String(contatosFiltrados.length)}
@@ -896,7 +896,7 @@ export function PaginaContatos() {
           />
         </section>
       ) : (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <section className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-4">
           <CartaoIndicador
             rotulo="Total Geral"
             valor={String(contatosCombinados.length)}
@@ -984,11 +984,11 @@ export function PaginaContatos() {
             </span>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
             <Button
               size="sm"
               variant={filtroTipo === "todos" ? "default" : "outline"}
-              className={filtroTipo === "todos" ? "bg-[#084463] text-white font-bold" : "rounded-xl"}
+              className={filtroTipo === "todos" ? "bg-[#084463] text-white font-bold h-8 sm:h-9 text-xs" : "rounded-xl h-8 sm:h-9 text-xs"}
               onClick={() => setFiltroTipo("todos")}
             >
               Todos ({contatosCombinados.length})
@@ -996,7 +996,7 @@ export function PaginaContatos() {
             <Button
               size="sm"
               variant={filtroTipo === "clientes" ? "default" : "outline"}
-              className={filtroTipo === "clientes" ? "bg-blue-700 text-white font-bold" : "rounded-xl text-blue-700 border-blue-200"}
+              className={filtroTipo === "clientes" ? "bg-blue-700 text-white font-bold h-8 sm:h-9 text-xs" : "rounded-xl text-blue-700 border-blue-200 h-8 sm:h-9 text-xs"}
               onClick={() => setFiltroTipo("clientes")}
             >
               👤 Clientes ({qtdClientes})
@@ -1004,7 +1004,7 @@ export function PaginaContatos() {
             <Button
               size="sm"
               variant={filtroTipo === "revendedores" ? "default" : "outline"}
-              className={filtroTipo === "revendedores" ? "bg-purple-700 text-white font-bold" : "rounded-xl text-purple-700 border-purple-200"}
+              className={filtroTipo === "revendedores" ? "bg-purple-700 text-white font-bold h-8 sm:h-9 text-xs" : "rounded-xl text-purple-700 border-purple-200 h-8 sm:h-9 text-xs"}
               onClick={() => setFiltroTipo("revendedores")}
             >
               🏪 Revendedores ({qtdRevendedores})
@@ -1012,7 +1012,7 @@ export function PaginaContatos() {
             <Button
               size="sm"
               variant={filtroTipo === "parceiros" ? "default" : "outline"}
-              className={filtroTipo === "parceiros" ? "bg-emerald-700 text-white font-bold" : "rounded-xl text-emerald-700 border-emerald-200"}
+              className={filtroTipo === "parceiros" ? "bg-emerald-700 text-white font-bold h-8 sm:h-9 text-xs" : "rounded-xl text-emerald-700 border-emerald-200 h-8 sm:h-9 text-xs"}
               onClick={() => setFiltroTipo("parceiros")}
             >
               🤝 Parceiros ({qtdParceiros})
@@ -1026,11 +1026,11 @@ export function PaginaContatos() {
               placeholder="Buscar por nome ou telefone..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="rounded-xl border-slate-300"
+              className="rounded-xl border-slate-300 h-9 sm:h-10 text-xs sm:text-sm"
             />
           </div>
           <Button
-            className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 h-10 shrink-0"
+            className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0"
             onClick={() => abrirModalNovo()}
           >
             <Plus className="size-4" /> {ehRevendedor ? "Novo Cliente" : "Novo Contato"}
@@ -1420,7 +1420,7 @@ export function PaginaContatos() {
 
       {/* MODAL: NOVO / EDITAR CONTATO COM SEPARAÇÃO EXPLÍCITA */}
       <Dialog open={modalContato} onOpenChange={setModalContato}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto rounded-3xl p-5 sm:p-6">
+        <DialogContent className="w-[95vw] sm:max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463]">
               {ehRevendedor
@@ -1844,7 +1844,7 @@ export function PaginaContatos() {
 
       {/* MODAL: ACERTO DE CONTAS COM REVENDEDOR */}
       <Dialog open={modalComissao} onOpenChange={setModalComissao}>
-        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto rounded-3xl p-5 sm:p-6">
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[88vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463] flex items-center gap-2">
               <DollarSign className="size-5 text-emerald-600" />
@@ -2069,7 +2069,7 @@ export function PaginaContatos() {
       </Dialog>
       {/* MODAL: ENTREGAR PRODUTOS / NOVA REMESSA EM CONSIGNAÇÃO (MÚLTIPLOS SABORES COM BLOQUEIO DE ESTOQUE ASSADO) */}
       <Dialog open={modalRemessa} onOpenChange={setModalRemessa}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl p-5 sm:p-6">
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-[#084463] flex items-center gap-2">
               <PackagePlus className="size-5" /> Entregar Produtos ao Revendedor
@@ -2381,7 +2381,7 @@ export function PaginaContatos() {
 
       {/* MODAL: HISTÓRICO DE REMESSAS ENTREGUES */}
       <Dialog open={modalHistorico} onOpenChange={setModalHistorico}>
-        <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl p-5 sm:p-6">
+        <DialogContent className="w-[95vw] sm:max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-lg font-black text-[#084463] flex items-center gap-2">
               <History className="size-5" /> Histórico de Remessas — {revendedorHistorico?.nome}
