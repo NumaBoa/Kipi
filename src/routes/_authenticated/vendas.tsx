@@ -47,7 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { brl, dataHora, num } from "@/lib/format";
+import { brl, dataHora, formatarTelefone, num } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import {
   calcularComissaoEstimadaCarrinho,
@@ -867,7 +867,7 @@ export function PaginaVendas() {
                             </div>
                             {clientesDoRevendedor.map((c) => (
                               <SelectItem key={c.id} value={c.id}>
-                                👤 {c.nome} {c.telefone ? `(${c.telefone})` : ""}
+                                👤 {c.nome} {c.telefone ? `(${formatarTelefone(c.telefone)})` : ""}
                               </SelectItem>
                             ))}
                             <div className="px-2 py-1 text-[10px] font-black uppercase text-slate-500 bg-slate-50 rounded-lg my-1">
@@ -881,7 +881,7 @@ export function PaginaVendas() {
                             : null;
                           return (
                             <SelectItem key={c.id} value={c.id}>
-                              👤 {c.nome} {c.telefone ? `(${c.telefone})` : ""}
+                              👤 {c.nome} {c.telefone ? `(${formatarTelefone(c.telefone)})` : ""}
                               {!ehRevendedor && revNome ? ` · 🏪 ${revNome}` : ""}
                             </SelectItem>
                           );
@@ -1249,7 +1249,8 @@ export function PaginaVendas() {
                 <Input
                   placeholder="(00) 00000-0000"
                   value={novoClienteTelefone}
-                  onChange={(e) => setNovoClienteTelefone(e.target.value)}
+                  onChange={(e) => setNovoClienteTelefone(formatarTelefone(e.target.value))}
+                  maxLength={15}
                   className="mt-1 rounded-xl"
                 />
               </div>
@@ -1592,7 +1593,7 @@ export function PaginaVendas() {
                               </span>
                             )}
                             {telefoneCliente && (
-                              <span className="font-medium text-slate-700">📞 {telefoneCliente}</span>
+                              <span className="font-medium text-slate-700">📞 {formatarTelefone(telefoneCliente)}</span>
                             )}
                           </div>
                         </div>

@@ -47,7 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { brl, num } from "@/lib/format";
+import { brl, num, formatarTelefone } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import {
   calcularComissaoRevendedora,
@@ -352,7 +352,7 @@ export function PaginaContatos() {
       return;
     }
     if (item?.clienteObj) {
-      setFormCliente({ ...item.clienteObj });
+      setFormCliente({ ...item.clienteObj, telefone: item.clienteObj.telefone ? formatarTelefone(item.clienteObj.telefone) : "" });
       if (item.revendedoraObj) {
         const cat = item.revendedoraObj.categoria_parceria || "revendedor";
         setPerfilSelecionado(cat === "parceiro" ? "parceiro" : "revendedor");
@@ -376,7 +376,11 @@ export function PaginaContatos() {
         setSenhaRevendedor("");
       }
     } else if (item?.revendedoraObj) {
-      setFormCliente({ nome: item.revendedoraObj.nome, telefone: item.revendedoraObj.telefone, observacoes: item.revendedoraObj.observacoes });
+      setFormCliente({
+        nome: item.revendedoraObj.nome,
+        telefone: item.revendedoraObj.telefone ? formatarTelefone(item.revendedoraObj.telefone) : "",
+        observacoes: item.revendedoraObj.observacoes,
+      });
       const cat = item.revendedoraObj.categoria_parceria || "revendedor";
       setPerfilSelecionado(cat === "parceiro" ? "parceiro" : "revendedor");
       setTipoComissao(item.revendedoraObj.tipo_comissao);
@@ -1081,7 +1085,7 @@ export function PaginaContatos() {
                     <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-4 gap-y-1">
                       {item.telefone && (
                         <span className="flex items-center gap-1 font-semibold text-slate-700">
-                          <Phone className="size-3 text-slate-400" /> {item.telefone}
+                          <Phone className="size-3 text-slate-400" /> {formatarTelefone(item.telefone)}
                         </span>
                       )}
                       {item.rua && (
@@ -1476,7 +1480,8 @@ export function PaginaContatos() {
               <Input
                 placeholder="(11) 99999-9999"
                 value={formCliente.telefone || ""}
-                onChange={(e) => setFormCliente({ ...formCliente, telefone: e.target.value })}
+                onChange={(e) => setFormCliente({ ...formCliente, telefone: formatarTelefone(e.target.value) })}
+                maxLength={15}
                 className="mt-1 rounded-xl"
               />
             </div>
