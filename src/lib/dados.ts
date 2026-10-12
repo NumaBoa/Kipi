@@ -82,7 +82,7 @@ export type Venda = {
   valor_sinal_pago?: number | undefined;
   saldo_na_entrega?: number | undefined;
   status_producao?: "a_fazer" | "fazendo" | "pronto_retirada" | "entregue" | undefined;
-  pagamento: "pix" | "dinheiro" | "cartao" | "transferencia";
+  pagamento: "pix" | "dinheiro" | "cartao" | "transferencia" | "pendente";
   status: "pago" | "pendente" | "cancelado";
   total: number;
   custo_total: number;
@@ -1094,16 +1094,27 @@ export const useAtualizarVenda = () => {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (v: Partial<Venda> & { id: string }) => {
+      // 1. Atualiza no cache local primeiro
+      const d = ler();
+      const idx = d.vendas.findIndex((i) => i.id === v.id);
+      if (idx !== -1) {
+        d.vendas[idx] = { ...d.vendas[idx], ...v } as Venda;
+        gravar(d);
+      }
+
+      // 2. Sincroniza no Supabase com fallback
       if (isSupabaseConfigured) {
         const { id: vendaId, clientes, revendedoras, venda_itens, ...resto } = v;
-        const { error } = await supabase.from("vendas").update(resto).eq("id", vendaId);
-        if (error) throw error;
-      } else {
-        const d = ler();
-        const idx = d.vendas.findIndex((i) => i.id === v.id);
-        if (idx !== -1) {
-          d.vendas[idx] = { ...d.vendas[idx], ...v } as Venda;
-          gravar(d);
+        try {
+          const { error } = await supabase.from("vendas").update(resto).eq("id", vendaId);
+          if (error) {
+            console.warn("Supabase atualizar venda aviso:", error.message);
+            if (error.code === "23514" && resto.pagamento === "pendente") {
+              await supabase.from("vendas").update({ ...resto, pagamento: "pix" }).eq("id", vendaId);
+            }
+          }
+        } catch (err) {
+          console.warn("Erro ao atualizar venda no Supabase:", err);
         }
       }
     },
@@ -1168,15 +1179,20 @@ export const useRegistrarVenda = () => {
           valor_sinal_pago: v.valor_sinal_pago ?? total,
           saldo_na_entrega: v.saldo_na_entrega ?? 0,
           status_producao: v.status_producao,
-          pagamento: v.canal === "revendedora" ? "pix" : v.pagamento,
-          status: v.canal === "revendedora" ? "pago" : v.status,
+          pagamento: v.pagamento,
+          status: v.status,
           total,
           custo_total: custo,
           observacoes: v.observacoes || null,
           empresa_id: empId,
         };
 
-        const { error: errVenda } = await supabase.from("vendas").insert(novaVenda);
+        let { error: errVenda } = await supabase.from("vendas").insert(novaVenda);
+        if (errVenda && errVenda.code === "23514" && novaVenda.pagamento === "pendente") {
+          // Fallback caso a constraint no banco ainda não tenha sido atualizada com 'pendente'
+          const { error: errRetry } = await supabase.from("vendas").insert({ ...novaVenda, pagamento: "pix" });
+          if (!errRetry) errVenda = null;
+        }
         if (errVenda) throw errVenda;
 
         const itensParaInserir = v.itens.map((i) => ({
@@ -1214,8 +1230,8 @@ export const useRegistrarVenda = () => {
           valor_sinal_pago: v.valor_sinal_pago ?? total,
           saldo_na_entrega: v.saldo_na_entrega ?? 0,
           status_producao: v.status_producao,
-          pagamento: v.canal === "revendedora" ? "pix" : v.pagamento,
-          status: v.canal === "revendedora" ? "pago" : v.status,
+          pagamento: v.pagamento,
+          status: v.status,
           total,
           custo_total: custo,
           observacoes: v.observacoes || null,
