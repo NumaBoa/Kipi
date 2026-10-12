@@ -200,7 +200,7 @@ function PaginaControleAcesso() {
             telefone: null,
             tipo_comissao: "porcentagem",
             comissao_percentual: 10,
-            comissao_fixa: 0,
+            comissao_fixa: null,
             categoria_parceria: "revendedor",
             observacoes: "Ponto de revenda criado via controle de acesso",
           });

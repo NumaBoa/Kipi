@@ -45,8 +45,8 @@ export type Revendedora = {
   nome: string;
   telefone: string | null;
   tipo_comissao: "porcentagem" | "valor_fixo";
-  comissao_percentual: number;
-  comissao_fixa: number;
+  comissao_percentual: number | null;
+  comissao_fixa: number | null;
   observacoes: string | null;
   categoria_parceria?: "revendedor" | "parceiro" | undefined;
   subtipo_parceria?: string | null | undefined;
@@ -880,13 +880,28 @@ export const useSalvarRevendedora = () => {
   return useMutation({
     mutationFn: async (v: Partial<Revendedora>) => {
       const empId = obterEmpresaAtivaId();
+      const tipoComissao = v.tipo_comissao ?? "porcentagem";
+      const ehValorFixo = tipoComissao === "valor_fixo";
+
+      const comissaoPercentual = ehValorFixo
+        ? null
+        : v.comissao_percentual !== null && v.comissao_percentual !== undefined && v.comissao_percentual !== ""
+          ? Number(v.comissao_percentual)
+          : null;
+
+      const comissaoFixa = !ehValorFixo
+        ? null
+        : v.comissao_fixa !== null && v.comissao_fixa !== undefined && v.comissao_fixa !== ""
+          ? Number(v.comissao_fixa)
+          : null;
+
       const novo: Revendedora = {
         id: v.id ?? id(),
         nome: v.nome ?? "",
         telefone: v.telefone ?? null,
-        tipo_comissao: v.tipo_comissao ?? "porcentagem",
-        comissao_percentual: Number(v.comissao_percentual ?? 0),
-        comissao_fixa: Number(v.comissao_fixa ?? 0),
+        tipo_comissao: tipoComissao,
+        comissao_percentual: comissaoPercentual,
+        comissao_fixa: comissaoFixa,
         observacoes: v.observacoes ?? null,
         categoria_parceria: v.categoria_parceria ?? "revendedor",
         subtipo_parceria: v.subtipo_parceria ?? null,
@@ -921,7 +936,17 @@ export const useSalvarRevendedora = () => {
             empresa_id: empId,
           };
           const { error } = await supabase.from("revendedoras").upsert(payloadSupabase);
-          if (error) console.warn("Supabase revendedoras upsert:", error.message);
+          if (error) {
+            console.warn("Supabase revendedoras upsert:", error.message);
+            // Fallback de compatibilidade caso o banco ainda possua a restrição NOT NULL legada
+            if (error.code === "23502") {
+              await supabase.from("revendedoras").upsert({
+                ...payloadSupabase,
+                comissao_percentual: payloadSupabase.comissao_percentual ?? 0,
+                comissao_fixa: payloadSupabase.comissao_fixa ?? 0,
+              });
+            }
+          }
         } catch (err) {
           console.warn("Erro ao sincronizar revendedora no Supabase:", err);
         }

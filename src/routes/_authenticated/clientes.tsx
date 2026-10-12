@@ -361,8 +361,8 @@ export function PaginaContatos() {
         const cat = item.revendedoraObj.categoria_parceria || "revendedor";
         setPerfilSelecionado(cat === "parceiro" ? "parceiro" : "revendedor");
         setTipoComissao(item.revendedoraObj.tipo_comissao);
-        setComissaoPercentual(item.revendedoraObj.comissao_percentual);
-        setComissaoFixa(item.revendedoraObj.comissao_fixa);
+        setComissaoPercentual(item.revendedoraObj.comissao_percentual ?? 15);
+        setComissaoFixa(item.revendedoraObj.comissao_fixa ?? 0);
         setComissaoFixaTexto((item.revendedoraObj.comissao_fixa || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
         setSubtipoParceria(item.revendedoraObj.subtipo_parceria || "Cerimonialista");
         setEmailRevendedor(item.revendedoraObj.email || "");
@@ -388,8 +388,8 @@ export function PaginaContatos() {
       const cat = item.revendedoraObj.categoria_parceria || "revendedor";
       setPerfilSelecionado(cat === "parceiro" ? "parceiro" : "revendedor");
       setTipoComissao(item.revendedoraObj.tipo_comissao);
-      setComissaoPercentual(item.revendedoraObj.comissao_percentual);
-      setComissaoFixa(item.revendedoraObj.comissao_fixa);
+      setComissaoPercentual(item.revendedoraObj.comissao_percentual ?? 15);
+      setComissaoFixa(item.revendedoraObj.comissao_fixa ?? 0);
       setComissaoFixaTexto((item.revendedoraObj.comissao_fixa || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       setSubtipoParceria(item.revendedoraObj.subtipo_parceria || "Cerimonialista");
       setEmailRevendedor(item.revendedoraObj.email || "");
@@ -691,14 +691,16 @@ export function PaginaContatos() {
           });
         }
 
+        const ehFixo = tipoComissao === "valor_fixo";
+
         // Salvar Revendedora
         await salvarRevendedora.mutateAsync({
           ...(revExistente?.id ? { id: revExistente.id } : {}),
           nome: formCliente.nome.trim(),
           telefone: formCliente.telefone || null,
           tipo_comissao: tipoComissao,
-          comissao_percentual: Number(comissaoPercentual) || 0,
-          comissao_fixa: Number(comissaoFixa) || 0,
+          comissao_percentual: ehFixo ? null : (Number(comissaoPercentual) || 0),
+          comissao_fixa: !ehFixo ? null : (Number(comissaoFixa) || 0),
           observacoes: formCliente.observacoes || null,
           categoria_parceria: "revendedor",
           email: emailLimpo,
@@ -726,13 +728,15 @@ export function PaginaContatos() {
           (r) => r.nome.toLowerCase() === formCliente.nome?.trim().toLowerCase()
         );
 
+        const ehFixo = tipoComissao === "valor_fixo";
+
         await salvarRevendedora.mutateAsync({
           ...(revExistente?.id ? { id: revExistente.id } : {}),
           nome: formCliente.nome.trim(),
           telefone: formCliente.telefone || null,
           tipo_comissao: tipoComissao,
-          comissao_percentual: Number(comissaoPercentual) || 0,
-          comissao_fixa: Number(comissaoFixa) || 0,
+          comissao_percentual: ehFixo ? null : (Number(comissaoPercentual) || 0),
+          comissao_fixa: !ehFixo ? null : (Number(comissaoFixa) || 0),
           observacoes: formCliente.observacoes || null,
           categoria_parceria: "parceiro",
           subtipo_parceria: subtipoParceria,
