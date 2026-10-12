@@ -31,6 +31,7 @@ export type Cliente = {
   id: string;
   nome: string;
   telefone: string | null;
+  tag?: string | null | undefined;
   rua: string | null;
   numero: string | null;
   bairro: string | null;
@@ -809,6 +810,7 @@ export const useSalvarCliente = () => {
         id: v.id ?? id(),
         nome: v.nome ?? "",
         telefone: v.telefone ?? null,
+        tag: v.tag ? v.tag.trim() : null,
         rua: v.rua ?? null,
         numero: v.numero ?? null,
         bairro: v.bairro ?? null,
@@ -832,6 +834,7 @@ export const useSalvarCliente = () => {
             id: novo.id,
             nome: novo.nome,
             telefone: novo.telefone,
+            tag: novo.tag,
             rua: novo.rua,
             numero: novo.numero,
             bairro: novo.bairro,
@@ -842,7 +845,14 @@ export const useSalvarCliente = () => {
             empresa_id: empId,
           };
           const { error } = await supabase.from("clientes").upsert(payloadSupabase);
-          if (error) console.warn("Supabase clientes upsert:", error.message);
+          if (error) {
+            console.warn("Supabase clientes upsert:", error.message);
+            // Fallback caso a coluna 'tag' ainda não exista no Supabase antes da migração DDL
+            if (error.message?.includes("tag") || error.code === "PGRST204" || error.code === "42703") {
+              const { tag: _, ...semTag } = payloadSupabase;
+              await supabase.from("clientes").upsert(semTag);
+            }
+          }
         } catch (err) {
           console.warn("Erro ao sincronizar cliente no Supabase:", err);
         }

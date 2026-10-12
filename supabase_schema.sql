@@ -102,6 +102,7 @@ CREATE TABLE IF NOT EXISTS public.clientes (
   empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
   telefone TEXT,
+  tag TEXT,
   rua TEXT,
   numero TEXT,
   bairro TEXT,
@@ -277,4 +278,7 @@ ALTER TABLE public.revendedoras ALTER COLUMN comissao_fixa DROP DEFAULT;
 -- LIMPEZA DE DADOS EXISTENTES (ZERA / ANULA O CAMPO NÃO UTILIZADO)
 UPDATE public.revendedoras SET comissao_percentual = NULL WHERE tipo_comissao = 'valor_fixo';
 UPDATE public.revendedoras SET comissao_fixa = NULL WHERE tipo_comissao = 'porcentagem';
+
+-- ADIÇÃO DO CAMPO TAG EM CLIENTES
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS tag TEXT;
 
