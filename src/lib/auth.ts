@@ -272,6 +272,18 @@ export function gravarSessao(u: Usuario | null) {
   }
 }
 
+export function obterEmpresaAtivaId(): string {
+  const sessao = lerSessao();
+  if (sessao?.empresaAtivaId) {
+    return sessao.empresaAtivaId;
+  }
+  const empresas = lerEmpresasLocais();
+  if (empresas && empresas.length > 0 && empresas[0].id) {
+    return empresas[0].id;
+  }
+  return "emp_fatio";
+}
+
 export const CHAVE_AUTH_QUERY = ["auth_sessao"] as const;
 export const CHAVE_USUARIOS_QUERY = ["auth_usuarios"] as const;
 export const CHAVE_EMPRESAS_QUERY = ["auth_empresas"] as const;
@@ -529,6 +541,7 @@ export function useAuth() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY });
       qc.invalidateQueries({ queryKey: CHAVE_USUARIOS_QUERY });
+      qc.invalidateQueries();
     },
   });
 
