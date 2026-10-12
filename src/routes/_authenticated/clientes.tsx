@@ -134,7 +134,7 @@ export function PaginaContatos() {
   const [revendedorRemessa, setRevendedorRemessa] = useState<Revendedora | null>(null);
   const [itensRemessa, setItensRemessa] = useState<ItemRemessaAdicionado[]>([]);
   const [produtoRemessaId, setProdutoRemessaId] = useState<string>("");
-  const [qtdRemessa, setQtdRemessa] = useState<number>(7);
+  const [qtdRemessa, setQtdRemessa] = useState<number | "">(1);
   const [dataRemessa, setDataRemessa] = useState<string>(new Date().toISOString().split("T")[0] || "");
   const [obsRemessa, setObsRemessa] = useState<string>("");
   const [baixarDoAtelie, setBaixarDoAtelie] = useState<boolean>(true);
@@ -414,7 +414,7 @@ export function PaginaContatos() {
     setRevendedorRemessa(rev);
     const prodInicial = produtoIdPre || (produtos[0]?.id || "");
     setProdutoRemessaId(prodInicial);
-    setQtdRemessa(7);
+    setQtdRemessa(1);
     setDataRemessa(new Date().toISOString().split("T")[0] || "");
     setObsRemessa("");
     setBaixarDoAtelie(true);
@@ -473,6 +473,7 @@ export function PaginaContatos() {
     }
 
     toast.success(`${qtd} un de "${prod.nome}" adicionadas à remessa!`);
+    setQtdRemessa(1);
   };
 
   const handleRemoverItemRemessa = (prodId: string) => {
@@ -1563,6 +1564,7 @@ export function PaginaContatos() {
                             step="0.5"
                             value={comissaoPercentual}
                             onChange={(e) => setComissaoPercentual(Number(e.target.value))}
+                            onFocus={(e) => e.target.select()}
                             className="rounded-xl bg-white font-bold pr-8"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
@@ -1651,6 +1653,7 @@ export function PaginaContatos() {
                             step="0.5"
                             value={comissaoPercentual}
                             onChange={(e) => setComissaoPercentual(Number(e.target.value))}
+                            onFocus={(e) => e.target.select()}
                             className="rounded-xl bg-white font-bold pr-8"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-500">
@@ -2102,7 +2105,16 @@ export function PaginaContatos() {
                 <div className="sm:col-span-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-[11px] font-bold text-slate-700">Qtd</Label>
-                    <div className="flex gap-1 text-[10px]">
+                    <div className="flex items-center gap-1.5 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setQtdRemessa(1)}
+                        className="font-bold text-slate-500 hover:text-slate-800 underline cursor-pointer"
+                        title="Definir 1 unidade"
+                      >
+                        1 un
+                      </button>
+                      <span className="text-slate-300">·</span>
                       <button
                         type="button"
                         onClick={() => setQtdRemessa(7)}
@@ -2113,14 +2125,44 @@ export function PaginaContatos() {
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 mt-1">
+                  <div className="flex items-center border border-slate-200 rounded-xl overflow-hidden bg-white mt-1 h-9 shadow-2xs">
+                    <button
+                      type="button"
+                      onClick={() => setQtdRemessa((prev) => Math.max(1, (Number(prev) || 1) - 1))}
+                      className="w-8 h-full flex items-center justify-center hover:bg-slate-100 text-slate-600 transition-colors border-r border-slate-100 shrink-0"
+                      title="Diminuir"
+                    >
+                      <Minus className="size-3" />
+                    </button>
                     <Input
                       type="number"
                       min="1"
-                      value={qtdRemessa}
-                      onChange={(e) => setQtdRemessa(Math.max(1, Number(e.target.value)))}
-                      className="bg-white rounded-xl text-center font-bold text-xs h-9"
+                      value={qtdRemessa === "" ? "" : qtdRemessa}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "") {
+                          setQtdRemessa("");
+                          return;
+                        }
+                        const numVal = parseInt(val, 10);
+                        setQtdRemessa(isNaN(numVal) ? "" : numVal);
+                      }}
+                      onFocus={(e) => e.target.select()}
+                      onBlur={() => {
+                        if (qtdRemessa === "" || Number(qtdRemessa) < 1) {
+                          setQtdRemessa(1);
+                        }
+                      }}
+                      className="border-0 focus-visible:ring-0 text-center font-bold text-xs h-full w-full p-0 shadow-none bg-transparent"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setQtdRemessa((prev) => (Number(prev) || 0) + 1)}
+                      className="w-8 h-full flex items-center justify-center hover:bg-slate-100 text-slate-600 transition-colors border-l border-slate-100 shrink-0"
+                      title="Aumentar"
+                    >
+                      <Plus className="size-3" />
+                    </button>
                   </div>
                 </div>
 
