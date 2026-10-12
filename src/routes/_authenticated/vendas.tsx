@@ -118,18 +118,36 @@ export function PaginaVendas() {
   const { data: remessas = [] } = useRemessasConsignacao();
 
   const { usuario } = useAuth();
-  const ehRevendedor = usuario?.papel === "revendedor";
-  const revendedorLogado = useMemo(() => {
-    if (!ehRevendedor) return null;
+  const revendedorVinculado = useMemo(() => {
     return (
       revendedoras.find(
         (r) =>
           (r.usuario_id && r.usuario_id === usuario?.id) ||
-          (r.email && r.email.toLowerCase() === usuario?.email.toLowerCase()) ||
-          r.nome.toLowerCase() === usuario?.nome.toLowerCase()
-      ) ?? revendedoras[0] ?? null
+          (r.email && usuario?.email && r.email.toLowerCase() === usuario.email.toLowerCase()) ||
+          (r.nome && usuario?.nome && r.nome.toLowerCase() === usuario.nome.toLowerCase())
+      ) ?? null
     );
-  }, [ehRevendedor, revendedoras, usuario]);
+  }, [revendedoras, usuario]);
+
+  const [visaoAtiva, setVisaoAtiva] = useState<"revendedor" | "atelie">(() => {
+    if (usuario?.papel === "revendedor") return "revendedor";
+    return revendedorVinculado ? "revendedor" : "atelie";
+  });
+
+  useEffect(() => {
+    if (usuario?.papel === "revendedor") {
+      setVisaoAtiva("revendedor");
+    } else if (revendedorVinculado) {
+      setVisaoAtiva("revendedor");
+    }
+  }, [usuario, revendedorVinculado]);
+
+  const ehRevendedor = usuario?.papel === "revendedor" || (visaoAtiva === "revendedor" && Boolean(revendedorVinculado));
+
+  const revendedorLogado = useMemo(() => {
+    if (!ehRevendedor) return null;
+    return revendedorVinculado ?? revendedoras[0] ?? null;
+  }, [ehRevendedor, revendedorVinculado, revendedoras]);
 
   const registrarVenda = useRegistrarVenda();
   const atualizarVenda = useAtualizarVenda();
@@ -246,8 +264,10 @@ export function PaginaVendas() {
     if (ehRevendedor && revendedorLogado) {
       setCanal("revendedora");
       setRevendedoraId(revendedorLogado.id);
+    } else if (revendedorVinculado && !revendedoraId) {
+      setRevendedoraId(revendedorVinculado.id);
     }
-  }, [ehRevendedor, revendedorLogado, modalNovoPedido]);
+  }, [ehRevendedor, revendedorLogado, revendedorVinculado, modalNovoPedido]);
 
   // Vendas válidas (filtradas para a loja do revendedor caso logado como revendedor)
   const validas = useMemo(() => {
@@ -493,6 +513,38 @@ export function PaginaVendas() {
           : "Pronta-entrega e encomendas sob medida com controle de prazos e pagamentos"
       }
     >
+      {/* SELETOR DE VISÃO: CASO O USUÁRIO SEJA ADMIN/DONO MAS TAMBÉM TENHA UM PONTO DE REVENDA CADASTRADO */}
+      {usuario?.papel === "super_admin" && revendedorVinculado && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-purple-50 via-white to-blue-50 border border-purple-200/80 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-700">Alternar Visão:</span>
+            <span className="text-xs font-extrabold text-purple-950">
+              {visaoAtiva === "revendedor" ? `🏪 Ponto Revendedor (${revendedorVinculado.nome})` : "🏢 Ateliê (Juliana / Dono)"}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+            <Button
+              type="button"
+              size="sm"
+              variant={visaoAtiva === "revendedor" ? "default" : "ghost"}
+              className={visaoAtiva === "revendedor" ? "bg-purple-900 text-white font-bold h-7 text-xs rounded-lg shadow-xs" : "h-7 text-xs text-slate-600 rounded-lg hover:bg-slate-200"}
+              onClick={() => setVisaoAtiva("revendedor")}
+            >
+              🏪 Ver como Revendedora ({revendedorVinculado.nome})
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={visaoAtiva === "atelie" ? "default" : "ghost"}
+              className={visaoAtiva === "atelie" ? "bg-[#084463] text-white font-bold h-7 text-xs rounded-lg shadow-xs" : "h-7 text-xs text-slate-600 rounded-lg hover:bg-slate-200"}
+              onClick={() => setVisaoAtiva("atelie")}
+            >
+              🏢 Ver como Ateliê (Dono)
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* CARDS DE INDICADORES */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <CartaoIndicador
@@ -921,7 +973,12 @@ export function PaginaVendas() {
                       size="sm"
                       variant={canal === "revendedora" ? "default" : "outline"}
                       className={canal === "revendedora" ? "bg-[#084463] text-white font-bold" : "rounded-xl"}
-                      onClick={() => setCanal("revendedora")}
+                      onClick={() => {
+                        setCanal("revendedora");
+                        if (!revendedoraId && revendedoras.length > 0) {
+                          setRevendedoraId(revendedorVinculado?.id || revendedoras[0]?.id || "");
+                        }
+                      }}
                     >
                       Via Parceiro
                     </Button>
