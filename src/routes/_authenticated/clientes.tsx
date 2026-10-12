@@ -603,19 +603,21 @@ export function PaginaContatos() {
         }
 
         const emailLimpo = emailRevendedor.trim().toLowerCase();
+        const ehContaCamila = emailLimpo === "camila.c.lima08@gmail.com";
 
-        // 1. Bloquear uso de e-mail de administrador ou da dona do ateliê
-        const ehAdmin =
-          emailLimpo === "camila.c.lima08@gmail.com" ||
-          emailLimpo === "master@kipi.com.br" ||
-          listaUsuarios.some(
-            (u) =>
-              u.email.toLowerCase() === emailLimpo &&
-              (u.papel === "admin" || u.papel === "super_admin" || u.id === "usr_dono")
-          );
-        if (ehAdmin) {
-          toast.error("Este e-mail pertence à administração do ateliê. Por favor, cadastre um e-mail exclusivo para o acesso do revendedor.");
-          return;
+        // 1. Bloquear uso de e-mail de administrador ou da dona do ateliê (exceto conta Camila Master que é revendedora da Fatiô)
+        if (!ehContaCamila) {
+          const ehAdmin =
+            emailLimpo === "master@kipi.com.br" ||
+            listaUsuarios.some(
+              (u) =>
+                u.email.toLowerCase() === emailLimpo &&
+                (u.papel === "admin" || u.papel === "super_admin" || u.id === "usr_dono")
+            );
+          if (ehAdmin) {
+            toast.error("Este e-mail pertence à administração do ateliê. Por favor, cadastre um e-mail exclusivo para o acesso do revendedor.");
+            return;
+          }
         }
 
         // 2. Localizar revendedora existente
@@ -627,29 +629,48 @@ export function PaginaContatos() {
             (r.email && r.email.toLowerCase() === emailLimpo)
         );
 
-        // 3. Buscar usuário de acesso do revendedor (APENAS se tiver papel 'revendedor', NUNCA admin)
-        const idUsuarioExistente = revExistente?.usuario_id;
-        const userExistente = listaUsuarios.find(
-          (u) =>
-            u.papel === "revendedor" &&
-            ((idUsuarioExistente && u.id === idUsuarioExistente) || u.email.toLowerCase() === emailLimpo)
-        );
-        const novoUserId =
-          userExistente?.id && userExistente.id !== "usr_dono" && userExistente.id !== "usr_super"
-            ? userExistente.id
-            : (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `usr_rev_${Date.now()}`);
+        // 3. Buscar ou vincular usuário de acesso
+        let novoUserId: string;
+        if (ehContaCamila) {
+          novoUserId = "usr_dono";
+          // Para Camila: NUNCA rebaixa o papel de super_admin! Apenas vincula a empresa ativa
+          const userCamila = listaUsuarios.find((u) => u.id === "usr_dono" || u.email.toLowerCase() === emailLimpo);
+          const empresasAtuais = userCamila?.empresaIds || [];
+          const empAtualId = empresaAtual?.id ?? "emp_fatio";
+          const novasEmpresas = empresasAtuais.includes(empAtualId) ? empresasAtuais : [...empresasAtuais, empAtualId];
+          await salvarUsuario({
+            id: "usr_dono",
+            nome: userCamila?.nome || formCliente.nome.trim(),
+            email: emailLimpo,
+            senha: userCamila?.senha || "P&ix1nh0!",
+            papel: "super_admin",
+            status: "ativo",
+            empresaIds: novasEmpresas,
+            empresaAtivaId: empAtualId,
+          });
+        } else {
+          const idUsuarioExistente = revExistente?.usuario_id;
+          const userExistente = listaUsuarios.find(
+            (u) =>
+              u.papel === "revendedor" &&
+              ((idUsuarioExistente && u.id === idUsuarioExistente) || u.email.toLowerCase() === emailLimpo)
+          );
+          novoUserId =
+            userExistente?.id && userExistente.id !== "usr_dono" && userExistente.id !== "usr_super"
+              ? userExistente.id
+              : (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `usr_rev_${Date.now()}`);
 
-        // Salvar ou atualizar Usuário com papel revendedor (restrito a /vendas)
-        await salvarUsuario({
-          id: novoUserId,
-          nome: formCliente.nome.trim(),
-          email: emailLimpo,
-          senha: senhaRevendedor.trim(),
-          papel: "revendedor",
-          status: "ativo",
-          empresaIds: [empresaAtual?.id ?? "emp_1"],
-          empresaAtivaId: empresaAtual?.id ?? "emp_1",
-        });
+          await salvarUsuario({
+            id: novoUserId,
+            nome: formCliente.nome.trim(),
+            email: emailLimpo,
+            senha: senhaRevendedor.trim(),
+            papel: "revendedor",
+            status: "ativo",
+            empresaIds: [empresaAtual?.id ?? "emp_1"],
+            empresaAtivaId: empresaAtual?.id ?? "emp_1",
+          });
+        }
 
         // Salvar Revendedora
         await salvarRevendedora.mutateAsync({
