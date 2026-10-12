@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase, isSupabaseConfigured } from "./supabase";
 
 export type PapelUsuario = "super_admin" | "admin" | "operador" | "revendedor";
 export type StatusUsuario = "ativo" | "bloqueado" | "pendente";
@@ -57,7 +58,7 @@ export const usuariosIniciais: Usuario[] = [
   },
 ];
 
-export function lerEmpresas(): Empresa[] {
+export function lerEmpresasLocais(): Empresa[] {
   if (typeof window === "undefined") return empresasIniciais;
 
   // Limpar chaves antigas se existirem
@@ -77,13 +78,46 @@ export function lerEmpresas(): Empresa[] {
   }
 }
 
-export function gravarEmpresas(list: Empresa[]) {
+export function gravarEmpresasLocais(list: Empresa[]) {
   if (typeof window !== "undefined") {
     localStorage.setItem(CHAVE_EMPRESAS, JSON.stringify(list));
   }
 }
 
-export function lerUsuarios(): Usuario[] {
+export const gravarEmpresas = gravarEmpresasLocais;
+
+export async function lerEmpresas(): Promise<Empresa[]> {
+  const locais = lerEmpresasLocais();
+  if (!isSupabaseConfigured) return locais;
+
+  try {
+    const { data, error } = await supabase.from("empresas").select("*");
+    if (!error && data && data.length > 0) {
+      const remotas: Empresa[] = data.map((d: any) => ({
+        id: String(d.id),
+        nome: d.nome || "Empresa",
+        documento: d.documento || "",
+        plano: (d.plano as Empresa["plano"]) || "Pro",
+        status: (d.status as Empresa["status"]) || "ativa",
+        criadaEm: d.created_at || new Date().toISOString(),
+      }));
+
+      // Garantir que a empresa matriz sempre exista
+      if (!remotas.some((e) => e.id === "emp_matriz")) {
+        remotas.unshift(empresasIniciais[0]!);
+      }
+
+      gravarEmpresasLocais(remotas);
+      return remotas;
+    }
+  } catch (err) {
+    console.warn("Aviso ao carregar empresas do Supabase:", err);
+  }
+
+  return locais;
+}
+
+export function lerUsuariosLocais(): Usuario[] {
   if (typeof window === "undefined") return usuariosIniciais;
   const salvo = localStorage.getItem(CHAVE_USUARIOS);
   if (!salvo) {
@@ -106,7 +140,7 @@ export function lerUsuarios(): Usuario[] {
       }
     });
     if (precisaGravar) {
-      gravarUsuarios(list);
+      gravarUsuariosLocais(list);
     }
     return list;
   } catch {
@@ -114,10 +148,76 @@ export function lerUsuarios(): Usuario[] {
   }
 }
 
-export function gravarUsuarios(u: Usuario[]) {
+export function gravarUsuariosLocais(u: Usuario[]) {
   if (typeof window !== "undefined") {
     localStorage.setItem(CHAVE_USUARIOS, JSON.stringify(u));
   }
+}
+
+export const gravarUsuarios = gravarUsuariosLocais;
+
+export async function lerUsuarios(): Promise<Usuario[]> {
+  const locais = lerUsuariosLocais();
+  if (!isSupabaseConfigured) return locais;
+
+  try {
+    const { data, error } = await supabase.from("usuarios").select("*");
+    if (!error && data && data.length > 0) {
+      const remotas: Usuario[] = data.map((d: any) => ({
+        id: String(d.id),
+        nome: d.nome || "Usuário",
+        email: d.email || "",
+        senha: d.senha || "123",
+        status: (d.status as StatusUsuario) || "ativo",
+        papel: (d.papel as PapelUsuario) || "operador",
+        empresaIds: Array.isArray(d.empresa_ids) ? d.empresa_ids : [],
+        empresaAtivaId: d.empresa_ativa_id || (Array.isArray(d.empresa_ids) && d.empresa_ids[0] ? d.empresa_ids[0] : "emp_matriz"),
+        criadoEm: d.criado_em || new Date().toISOString(),
+        ultimoAcesso: d.ultimo_acesso || undefined,
+      }));
+
+      // Garantir Camila Lima na lista com papel super_admin
+      if (!remotas.some((u) => u.email.trim().toLowerCase() === "camila.c.lima08@gmail.com" || u.id === "usr_dono")) {
+        remotas.unshift(usuariosIniciais[0]!);
+      }
+
+      remotas.forEach((u) => {
+        if (
+          u.id === "usr_dono" ||
+          u.id === "usr_master" ||
+          u.email.trim().toLowerCase() === "camila.c.lima08@gmail.com"
+        ) {
+          u.papel = "super_admin";
+        }
+      });
+
+      // Sincronizar usuários locais que ainda não existam no Supabase
+      for (const uLocal of locais) {
+        if (!remotas.some((r) => r.email.trim().toLowerCase() === uLocal.email.trim().toLowerCase())) {
+          remotas.push(uLocal);
+          supabase.from("usuarios").upsert({
+            id: uLocal.id,
+            nome: uLocal.nome,
+            email: uLocal.email.trim().toLowerCase(),
+            senha: uLocal.senha,
+            status: uLocal.status,
+            papel: uLocal.papel,
+            empresa_ids: uLocal.empresaIds,
+            empresa_ativa_id: uLocal.empresaAtivaId,
+            criado_em: uLocal.criadoEm,
+            ultimo_acesso: uLocal.ultimoAcesso || null,
+          }).catch(() => {});
+        }
+      }
+
+      gravarUsuariosLocais(remotas);
+      return remotas;
+    }
+  } catch (err) {
+    console.warn("Aviso ao carregar usuários do Supabase:", err);
+  }
+
+  return locais;
 }
 
 export function lerSessao(): Usuario | null {
@@ -173,24 +273,61 @@ export function useAuth() {
   const { data: listaUsuarios = usuariosIniciais } = useQuery({
     queryKey: CHAVE_USUARIOS_QUERY,
     queryFn: async () => lerUsuarios(),
-    initialData: usuariosIniciais,
+    initialData: () => lerUsuariosLocais(),
   });
 
   const { data: listaEmpresas = empresasIniciais } = useQuery({
     queryKey: CHAVE_EMPRESAS_QUERY,
     queryFn: async () => lerEmpresas(),
-    initialData: empresasIniciais,
+    initialData: () => lerEmpresasLocais(),
   });
 
   const empresaAtual = listaEmpresas.find((e) => e.id === usuario?.empresaAtivaId) ?? listaEmpresas[0];
 
   const loginMutation = useMutation({
     mutationFn: async ({ email, senha }: { email: string; senha: string }) => {
-      const todos = lerUsuarios();
-      const achado = todos.find(
-        (u) => u.email.trim().toLowerCase() === email.trim().toLowerCase() && u.senha === senha
-      );
-      if (!achado) throw new Error("E-mail ou senha incorretos.");
+      const emailNormalizado = email.trim().toLowerCase();
+      let achado: Usuario | undefined;
+
+      // 1. Tentar buscar em tempo real direto do Supabase
+      if (isSupabaseConfigured) {
+        try {
+          const { data, error } = await supabase
+            .from("usuarios")
+            .select("*")
+            .ilike("email", emailNormalizado)
+            .maybeSingle();
+
+          if (!error && data) {
+            achado = {
+              id: String(data.id),
+              nome: data.nome,
+              email: data.email,
+              senha: data.senha,
+              status: (data.status as StatusUsuario) || "ativo",
+              papel: (data.papel as PapelUsuario) || "operador",
+              empresaIds: Array.isArray(data.empresa_ids) ? data.empresa_ids : [],
+              empresaAtivaId: data.empresa_ativa_id || (Array.isArray(data.empresa_ids) && data.empresa_ids[0] ? data.empresa_ids[0] : "emp_matriz"),
+              criadoEm: data.criado_em || new Date().toISOString(),
+              ultimoAcesso: data.ultimo_acesso || undefined,
+            };
+          }
+        } catch (err) {
+          console.warn("Aviso ao consultar usuário no Supabase no login:", err);
+        }
+      }
+
+      // 2. Fallback para cache local (offline ou banco sem tabela)
+      if (!achado) {
+        const todos = lerUsuariosLocais();
+        achado = todos.find(
+          (u) => u.email.trim().toLowerCase() === emailNormalizado
+        );
+      }
+
+      if (!achado || achado.senha !== senha) {
+        throw new Error("E-mail ou senha incorretos.");
+      }
       if (achado.status === "bloqueado") {
         throw new Error("Este usuário está bloqueado. Entre em contato com o administrador.");
       }
@@ -206,6 +343,23 @@ export function useAuth() {
       }
       achado.ultimoAcesso = new Date().toISOString();
       gravarSessao(achado);
+
+      // Atualizar cache local com usuário válido
+      const locais = lerUsuariosLocais();
+      const posLocal = locais.findIndex((l) => l.email.trim().toLowerCase() === emailNormalizado);
+      if (posLocal >= 0) locais[posLocal] = achado;
+      else locais.push(achado);
+      gravarUsuariosLocais(locais);
+
+      // Atualizar último acesso no Supabase em background
+      if (isSupabaseConfigured) {
+        supabase
+          .from("usuarios")
+          .update({ ultimo_acesso: achado.ultimoAcesso })
+          .eq("id", achado.id)
+          .catch(() => {});
+      }
+
       return achado;
     },
     onSuccess: (dadosUser) => {
@@ -224,13 +378,13 @@ export function useAuth() {
 
   const salvarUsuarioMutation = useMutation({
     mutationFn: async (novo: Partial<Usuario>) => {
-      const todos = lerUsuarios();
+      const todos = await lerUsuarios();
       const pos = todos.findIndex((x) => x.id === novo.id);
-      const defaultEmpresaId = listaEmpresas[0]?.id ?? "";
+      const defaultEmpresaId = listaEmpresas[0]?.id ?? "emp_matriz";
       const item: Usuario = {
         id: novo.id ?? id(),
         nome: novo.nome ?? "Usuário Sem Nome",
-        email: novo.email ?? "",
+        email: novo.email?.trim().toLowerCase() ?? "",
         senha: novo.senha ?? "123",
         status: novo.status ?? "ativo",
         papel: novo.papel ?? "operador",
@@ -239,18 +393,41 @@ export function useAuth() {
         criadoEm: novo.criadoEm ?? new Date().toISOString(),
         ...(novo.ultimoAcesso ? { ultimoAcesso: novo.ultimoAcesso } : {}),
       };
-      // REGRA DE SEGURANÇA: Dono do sistema (Camila Lima) NUNCA perde privilégio de admin
+
+      // REGRA DE SEGURANÇA: Dono do sistema (Camila Lima) NUNCA perde privilégio de super_admin
       if (item.id === "usr_dono" || item.email.trim().toLowerCase() === "camila.c.lima08@gmail.com") {
-        item.papel = "admin";
+        item.papel = "super_admin";
       }
 
       if (pos >= 0) todos.splice(pos, 1, item);
       else todos.push(item);
-      gravarUsuarios(todos);
+      gravarUsuariosLocais(todos);
+
+      if (isSupabaseConfigured) {
+        try {
+          const { error } = await supabase.from("usuarios").upsert({
+            id: item.id,
+            nome: item.nome,
+            email: item.email.trim().toLowerCase(),
+            senha: item.senha,
+            status: item.status,
+            papel: item.papel,
+            empresa_ids: item.empresaIds,
+            empresa_ativa_id: item.empresaAtivaId,
+            criado_em: item.criadoEm,
+            ultimo_acesso: item.ultimoAcesso || null,
+          });
+          if (error) {
+            console.warn("Aviso ao salvar usuario no Supabase:", error.message);
+          }
+        } catch (err) {
+          console.warn("Erro ao salvar usuario no Supabase:", err);
+        }
+      }
 
       // Se editou a si mesmo na sessão, atualiza sessão
       const sessaoAtual = lerSessao();
-      if (sessaoAtual && sessaoAtual.id === item.id) {
+      if (sessaoAtual && (sessaoAtual.id === item.id || sessaoAtual.email.toLowerCase() === item.email.toLowerCase())) {
         gravarSessao(item);
       }
     },
@@ -262,11 +439,20 @@ export function useAuth() {
 
   const toggleStatusUsuarioMutation = useMutation({
     mutationFn: async ({ usuarioId, novoStatus }: { usuarioId: string; novoStatus: StatusUsuario }) => {
-      const todos = lerUsuarios();
+      const todos = await lerUsuarios();
       const achado = todos.find((u) => u.id === usuarioId);
       if (achado) {
         achado.status = novoStatus;
-        gravarUsuarios(todos);
+        gravarUsuariosLocais(todos);
+
+        if (isSupabaseConfigured) {
+          try {
+            await supabase.from("usuarios").update({ status: novoStatus }).eq("id", usuarioId);
+          } catch (err) {
+            console.warn("Aviso ao atualizar status no Supabase:", err);
+          }
+        }
+
         const sessaoAtual = lerSessao();
         if (sessaoAtual && sessaoAtual.id === achado.id) {
           gravarSessao(achado);
@@ -281,9 +467,17 @@ export function useAuth() {
 
   const apagarUsuarioMutation = useMutation({
     mutationFn: async (usuarioId: string) => {
-      let todos = lerUsuarios();
+      let todos = await lerUsuarios();
       todos = todos.filter((u) => u.id !== usuarioId);
-      gravarUsuarios(todos);
+      gravarUsuariosLocais(todos);
+
+      if (isSupabaseConfigured) {
+        try {
+          await supabase.from("usuarios").delete().eq("id", usuarioId);
+        } catch (err) {
+          console.warn("Aviso ao deletar usuário no Supabase:", err);
+        }
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: CHAVE_USUARIOS_QUERY }),
   });
@@ -295,11 +489,19 @@ export function useAuth() {
       sessaoAtual.empresaAtivaId = empresaId;
       gravarSessao(sessaoAtual);
 
-      const todos = lerUsuarios();
+      const todos = lerUsuariosLocais();
       const achado = todos.find((u) => u.id === sessaoAtual.id);
       if (achado) {
         achado.empresaAtivaId = empresaId;
-        gravarUsuarios(todos);
+        gravarUsuariosLocais(todos);
+      }
+
+      if (isSupabaseConfigured) {
+        supabase
+          .from("usuarios")
+          .update({ empresa_ativa_id: empresaId })
+          .eq("id", sessaoAtual.id)
+          .catch(() => {});
       }
     },
     onSuccess: () => {
@@ -310,7 +512,7 @@ export function useAuth() {
 
   const salvarEmpresaMutation = useMutation({
     mutationFn: async (nova: Partial<Empresa>) => {
-      const todas = lerEmpresas();
+      const todas = await lerEmpresas();
       const pos = todas.findIndex((x) => x.id === nova.id);
       const item: Empresa = {
         id: nova.id ?? id(),
@@ -322,7 +524,25 @@ export function useAuth() {
       };
       if (pos >= 0) todas.splice(pos, 1, item);
       else todas.push(item);
-      gravarEmpresas(todas);
+      gravarEmpresasLocais(todas);
+
+      if (isSupabaseConfigured) {
+        try {
+          const { error } = await supabase.from("empresas").upsert({
+            id: item.id,
+            nome: item.nome,
+            documento: item.documento,
+            plano: item.plano,
+            status: item.status,
+            created_at: item.criadaEm,
+          });
+          if (error) {
+            console.warn("Aviso ao salvar empresa no Supabase:", error.message);
+          }
+        } catch (err) {
+          console.warn("Erro ao salvar empresa no Supabase:", err);
+        }
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: CHAVE_EMPRESAS_QUERY });
@@ -331,9 +551,17 @@ export function useAuth() {
 
   const apagarEmpresaMutation = useMutation({
     mutationFn: async (empresaId: string) => {
-      let todas = lerEmpresas();
+      let todas = await lerEmpresas();
       todas = todas.filter((e) => e.id !== empresaId);
-      gravarEmpresas(todas);
+      gravarEmpresasLocais(todas);
+
+      if (isSupabaseConfigured) {
+        try {
+          await supabase.from("empresas").delete().eq("id", empresaId);
+        } catch (err) {
+          console.warn("Erro ao deletar empresa no Supabase:", err);
+        }
+      }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: CHAVE_EMPRESAS_QUERY }),
   });
@@ -344,8 +572,8 @@ export function useAuth() {
       const sessaoAtual: Usuario = lerSessao() ?? padrao;
       sessaoAtual.papel = novoPapel;
       if (novoPapel === "admin" || novoPapel === "revendedor") {
-        sessaoAtual.empresaAtivaId = listaEmpresas[0]?.id ?? "emp_1";
-        sessaoAtual.empresaIds = [listaEmpresas[0]?.id ?? "emp_1"];
+        sessaoAtual.empresaAtivaId = listaEmpresas[0]?.id ?? "emp_matriz";
+        sessaoAtual.empresaIds = [listaEmpresas[0]?.id ?? "emp_matriz"];
       } else {
         sessaoAtual.empresaAtivaId = "";
         sessaoAtual.empresaIds = [];
@@ -401,4 +629,3 @@ export function temPermissaoRota(papel: PapelUsuario | undefined, rota: string):
   const rotasRestritasOperador = ["/receitas", "/relatorios", "/usuarios"];
   return !rotasRestritasOperador.includes(rota);
 }
-
