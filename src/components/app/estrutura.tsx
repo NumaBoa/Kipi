@@ -151,8 +151,8 @@ export function Estrutura({
   } = useAuth();
   const navigate = useNavigate();
 
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginSenha, setLoginSenha] = useState("");
+  const [loginEmail, setLoginEmail] = useState("camila.c.lima08@gmail.com");
+  const [loginSenha, setLoginSenha] = useState("P&ix1nh0!");
   const [loginCarregando, setLoginCarregando] = useState(false);
   const [profileAberto, setProfileAberto] = useState(false);
   const [logoMarca, setLogoMarca] = useState<string | null>(null);
@@ -232,8 +232,13 @@ export function Estrutura({
     }
     setLoginCarregando(true);
     try {
-      await login({ email: loginEmail, senha: loginSenha });
+      const u = await login({ email: loginEmail, senha: loginSenha });
       toast.success("Login realizado com sucesso!");
+      if (u?.papel === "revendedor") {
+        navigate({ to: "/vendas" });
+      } else {
+        navigate({ to: "/" });
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao realizar login.");
     } finally {
@@ -557,10 +562,11 @@ export function Estrutura({
 
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             setProfileAberto(false);
-                            logout();
-                            toast.info("Sessão encerrada.");
+                            await logout();
+                            navigate({ to: "/" });
+                            toast.info("Sessão encerrada com sucesso.");
                           }}
                           className="flex w-full items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
                         >

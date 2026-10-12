@@ -149,29 +149,6 @@ export const getRouter = () => {
     return res;
   };
 
-  // On client, prefill window.$_TSR with exact matched routes before hydrate() checks isSpaMode
-  if (typeof window !== "undefined") {
-    try {
-      const currentMatches = router.matchRoutes(router.stores.location.get());
-      const lastMatch = currentMatches[currentMatches.length - 1];
-      if (lastMatch) {
-        const safeRoutes = new Proxy({}, { get: () => ({ assets: [], scripts: [] }) });
-        const tsr = (window as any).$_TSR = (window as any).$_TSR || {};
-        tsr.router = tsr.router || {};
-        tsr.router.manifest = tsr.router.manifest || { routes: safeRoutes };
-        tsr.router.lastMatchId = lastMatch.id;
-        tsr.router.matches = currentMatches.map((m: any) => ({
-          i: m.id,
-          s: "success",
-          ssr: true,
-          u: Date.now(),
-        }));
-      }
-    } catch (e) {
-      console.warn("Could not align SSR matches:", e);
-    }
-  }
-
   return router;
 };
 

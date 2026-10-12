@@ -79,61 +79,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if (typeof window !== 'undefined') {
-                var safeRoutes = new Proxy({}, { get: function() { return { assets: [], scripts: [] }; } });
-                var path = window.location.pathname || '/';
-                var lastId = path === '/' ? '/_authenticated/' : ('/_authenticated' + path.replace(/\\/$/, ''));
-                var initialMatches = [
-                  { i: '__root__', s: 'success', ssr: true, u: Date.now() },
-                  { i: '/_authenticated', s: 'success', ssr: true, u: Date.now() },
-                  { i: lastId, s: 'success', ssr: true, u: Date.now() }
-                ];
-                window.$_TSR = window.$_TSR || {
-                  buffer: [],
-                  p: function(s) { !this.initialized ? this.buffer.push(s) : s(); },
-                  h: function() { this.hydrated = true; },
-                  e: function() { this.streamEnded = true; },
-                  c: function() {},
-                  router: { matches: initialMatches, lastMatchId: lastId, manifest: { routes: safeRoutes } }
-                };
-                if (window.$_TSR.router) {
-                  if (!window.$_TSR.router.manifest || !window.$_TSR.router.manifest.routes) {
-                    window.$_TSR.router.manifest = { routes: safeRoutes };
-                  }
-                  if (!window.$_TSR.router.matches || window.$_TSR.router.matches.length === 0) {
-                    window.$_TSR.router.matches = initialMatches;
-                    window.$_TSR.router.lastMatchId = lastId;
-                  }
-                }
-              }
-              window.addEventListener('error', function(e) {
-                console.error("GLOBAL WINDOW ERROR:", e.error || e.message);
-                var existing = document.getElementById('debug-global-err-box');
-                if (!existing && document.body) {
-                  var b = document.createElement('div');
-                  b.id = 'debug-global-err-box';
-                  b.style = 'position:fixed;bottom:16px;left:16px;right:16px;z-index:999999;background:#991B1B;color:white;padding:16px;border-radius:16px;font-family:sans-serif;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,0.5);';
-                  b.innerHTML = '<strong style="font-size:14px">⚠️ Erro Detectado no Navegador:</strong><p style="margin:6px 0">' + (e.message || '') + '</p><pre style="background:rgba(0,0,0,0.3);padding:8px;border-radius:8px;overflow:auto;max-height:120px">' + (e.error ? e.error.stack : '') + '</pre><button onclick="localStorage.clear();location.reload()" style="margin-top:8px;background:white;color:#991B1B;border:none;padding:6px 14px;border-radius:9999px;font-weight:bold;cursor:pointer">Limpar dados e recarregar</button>';
-                  document.body.appendChild(b);
-                }
-              });
-              window.addEventListener('unhandledrejection', function(e) {
-                console.error("GLOBAL PROMISE REJECTION:", e.reason);
-                var existing = document.getElementById('debug-global-err-box');
-                if (!existing && document.body) {
-                  var b = document.createElement('div');
-                  b.id = 'debug-global-err-box';
-                  b.style = 'position:fixed;bottom:16px;left:16px;right:16px;z-index:999999;background:#991B1B;color:white;padding:16px;border-radius:16px;font-family:sans-serif;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,0.5);';
-                  b.innerHTML = '<strong style="font-size:14px">⚠️ Promessa Rejeitada:</strong><p style="margin:6px 0">' + (e.reason?.message || String(e.reason)) + '</p><pre style="background:rgba(0,0,0,0.3);padding:8px;border-radius:8px;overflow:auto;max-height:120px">' + (e.reason ? (e.reason.stack || String(e.reason)) : '') + '</pre><button onclick="localStorage.clear();location.reload()" style="margin-top:8px;background:white;color:#991B1B;border:none;padding:6px 14px;border-radius:9999px;font-weight:bold;cursor:pointer">Limpar dados e recarregar</button>';
-                  document.body.appendChild(b);
-                }
-              });
-            `,
-          }}
-        />
       </head>
       <body suppressHydrationWarning>
         {children}

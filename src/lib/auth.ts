@@ -117,21 +117,18 @@ export function gravarUsuarios(u: Usuario[]) {
 }
 
 export function lerSessao(): Usuario | null {
-  const padrao: Usuario = usuariosIniciais[0]!;
-  if (typeof window === "undefined") return padrao;
-  // Limpar sessões antigas se existirem
-  ["meu-atelie-sessao-v6", "meu-atelie-sessao-v7", "meu-atelie-sessao-v8"].forEach((k) => localStorage.removeItem(k));
+  if (typeof window === "undefined") return null;
   const salvo = localStorage.getItem(CHAVE_SESSAO);
-  if (!salvo) {
-    gravarSessao(padrao);
-    return padrao;
+  if (!salvo || salvo === "deslogado") {
+    return null;
   }
   try {
-    const sessao = (JSON.parse(salvo) as Usuario) ?? padrao;
+    const sessao = (JSON.parse(salvo) as Usuario) ?? null;
+    if (!sessao || !sessao.id) return null;
     if (!sessao.papel) sessao.papel = "admin";
     return sessao;
   } catch {
-    return padrao;
+    return null;
   }
 }
 
@@ -140,7 +137,7 @@ export function gravarSessao(u: Usuario | null) {
     if (u) {
       localStorage.setItem(CHAVE_SESSAO, JSON.stringify(u));
     } else {
-      localStorage.removeItem(CHAVE_SESSAO);
+      localStorage.setItem(CHAVE_SESSAO, "deslogado");
     }
   }
 }
@@ -191,7 +188,6 @@ export function useAuth() {
     },
     onSuccess: (dadosUser) => {
       qc.setQueryData(CHAVE_AUTH_QUERY, dadosUser);
-      qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY });
     },
   });
 
@@ -201,7 +197,6 @@ export function useAuth() {
     },
     onSuccess: () => {
       qc.setQueryData(CHAVE_AUTH_QUERY, null);
-      qc.invalidateQueries({ queryKey: CHAVE_AUTH_QUERY });
     },
   });
 
