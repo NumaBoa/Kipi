@@ -213,6 +213,18 @@ export function PaginaVendas() {
   const [novoClienteBairro, setNovoClienteBairro] = useState("");
   const [novoClienteObs, setNovoClienteObs] = useState("");
 
+  // Modal para copiar vendas por período (WhatsApp)
+  const [modalCopiarVendas, setModalCopiarVendas] = useState(false);
+  const [periodoCopiar, setPeriodoCopiar] = useState<"hoje" | "ontem" | "7dias" | "mes" | "todas" | "custom">("hoje");
+  const [dataInicioCopiar, setDataInicioCopiar] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split("T")[0] ?? "";
+  });
+  const [dataFimCopiar, setDataFimCopiar] = useState(() => {
+    const d = new Date();
+    return d.toISOString().split("T")[0] ?? "";
+  });
+
   const salvarCliente = useSalvarCliente();
 
   const handleSalvarNovoCliente = async () => {
@@ -673,26 +685,182 @@ export function PaginaVendas() {
     toast.success("Resumo do pedido copiado! Pronto para colar no WhatsApp.");
   };
 
-  const copiarRelatorioVendasWhatsApp = () => {
+  // Vendas filtradas pelo período selecionado para o relatório de cópia
+  const vendasDoPeriodo = useMemo(() => {
+    if (periodoCopiar === "todas") return validas;
+
+    let inicio: Date;
+    let fim: Date;
+    const agora = new Date();
+
+    if (periodoCopiar === "hoje") {
+      inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0, 0);
+      fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59, 999);
+    } else if (periodoCopiar === "ontem") {
+      inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1, 0, 0, 0, 0);
+      fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1, 23, 59, 59, 999);
+    } else if (periodoCopiar === "7dias") {
+      inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 6, 0, 0, 0, 0);
+      fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59, 999);
+    } else if (periodoCopiar === "mes") {
+      inicio = new Date(agora.getFullYear(), agora.getMonth(), 1, 0, 0, 0, 0);
+      fim = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59, 999);
+    } else {
+      // custom
+      const partesI = (dataInicioCopiar || "").split("-").map(Number);
+      const partesF = (dataFimCopiar || "").split("-").map(Number);
+      inicio = new Date(
+        partesI[0] || agora.getFullYear(),
+        partesI[1] ? partesI[1] - 1 : agora.getMonth(),
+        partesI[2] || 1,
+        0, 0, 0, 0
+      );
+      fim = new Date(
+        partesF[0] || agora.getFullYear(),
+        partesF[1] ? partesF[1] - 1 : agora.getMonth(),
+        partesF[2] || agora.getDate(),
+        23, 59, 59, 999
+      );
+    }
+
+    return validas.filter((v) => {
+      const t = new Date(v.data).getTime();
+      return t >= inicio.getTime() && t <= fim.getTime();
+    });
+  }, [validas, periodoCopiar, dataInicioCopiar, dataFimCopiar]);
+
+  const totalFaturadoPeriodo = useMemo(() => {
+    return vendasDoPeriodo.reduce((sum, v) => sum + Number(v.total || 0), 0);
+  }, [vendasDoPeriodo]);
+
+  const totalAReceberPeriodo = useMemo(() => {
+    return vendasDoPeriodo.reduce((sum, v) => sum + Number(v.saldo_na_entrega || 0), 0);
+  }, [vendasDoPeriodo]);
+
+  const comissaoDoPeriodo = useMemo(() => {
+    if (!revendedorLogado) return 0;
+    return vendasDoPeriodo.reduce((acc, v) => acc + calcularComissaoRevendedora(v, revendedorLogado), 0);
+  }, [vendasDoPeriodo, revendedorLogado]);
+
+  // Agrupamento de vendas por dia (para separar quando houver mais de um dia)
+  const vendasAgrupadasPorDia = useMemo(() => {
+    const grupos: Record<string, { data: Date; vendas: Venda[] }> = {};
+
+    vendasDoPeriodo.forEach((v) => {
+      const d = new Date(v.data);
+      const chave = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const grupoExistente = grupos[chave];
+      if (!grupoExistente) {
+        grupos[chave] = {
+          data: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+          vendas: [v],
+        };
+      } else {
+        grupoExistente.vendas.push(v);
+      }
+    });
+
+    const chavesOrdenadas = Object.keys(grupos).sort();
+    return chavesOrdenadas.map((chave) => grupos[chave]!).filter(Boolean);
+  }, [vendasDoPeriodo]);
+
+  const executarCopiarRelatorioWhatsApp = () => {
     if (!ehRevendedor || !revendedorLogado) {
       toast.error("Disponível para o ponto de revenda conectado.");
       return;
     }
 
     const nomeRevendedor = revendedorLogado.nome;
-    const dataHoje = new Date().toLocaleDateString("pt-BR");
-    const vendasParaRelatorio = validas;
+    const totalDiasComVendas = vendasAgrupadasPorDia.length;
 
-    if (vendasParaRelatorio.length === 0 && estoqueConsignadoRevendedor.length === 0) {
-      toast.info("Nenhuma venda ou item em estoque registrado para este ponto.");
-      return;
+    let rotuloPeriodo = "Hoje";
+    if (periodoCopiar === "hoje") {
+      rotuloPeriodo = `Hoje (${new Date().toLocaleDateString("pt-BR")})`;
+    } else if (periodoCopiar === "ontem") {
+      const dOntem = new Date();
+      dOntem.setDate(dOntem.getDate() - 1);
+      rotuloPeriodo = `Ontem (${dOntem.toLocaleDateString("pt-BR")})`;
+    } else if (periodoCopiar === "7dias") {
+      rotuloPeriodo = "Últimos 7 dias";
+    } else if (periodoCopiar === "mes") {
+      rotuloPeriodo = "Mês Atual";
+    } else if (periodoCopiar === "todas") {
+      rotuloPeriodo = "Todas as Vendas";
+    } else {
+      const di = dataInicioCopiar ? dataInicioCopiar.split("-").reverse().join("/") : "";
+      const df = dataFimCopiar ? dataFimCopiar.split("-").reverse().join("/") : "";
+      rotuloPeriodo = `${di} a ${df}`;
     }
 
-    const linhasVendas = vendasParaRelatorio.length === 0
-      ? ["_Nenhuma venda registrada até o momento._"]
-      : vendasParaRelatorio.map((v, idx) => {
+    // Montagem dos blocos de vendas
+    let secaoVendas = "";
+
+    if (vendasDoPeriodo.length === 0 || vendasAgrupadasPorDia.length === 0 || !vendasAgrupadasPorDia[0]) {
+      secaoVendas = "_Nenhuma venda registrada no período selecionado._";
+    } else if (totalDiasComVendas > 1) {
+      // Mais de um dia: separar explicitamente por dia conforme solicitado
+      secaoVendas = vendasAgrupadasPorDia
+        .map((grupo) => {
+          const dataExtensa = grupo.data.toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            weekday: "long",
+          });
+          const dataFormatada = dataExtensa.charAt(0).toUpperCase() + dataExtensa.slice(1);
+          const totalDia = grupo.vendas.reduce((acc, v) => acc + Number(v.total || 0), 0);
+
+          const linhasDoDia = grupo.vendas
+            .map((v, idx) => {
+              const cli = clientes.find((c) => c.id === v.cliente_id);
+              // Não traz a palavra "tag", apenas a informação da tag!
+              const tagStr = cli?.tag?.trim() ? ` (${cli.tag.trim()})` : "";
+              const nomeCli = (v.clientes?.nome || cli?.nome || "Venda Balcão / Avulsa") + tagStr;
+              const temSaldo = Number(v.saldo_na_entrega || 0) > 0;
+              const statusPgto = temSaldo
+                ? `⚠️ A Receber (Saldo restante: ${brl(v.saldo_na_entrega || 0)})`
+                : v.pagamento === "pendente" || v.status === "pendente"
+                ? "⏳ Pagamento Pendente"
+                : `✅ Pago (${(v.pagamento || "pix").toUpperCase()})`;
+
+              const itens = (v.venda_itens || [])
+                .map((it) => {
+                  const nomeProd = it.nome_produto || produtos.find((p) => p.id === it.produto_id)?.nome || "Produto";
+                  return `   • ${it.quantidade}x ${nomeProd}`;
+                })
+                .join("\n");
+
+              const obsTexto = v.observacoes ? `\n   📝 Obs: "${v.observacoes}"` : "";
+
+              return [
+                `${idx + 1}. *${nomeCli}*`,
+                itens || "   • (Itens não especificados)",
+                `   💰 Total: *${brl(v.total)}* | ${statusPgto}${obsTexto}`,
+              ].join("\n");
+            })
+            .join("\n\n");
+
+          return [
+            `📅 *${dataFormatada}* — ${grupo.vendas.length} ${grupo.vendas.length === 1 ? "venda" : "vendas"} (Total: ${brl(totalDia)})`,
+            linhasDoDia,
+          ].join("\n");
+        })
+        .join("\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n");
+    } else {
+      // 1 único dia
+      const grupo = vendasAgrupadasPorDia[0]!;
+      const dataExtensa = grupo.data.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        weekday: "long",
+      });
+      const dataFormatada = dataExtensa.charAt(0).toUpperCase() + dataExtensa.slice(1);
+
+      const linhas = grupo.vendas
+        .map((v, idx) => {
           const cli = clientes.find((c) => c.id === v.cliente_id);
-          const tagStr = cli?.tag?.trim() ? ` [Tag: ${cli.tag.trim()}]` : "";
+          const tagStr = cli?.tag?.trim() ? ` (${cli.tag.trim()})` : "";
           const nomeCli = (v.clientes?.nome || cli?.nome || "Venda Balcão / Avulsa") + tagStr;
           const temSaldo = Number(v.saldo_na_entrega || 0) > 0;
           const statusPgto = temSaldo
@@ -701,10 +869,12 @@ export function PaginaVendas() {
             ? "⏳ Pagamento Pendente"
             : `✅ Pago (${(v.pagamento || "pix").toUpperCase()})`;
 
-          const itens = (v.venda_itens || []).map((it) => {
-            const nomeProd = it.nome_produto || produtos.find((p) => p.id === it.produto_id)?.nome || "Produto";
-            return `   • ${it.quantidade}x ${nomeProd}`;
-          }).join("\n");
+          const itens = (v.venda_itens || [])
+            .map((it) => {
+              const nomeProd = it.nome_produto || produtos.find((p) => p.id === it.produto_id)?.nome || "Produto";
+              return `   • ${it.quantidade}x ${nomeProd}`;
+            })
+            .join("\n");
 
           const obsTexto = v.observacoes ? `\n   📝 Obs: "${v.observacoes}"` : "";
 
@@ -713,7 +883,14 @@ export function PaginaVendas() {
             itens || "   • (Itens não especificados)",
             `   💰 Total: *${brl(v.total)}* | ${statusPgto}${obsTexto}`,
           ].join("\n");
-        });
+        })
+        .join("\n\n");
+
+      secaoVendas = [
+        `📅 *${dataFormatada}*`,
+        linhas,
+      ].join("\n");
+    }
 
     const linhasEstoque = estoqueConsignadoRevendedor.length === 0
       ? ["_Nenhum produto em estoque consignado registrado._"]
@@ -729,28 +906,29 @@ export function PaginaVendas() {
     const texto = [
       `📊 *RELATÓRIO DE VENDAS & FECHAMENTO*`,
       `🏪 *Ponto de Venda:* ${nomeRevendedor}`,
-      `📅 *Data:* ${dataHoje}`,
+      `🗓️ *Período:* ${rotuloPeriodo}`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `🛍️ *VENDAS REALIZADAS (${vendasParaRelatorio.length} pedidos):*`,
+      `🛍️ *VENDAS DO PERÍODO (${vendasDoPeriodo.length} pedidos):*`,
       "",
-      linhasVendas.join("\n\n"),
+      secaoVendas,
       "",
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       `📦 *ESTOQUE ATUAL NO PONTO (${totalPecasEstoqueRevendedor} un em posse):*`,
       linhasEstoque.join("\n"),
       "",
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-      `💰 *RESUMO FINANCEIRO & COMISSÃO:*`,
-      `• Total Vendido: *${brl(totalFaturado)}*`,
-      `• Minha Comissão: *${brl(comissaoTotalRevendedor)}* (${comissaoRegra})`,
-      totalAReceber > 0
-        ? `• Saldo a Receber de Clientes: *${brl(totalAReceber)}*`
+      `💰 *RESUMO DO PERÍODO & COMISSÃO:*`,
+      `• Total Vendido no Período: *${brl(totalFaturadoPeriodo)}*`,
+      `• Minha Comissão do Período: *${brl(comissaoDoPeriodo)}* (${comissaoRegra})`,
+      totalAReceberPeriodo > 0
+        ? `• Saldo a Receber de Clientes: *${brl(totalAReceberPeriodo)}*`
         : `• Pagamentos de Clientes: *100% Quitados* ✅`,
       `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
     ].join("\n");
 
     navigator.clipboard.writeText(texto);
-    toast.success("Relatório de vendas e estoque copiado! Pronto para colar no WhatsApp.");
+    setModalCopiarVendas(false);
+    toast.success("Vendas copiadas com sucesso! Pronto para colar no WhatsApp.");
   };
 
   return (
@@ -1024,9 +1202,9 @@ export function PaginaVendas() {
           {ehRevendedor && (
             <Button
               type="button"
-              onClick={copiarRelatorioVendasWhatsApp}
+              onClick={() => setModalCopiarVendas(true)}
               className="rounded-xl gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0 cursor-pointer"
-              title="Copiar relatório completo de vendas, clientes, estoque e comissão para WhatsApp"
+              title="Copiar relatório de vendas para WhatsApp por período"
             >
               <Copy className="size-4" />
               <span className="hidden sm:inline">Copiar Vendas</span>
@@ -1041,32 +1219,6 @@ export function PaginaVendas() {
           </Button>
         </div>
       </div>
-
-      {/* BANNER DE FECHAMENTO PARA REVENDEDORES: COPIAR PARA WHATSAPP */}
-      {ehRevendedor && (
-        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-emerald-950/30 border border-emerald-200/90 dark:border-emerald-800/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <MessageCircle className="size-5" />
-            </div>
-            <div>
-              <h4 className="font-extrabold text-sm text-emerald-950 dark:text-emerald-100">
-                Relatório de Fechamento do Ponto (WhatsApp)
-              </h4>
-              <p className="text-xs text-emerald-800/90 dark:text-emerald-300/80">
-                Copie o relatório pronto com nome do revendedor, clientes, itens vendidos, pagamentos, estoque atual e comissão.
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            onClick={copiarRelatorioVendasWhatsApp}
-            className="rounded-xl gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm px-4 h-9 text-xs sm:text-sm shrink-0 cursor-pointer"
-          >
-            <Copy className="size-4" /> Copiar para WhatsApp
-          </Button>
-        </div>
-      )}
 
       {/* LISTAGEM DE PEDIDOS */}
       <Painel className="p-0 overflow-hidden">
@@ -2336,6 +2488,130 @@ export function PaginaVendas() {
             >
               <CheckCircle2 className="size-4" />
               {atualizarVenda.isPending ? "Salvando..." : "Confirmar e Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: SELECIONAR PERÍODO PARA COPIAR VENDAS (WHATSAPP) */}
+      <Dialog open={modalCopiarVendas} onOpenChange={setModalCopiarVendas}>
+        <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="size-11 rounded-2xl bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0 shadow-xs">
+                <MessageCircle className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 dark:text-foreground">
+                  Copiar Vendas para WhatsApp
+                </DialogTitle>
+                <DialogDescription>
+                  Selecione o período das vendas para gerar o relatório de fechamento do ponto.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* SELETOR DE PRESETS DE PERÍODO */}
+            <div>
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                Período das Vendas
+              </Label>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                {[
+                  { id: "hoje", rotulo: "Hoje" },
+                  { id: "ontem", rotulo: "Ontem" },
+                  { id: "7dias", rotulo: "7 Dias" },
+                  { id: "mes", rotulo: "Este Mês" },
+                  { id: "custom", rotulo: "Outro" },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setPeriodoCopiar(item.id as any)}
+                    className={cn(
+                      "py-2 px-2 rounded-xl text-xs font-bold transition-all border text-center cursor-pointer",
+                      periodoCopiar === item.id
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-xs"
+                        : "bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-900/60 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800"
+                    )}
+                  >
+                    {item.rotulo}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* SELEÇÃO PERSONALIZADA DE DATAS */}
+            {periodoCopiar === "custom" && (
+              <div className="grid grid-cols-2 gap-3 p-3 bg-slate-50 dark:bg-slate-900/30 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+                <div>
+                  <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Data Inicial</Label>
+                  <Input
+                    type="date"
+                    value={dataInicioCopiar}
+                    onChange={(e) => setDataInicioCopiar(e.target.value)}
+                    className="mt-1 h-9 rounded-xl bg-white dark:bg-card text-xs border-slate-300 dark:border-slate-700"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">Data Final</Label>
+                  <Input
+                    type="date"
+                    value={dataFimCopiar}
+                    onChange={(e) => setDataFimCopiar(e.target.value)}
+                    className="mt-1 h-9 rounded-xl bg-white dark:bg-card text-xs border-slate-300 dark:border-slate-700"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* CARD DE PRÉ-VISUALIZAÇÃO DO RESUMO */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 dark:bg-emerald-950/20 dark:border-emerald-900/40 space-y-2">
+              <div className="flex items-center justify-between text-xs font-extrabold text-emerald-950 dark:text-emerald-100">
+                <span>Resumo Selecionado:</span>
+                <span className="bg-emerald-200/70 dark:bg-emerald-900/50 text-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded-full text-[10px]">
+                  {vendasDoPeriodo.length} {vendasDoPeriodo.length === 1 ? "venda" : "vendas"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-emerald-200/60 dark:border-emerald-900/40">
+                <div>
+                  <span className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 block">Total Vendido</span>
+                  <span className="font-black text-emerald-950 dark:text-emerald-100 text-sm">
+                    {brl(totalFaturadoPeriodo)}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 block">Comissão Estimada</span>
+                  <span className="font-black text-emerald-700 dark:text-emerald-300 text-sm">
+                    {brl(comissaoDoPeriodo)}
+                  </span>
+                </div>
+              </div>
+              {vendasAgrupadasPorDia.length > 1 && (
+                <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium pt-1">
+                  📅 Vendas serão separadas em <strong>{vendasAgrupadasPorDia.length} dias</strong> diferentes no relatório.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setModalCopiarVendas(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl font-bold bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm"
+              onClick={executarCopiarRelatorioWhatsApp}
+            >
+              <Copy className="size-4" /> Copiar para WhatsApp
             </Button>
           </DialogFooter>
         </DialogContent>
