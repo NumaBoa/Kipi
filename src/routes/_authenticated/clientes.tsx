@@ -24,6 +24,10 @@ import {
   ChevronDown,
   ChevronUp,
   Minus,
+  Copy,
+  Tag,
+  ShoppingBag,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Estrutura } from "@/components/app/estrutura";
@@ -147,14 +151,22 @@ export function PaginaContatos() {
   const [modalHistorico, setModalHistorico] = useState(false);
   const [revendedorHistorico, setRevendedorHistorico] = useState<Revendedora | null>(null);
 
-  // CONTROLE DE EXPANSÃO / RECOLHIMENTO DOS DETALHES DE CADA REVENDEDOR (REDUÇÃO DE SCROLL)
-  const [revendedoresExpandidos, setRevendedoresExpandidos] = useState<Record<string, boolean>>({});
+  // CONTROLE DE EXPANSÃO / RECOLHIMENTO DOS DETALHES DE CADA CONTATO (CLIENTES E REVENDEDORES)
+  const [contatosExpandidos, setContatosExpandidos] = useState<Record<string, boolean>>({});
 
-  const alternarExpandirRevendedor = (id: string) => {
-    setRevendedoresExpandidos((prev) => ({
+  const alternarExpandirContato = (id: string) => {
+    setContatosExpandidos((prev) => ({
       ...prev,
       [id]: !prev[id],
     }));
+  };
+  const alternarExpandirRevendedor = alternarExpandirContato;
+  const revendedoresExpandidos = contatosExpandidos;
+
+  const copiarTexto = (texto: string, mensagem: string = "Copiado com sucesso!") => {
+    if (!texto) return;
+    navigator.clipboard.writeText(texto);
+    toast.success(mensagem);
   };
 
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "clientes" | "revendedores" | "parceiros">("todos");
@@ -202,6 +214,7 @@ export function PaginaContatos() {
       complemento: string | null;
       observacoes: string | null;
       perfil: PerfilContato;
+      tag?: string | null;
       clienteObj?: Cliente | undefined;
       revendedoraObj?: Revendedora | undefined;
       revendedorVinculado?: Revendedora | null | undefined;
@@ -209,13 +222,16 @@ export function PaginaContatos() {
       totalItensComprados: number;
       qtdPedidos: number;
       comissaoPendente: number;
+      pedidos?: typeof validas;
     }> = [];
 
     // 1. Clientes
     clientes.forEach((c) => {
-      const pedidosCli = validas.filter(
-        (v) => v.cliente_id === c.id || (v.clientes?.nome && v.clientes.nome.toLowerCase() === c.nome.toLowerCase())
-      );
+      const pedidosCli = validas
+        .filter(
+          (v) => v.cliente_id === c.id || (v.clientes?.nome && v.clientes.nome.toLowerCase() === c.nome.toLowerCase())
+        )
+        .sort((a, b) => new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime());
       const totalGasto = pedidosCli.reduce((s, v) => s + Number(v.total || 0), 0);
       const totalItensComprados = pedidosCli.reduce(
         (s, v) => s + (v.venda_itens || []).reduce((sum, item) => sum + Number(item.quantidade || 0), 0),
@@ -261,6 +277,7 @@ export function PaginaContatos() {
         complemento: c.complemento,
         observacoes: c.observacoes,
         perfil,
+        tag: c.tag || null,
         clienteObj: c,
         revendedoraObj: rev,
         revendedorVinculado,
@@ -268,6 +285,7 @@ export function PaginaContatos() {
         totalItensComprados,
         qtdPedidos: pedidosCli.length,
         comissaoPendente,
+        pedidos: pedidosCli,
       });
     });
 
@@ -275,7 +293,9 @@ export function PaginaContatos() {
     revendedoras.forEach((r) => {
       const jaExiste = list.find((item) => item.nome.toLowerCase() === r.nome.toLowerCase());
       if (!jaExiste) {
-        const vendasParceiro = validas.filter((v) => v.revendedora_id === r.id);
+        const vendasParceiro = validas
+          .filter((v) => v.revendedora_id === r.id)
+          .sort((a, b) => new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime());
         const totalVendas = vendasParceiro.reduce((s, v) => s + Number(v.total || 0), 0);
         const totalItens = vendasParceiro.reduce(
           (s, v) => s + (v.venda_itens || []).reduce((sum, item) => sum + Number(item.quantidade || 0), 0),
@@ -299,12 +319,14 @@ export function PaginaContatos() {
           complemento: null,
           observacoes: r.observacoes,
           perfil,
+          tag: null,
           revendedoraObj: r,
           revendedorVinculado: null,
           totalGasto: totalVendas,
           totalItensComprados: totalItens,
           qtdPedidos: vendasParceiro.length,
           comissaoPendente,
+          pedidos: vendasParceiro,
         });
       }
     });
@@ -337,7 +359,16 @@ export function PaginaContatos() {
         const tel = c.telefone?.toLowerCase() || "";
         const bairro = c.bairro?.toLowerCase() || "";
         const revNome = c.revendedorVinculado?.nome.toLowerCase() || "";
-        return nome.includes(termo) || tel.includes(termo) || bairro.includes(termo) || revNome.includes(termo);
+        const tag = c.tag?.toLowerCase() || c.clienteObj?.tag?.toLowerCase() || "";
+        const rua = c.rua?.toLowerCase() || "";
+        return (
+          nome.includes(termo) ||
+          tel.includes(termo) ||
+          bairro.includes(termo) ||
+          revNome.includes(termo) ||
+          tag.includes(termo) ||
+          rua.includes(termo)
+        );
       }
       return true;
     });
@@ -1052,7 +1083,21 @@ export function PaginaContatos() {
           <div className="divide-y divide-slate-100">
             {contatosFiltrados.map((item) => {
               const temWhatsApp = Boolean(item.telefone);
-              const estaExpandido = Boolean(revendedoresExpandidos[item.id]);
+              const estaExpandido = Boolean(contatosExpandidos[item.id]);
+              const tagCliente = item.clienteObj?.tag || item.tag || null;
+
+              const enderecoPartes = [
+                item.rua ? `${item.rua}${item.numero ? `, nº ${item.numero}` : ""}` : (item.numero ? `Nº ${item.numero}` : ""),
+                item.complemento,
+                item.bairro,
+              ].filter(Boolean);
+              const temEndereco = enderecoPartes.length > 0;
+              const enderecoFormatado = enderecoPartes.join(" • ");
+              const enderecoCompletoParaCopiar = [
+                item.rua ? `${item.rua}${item.numero ? `, nº ${item.numero}` : ""}` : "",
+                item.complemento,
+                item.bairro,
+              ].filter(Boolean).join(", ");
 
               return (
                 <div
@@ -1060,12 +1105,16 @@ export function PaginaContatos() {
                   className="p-4 sm:p-5 hover:bg-slate-50/80 transition-colors flex flex-col justify-between gap-3"
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                  <div className="space-y-1.5">
+                  <div
+                    className="space-y-1.5 flex-1 cursor-pointer"
+                    onClick={() => alternarExpandirContato(item.id)}
+                    title={estaExpandido ? "Clique para recolher detalhes" : "Clique para ver endereço e mais detalhes"}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-black text-slate-900 text-base">{item.nome}</span>
-                      {item.clienteObj?.tag && (
+                      {tagCliente && (
                         <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                          🏷️ {item.clienteObj.tag}
+                          🏷️ {tagCliente}
                         </span>
                       )}
                       
@@ -1114,7 +1163,31 @@ export function PaginaContatos() {
                           <Phone className="size-3 text-slate-400" /> {formatarTelefone(item.telefone)}
                         </span>
                       )}
-                      {item.rua && (
+                      {item.perfil === "cliente" && (
+                        temEndereco ? (
+                          <span
+                            className="flex items-center gap-1 font-medium text-slate-700 bg-slate-100/90 px-2 py-0.5 rounded-md border border-slate-200/60 hover:border-slate-300 transition-colors"
+                            title={`Endereço: ${enderecoFormatado}. Clique para ver detalhes.`}
+                          >
+                            <MapPin className="size-3 text-rose-500 shrink-0" />
+                            <span className="truncate max-w-[280px] sm:max-w-md">{enderecoFormatado}</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirModalNovo(item);
+                            }}
+                            className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-[#084463] transition-colors"
+                            title="Nenhum endereço cadastrado. Clique para cadastrar."
+                          >
+                            <MapPin className="size-3 text-slate-300 shrink-0" />
+                            <span className="underline decoration-dotted">Sem endereço (cadastrar)</span>
+                          </button>
+                        )
+                      )}
+                      {item.perfil !== "cliente" && item.rua && (
                         <span className="flex items-center gap-1">
                           <MapPin className="size-3 text-slate-400" /> {item.rua}, {item.numero} {item.bairro ? `- ${item.bairro}` : ""}
                         </span>
@@ -1126,7 +1199,7 @@ export function PaginaContatos() {
                       )}
                     </div>
 
-                    {/* MÉTRICAS DE COMPRAS: VALOR EM DINHEIRO (R$) E SOMA TOTAL DE PRODUTOS COMPRADOS */}
+                    {/* MÉTRICAS DE COMPRAS: VALOR EM DINHEIRO (R$), SOMA TOTAL DE PRODUTOS COMPRADOS, PONTO E TAG */}
                     {item.perfil === "cliente" && (
                       <div className="flex flex-wrap items-center gap-2 pt-1">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 text-xs font-semibold">
@@ -1147,6 +1220,27 @@ export function PaginaContatos() {
                             <Store className="size-3.5 text-purple-600 shrink-0" />
                             <span>Ponto: <strong>{item.revendedorVinculado.nome}</strong></span>
                           </div>
+                        )}
+
+                        {/* TAG NOS DETALHES RÁPIDOS */}
+                        {tagCliente ? (
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-300 text-xs font-semibold">
+                            <Tag className="size-3.5 text-amber-600 shrink-0" />
+                            <span>Tag: <strong className="font-black text-amber-950 dark:text-amber-100">{tagCliente}</strong></span>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              abrirModalNovo(item);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 border border-dashed border-slate-300 text-xs font-medium transition-colors"
+                            title="Clique para adicionar uma tag de identificação"
+                          >
+                            <Tag className="size-3 text-slate-400 shrink-0" />
+                            <span>+ Adicionar Tag</span>
+                          </button>
                         )}
                       </div>
                     )}
@@ -1180,11 +1274,39 @@ export function PaginaContatos() {
                     )}
 
                     <div className="flex items-center gap-1.5">
+                      {/* BOTÃO VER DETALHES PARA CLIENTES */}
+                      {item.perfil === "cliente" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alternarExpandirContato(item.id);
+                          }}
+                          className={`h-8 text-xs font-bold gap-1 rounded-xl transition-all shadow-2xs ${
+                            estaExpandido
+                              ? "bg-[#084463] text-white border-[#084463] hover:bg-[#06344C]"
+                              : "bg-white text-[#084463] border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                          }`}
+                          title={estaExpandido ? "Recolher detalhes do cliente" : "Ver endereço completo e histórico de pedidos"}
+                        >
+                          <span>{estaExpandido ? "Recolher" : "Ver Detalhes"}</span>
+                          {estaExpandido ? (
+                            <ChevronUp className="size-3.5" />
+                          ) : (
+                            <ChevronDown className="size-3.5" />
+                          )}
+                        </Button>
+                      )}
+
                       {item.perfil === "revendedor" && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => alternarExpandirRevendedor(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            alternarExpandirContato(item.id);
+                          }}
                           className={`h-8 text-xs font-bold gap-1 rounded-xl transition-all shadow-2xs ${
                             estaExpandido
                               ? "bg-purple-100 text-purple-900 border-purple-300 hover:bg-purple-200"
@@ -1206,7 +1328,10 @@ export function PaginaContatos() {
                           size="sm"
                           variant="outline"
                           className="h-8 text-xs font-bold gap-1 rounded-xl text-emerald-700 border-emerald-300 hover:bg-emerald-50"
-                          onClick={() => abrirWhatsApp(item.telefone)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            abrirWhatsApp(item.telefone);
+                          }}
                         >
                           <MessageCircle className="size-3.5" /> WhatsApp
                         </Button>
@@ -1215,7 +1340,11 @@ export function PaginaContatos() {
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-slate-400 hover:text-slate-800 rounded-xl"
-                        onClick={() => abrirModalNovo(item)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          abrirModalNovo(item);
+                        }}
+                        title="Editar contato"
                       >
                         <Pencil className="size-4" />
                       </Button>
@@ -1223,12 +1352,14 @@ export function PaginaContatos() {
                         size="sm"
                         variant="ghost"
                         className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 rounded-xl"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           if (confirm(`Excluir o contato "${item.nome}"?`)) {
                             if (item.clienteObj) apagarCliente.mutate(item.clienteObj.id);
                             if (item.revendedoraObj) apagarRevendedora.mutate(item.revendedoraObj.id);
                           }
                         }}
+                        title="Excluir contato"
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -1411,6 +1542,208 @@ export function PaginaContatos() {
                       </div>
                     );
                   })()}
+
+                  {/* SEÇÃO EXCLUSIVA DE DETALHES DO CLIENTE: ENDEREÇO, TAG, OBSERVAÇÕES E HISTÓRICO DE PEDIDOS (EXPANSÍVEL) */}
+                  {item.perfil === "cliente" && estaExpandido && (
+                    <div className="mt-2 pt-4 border-t border-slate-200/80 bg-slate-50/70 -mx-4 -mb-4 sm:-mx-5 sm:-mb-5 p-4 sm:p-5 rounded-b-2xl space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        {/* 1. ENDEREÇO CADASTRADO */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                              <MapPin className="size-4 text-rose-500" /> Endereço Cadastrado
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs font-semibold text-[#084463] hover:bg-slate-100 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                abrirModalNovo(item);
+                              }}
+                            >
+                              <Pencil className="size-3 mr-1" /> {temEndereco ? "Editar" : "Cadastrar"}
+                            </Button>
+                          </div>
+
+                          {temEndereco ? (
+                            <div className="space-y-2 text-xs">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <span className="text-[11px] text-slate-400 block font-medium">Logradouro / Rua</span>
+                                  <span className="font-bold text-slate-800 block text-sm">{item.rua || "—"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[11px] text-slate-400 block font-medium">Número</span>
+                                  <span className="font-bold text-slate-800 block text-sm">{item.numero || "S/N"}</span>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 pt-1">
+                                <div>
+                                  <span className="text-[11px] text-slate-400 block font-medium">Bairro</span>
+                                  <span className="font-bold text-slate-800 block">{item.bairro || "—"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[11px] text-slate-400 block font-medium">Complemento</span>
+                                  <span className="font-bold text-slate-800 block">{item.complemento || "—"}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs font-semibold rounded-lg text-slate-700 hover:text-slate-900 gap-1.5"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    copiarTexto(enderecoCompletoParaCopiar, "Endereço copiado para a área de transferência!");
+                                  }}
+                                >
+                                  <Copy className="size-3" /> Copiar Endereço
+                                </Button>
+
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${item.rua || ""} ${item.numero || ""} ${item.bairro || ""}`.trim())}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline px-2 py-1"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  Abrir no Google Maps <ExternalLink className="size-3 ml-0.5" />
+                                </a>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="py-4 text-center space-y-2">
+                              <p className="text-xs text-slate-400 italic">Nenhum endereço cadastrado para este cliente.</p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs font-bold text-[#084463] border-[#084463]/30 hover:bg-slate-50 rounded-xl"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  abrirModalNovo(item);
+                                }}
+                              >
+                                <Plus className="size-3.5 mr-1" /> Cadastrar Endereço Agora
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 2. IDENTIFICAÇÃO, TAG E OBSERVAÇÕES */}
+                        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                          <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                            <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                              <Tag className="size-4 text-amber-600" /> Identificação & Observações
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs font-semibold text-[#084463] hover:bg-slate-100 px-2"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                abrirModalNovo(item);
+                              }}
+                            >
+                              <Pencil className="size-3 mr-1" /> Editar
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2.5 text-xs">
+                            <div>
+                              <span className="text-[11px] text-slate-400 block font-medium mb-1">Tag do Cliente</span>
+                              {tagCliente ? (
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 text-amber-900 border border-amber-300 font-black text-xs">
+                                  🏷️ {tagCliente}
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 italic">Nenhuma tag cadastrada</span>
+                              )}
+                            </div>
+
+                            <div>
+                              <span className="text-[11px] text-slate-400 block font-medium mb-0.5">Origem / Canal</span>
+                              {item.revendedorVinculado ? (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-900 bg-purple-50 px-2.5 py-1 rounded-lg border border-purple-200">
+                                  <Store className="size-3.5 text-purple-700" /> Cliente de: {item.revendedorVinculado.nome}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-900 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200">
+                                  <User className="size-3.5 text-blue-700" /> Cliente Direto (Ateliê)
+                                </span>
+                              )}
+                            </div>
+
+                            <div>
+                              <span className="text-[11px] text-slate-400 block font-medium mb-0.5">Observações / Preferências</span>
+                              {item.observacoes ? (
+                                <p className="text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100 italic">
+                                  "{item.observacoes}"
+                                </p>
+                              ) : (
+                                <p className="text-slate-400 italic">Nenhuma observação informada.</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 3. HISTÓRICO DE PEDIDOS */}
+                      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs space-y-3">
+                        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                          <span className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+                            <ShoppingBag className="size-4 text-emerald-600" /> Histórico de Pedidos ({item.pedidos?.length || 0})
+                          </span>
+                          <span className="text-xs font-bold text-slate-600">
+                            Total Gasto: <strong className="text-emerald-700 font-black">{brl(item.totalGasto)}</strong>
+                          </span>
+                        </div>
+
+                        {(!item.pedidos || item.pedidos.length === 0) ? (
+                          <p className="text-xs text-slate-400 italic py-2 text-center">Nenhum pedido registrado para este cliente ainda.</p>
+                        ) : (
+                          <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                            {item.pedidos.map((ped: any) => {
+                              const dataPed = ped.data
+                                ? new Date(ped.data + "T12:00:00").toLocaleDateString("pt-BR")
+                                : "—";
+                              const itensDesc = (ped.venda_itens || [])
+                                .map((it: any) => {
+                                  const nomeProd = produtos.find((pr) => pr.id === it.produto_id)?.nome || it.produtos?.nome || "Produto";
+                                  return `${it.quantidade}x ${nomeProd}`;
+                                })
+                                .join(", ");
+                              return (
+                                <div key={ped.id} className="p-2.5 rounded-lg bg-slate-50/80 border border-slate-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                  <div className="space-y-0.5 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-extrabold text-slate-800">Pedido #{ped.id?.slice(0, 8)}</span>
+                                      <span className="text-[11px] text-slate-400">{dataPed}</span>
+                                      <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full border ${
+                                        ped.status === "pago"
+                                          ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                          : "bg-amber-50 text-amber-800 border-amber-200"
+                                      }`}>
+                                        {ped.status === "pago" ? "Pago" : "Pendente"}
+                                      </span>
+                                    </div>
+                                    <p className="text-slate-600 truncate text-[11px]" title={itensDesc}>
+                                      {itensDesc || "Sem itens detalhados"}
+                                    </p>
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <span className="font-black text-slate-900 text-sm">{brl(ped.total || 0)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
