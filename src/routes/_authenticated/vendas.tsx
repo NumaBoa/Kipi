@@ -159,7 +159,8 @@ export function PaginaVendas() {
   // FORMULÁRIO DE NOVO PEDIDO
   const [tipoPedido, setTipoPedido] = useState<"pronta_entrega" | "sob_encomenda">("pronta_entrega");
   const [clienteId, setClienteId] = useState<string>("avulso");
-  const [canal, setCanal] = useState<"propria" | "revendedora">("propria");
+  const [canal, setCanal] = useState<"propria" | "revendedora">(ehRevendedor ? "revendedora" : "propria");
+  const [revendedoraId, setRevendedoraId] = useState<string>(() => revendedorLogado?.id || revendedorVinculado?.id || "");
   const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "cartao" | "transferencia" | "pendente">("pix");
   const [modalEditarPagamento, setModalEditarPagamento] = useState(false);
   const [vendaEditandoPagamento, setVendaEditandoPagamento] = useState<Venda | null>(null);
@@ -228,7 +229,7 @@ export function PaginaVendas() {
         bairro: novoClienteBairro.trim() || null,
         observacoes: novoClienteObs.trim() || null,
         tipo_contato: "cliente",
-        revendedora_id: ehRevendedor && revendedorLogado ? revendedorLogado.id : null,
+        revendedora_id: ehRevendedor && revendedorLogado ? revendedorLogado.id : (canal === "revendedora" && revendedoraId ? revendedoraId : null),
       });
 
       setClienteId(novoId);
@@ -254,11 +255,13 @@ export function PaginaVendas() {
   useEffect(() => {
     if (ehRevendedor && revendedorLogado) {
       setCanal("revendedora");
-      setRevendedoraId(revendedorLogado.id);
+      if (revendedoraId !== revendedorLogado.id) {
+        setRevendedoraId(revendedorLogado.id);
+      }
     } else if (revendedorVinculado && !revendedoraId) {
       setRevendedoraId(revendedorVinculado.id);
     }
-  }, [ehRevendedor, revendedorLogado, revendedorVinculado, modalNovoPedido]);
+  }, [ehRevendedor, revendedorLogado, revendedorVinculado, revendedoraId, modalNovoPedido]);
 
   // Vendas válidas (filtradas para a loja do revendedor caso logado como revendedor)
   const validas = useMemo(() => {
@@ -397,6 +400,19 @@ export function PaginaVendas() {
       return;
     }
 
+    if (canal === "revendedora" && !revendedoraId) {
+      if (ehRevendedor && revendedorLogado) {
+        setRevendedoraId(revendedorLogado.id);
+      } else {
+        toast.error(
+          revendedoras.length === 0
+            ? "Nenhum parceiro ou revendedor cadastrado. Cadastre um revendedor primeiro."
+            : "Selecione o parceiro ou revendedor antes de salvar o pedido."
+        );
+        return;
+      }
+    }
+
     try {
       const ehPendente = pagamento === "pendente";
       const saldoFinal = ehPendente ? totalPedido : saldoNaEntrega;
@@ -434,6 +450,10 @@ export function PaginaVendas() {
       setSinalPago(0);
       setSinalPagoTexto("0,00");
       setPagamento("pix");
+      if (!ehRevendedor) {
+        setCanal("propria");
+        setRevendedoraId("");
+      }
     } catch {
       toast.error("Erro ao registrar pedido.");
     }
@@ -621,7 +641,7 @@ export function PaginaVendas() {
           detalhe={
             ehRevendedor
               ? revendedorLogado?.tipo_comissao === "valor_fixo"
-                ? `${brl(revendedorLogado.comissao_fixa)} por unidade vendida`
+                ? `${brl(revendedorLogado.comissao_fixa || 0)} por unidade vendida`
                 : `${revendedorLogado?.comissao_percentual || 0}% sobre o total vendido`
               : totalAReceber > 0
               ? "👉 Clique para ver clientes pendentes"
@@ -1207,7 +1227,10 @@ export function PaginaVendas() {
                       size="sm"
                       variant={canal === "propria" ? "default" : "outline"}
                       className={canal === "propria" ? "bg-[#084463] text-white font-bold" : "rounded-xl"}
-                      onClick={() => setCanal("propria")}
+                      onClick={() => {
+                        setCanal("propria");
+                        setRevendedoraId("");
+                      }}
                     >
                       Venda Direta
                     </Button>
@@ -1253,7 +1276,7 @@ export function PaginaVendas() {
                           return (
                             <SelectItem key={r.id} value={r.id}>
                               {ehParceiro ? "🤝 Parceiro: " : "🏪 Revendedor: "}
-                              {r.nome} ({r.tipo_comissao === "porcentagem" ? `${r.comissao_percentual}%` : brl(r.comissao_fixa)})
+                              {r.nome} ({r.tipo_comissao === "porcentagem" ? `${r.comissao_percentual}%` : brl(r.comissao_fixa || 0)})
                             </SelectItem>
                           );
                         })}
@@ -1350,7 +1373,7 @@ export function PaginaVendas() {
                     // Saldo em estoque
                     const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === p.id);
                     const saldoPdv = itemPdv ? itemPdv.saldo_atual : 0;
-                    const ehRevendaPronta = canal === "revendedora" && tipoPedido === "pronta_entrega" && revendedoraId;
+                    const ehRevendaPronta = canal === "revendedora" && tipoPedido === "pronta_entrega" && Boolean(revendedoraId);
 
                     return (
                       <div
@@ -1568,7 +1591,7 @@ export function PaginaVendas() {
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-700">Tag / Identificador</Label>
+                <Label className="text-xs font-bold text-slate-700 whitespace-nowrap">Tag</Label>
                 <Input
                   placeholder="Ex: Vizinha, Instagram, VIP"
                   value={novoClienteTag}

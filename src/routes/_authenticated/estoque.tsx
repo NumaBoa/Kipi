@@ -529,7 +529,7 @@ function PaginaEstoque() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {revendedora.telefone ? `WhatsApp: ${formatarTelefone(revendedora.telefone)} · ` : ""}
-                      Comissão: {revendedora.tipo_comissao === "porcentagem" ? `${revendedora.comissao_percentual}%` : brl(revendedora.comissao_fixa)}
+                      Comissão: {revendedora.tipo_comissao === "porcentagem" ? `${revendedora.comissao_percentual}%` : brl(revendedora.comissao_fixa || 0)}
                     </p>
                   </div>
 

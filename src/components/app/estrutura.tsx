@@ -380,7 +380,7 @@ export function Estrutura({
                 </span>
                 {ehSuperAdmin && listaEmpresas.length > 1 && (
                   <Select
-                    value={empresaAtual?.id}
+                    value={empresaAtual?.id ?? ""}
                     onValueChange={(val) => alternarEmpresaAtiva(val)}
                   >
                     <SelectTrigger className="h-7 text-[11px] font-bold rounded-lg border-slate-200 bg-white/80 dark:bg-card px-2 gap-1.5 text-[#084463] shadow-none">
