@@ -369,7 +369,7 @@ function PaginaRelatorios() {
                             {c.nome}
                           </span>
                           {c.tag && (
-                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300/60 px-1.5 py-0.2 rounded-md shrink-0">
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-indigo-900 dark:text-indigo-200 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/80 px-1.5 py-0.2 rounded-md shrink-0">
                               🏷️ {c.tag}
                             </span>
                           )}
