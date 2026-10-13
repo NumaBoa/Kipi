@@ -326,10 +326,11 @@ export function PaginaVendas() {
   }, [pedidosComSaldoPendente, buscaSaldosModal]);
 
   // Saldo de estoque em posse do revendedor selecionado
+  const revIdPdv = ehRevendedor && revendedorLogado ? revendedorLogado.id : revendedoraId;
   const estoquePdvAtual = useMemo(() => {
-    if (canal !== "revendedora" || !revendedoraId) return [];
-    return calcularEstoqueConsignadoRevendedor(revendedoraId, remessas, validas, produtos);
-  }, [canal, revendedoraId, remessas, validas, produtos]);
+    if (canal !== "revendedora" || !revIdPdv) return [];
+    return calcularEstoqueConsignadoRevendedor(revIdPdv, remessas, validas, produtos);
+  }, [canal, revIdPdv, remessas, validas, produtos]);
 
   // Cálculos do Carrinho
   const totalPedido = useMemo(() => {
@@ -372,6 +373,25 @@ export function PaginaVendas() {
 
   // Ações de Carrinho
   const adicionarAoCarrinho = (p: Produto) => {
+    const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
+    if (ehRevendaPronta) {
+      const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === p.id);
+      const saldo = itemPdv ? itemPdv.saldo_atual : 0;
+      const atualNoCarrinho = carrinho.find((i) => i.produto.id === p.id)?.quantidade || 0;
+      if (saldo <= 0) {
+        toast.warning(
+          `"${p.nome}" está esgotado no balcão para pronta-entrega. Para encomendar mais unidades, altere a modalidade para "Sob Encomenda".`
+        );
+        return;
+      }
+      if (atualNoCarrinho >= saldo) {
+        toast.warning(
+          `Limite de estoque no balcão atingido (${saldo} un disponíveis). Para quantidades maiores, altere a modalidade para "Sob Encomenda".`
+        );
+        return;
+      }
+    }
+
     setCarrinho((prev) => {
       const existe = prev.find((i) => i.produto.id === p.id);
       if (existe) {
@@ -382,6 +402,24 @@ export function PaginaVendas() {
   };
 
   const alterarQtd = (produtoId: string, delta: number) => {
+    if (delta > 0) {
+      const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
+      if (ehRevendaPronta) {
+        const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === produtoId);
+        const saldo = itemPdv ? itemPdv.saldo_atual : 0;
+        const itemAtual = carrinho.find((i) => i.produto.id === produtoId);
+        const atualNoCarrinho = itemAtual?.quantidade || 0;
+        if (saldo <= 0) {
+          toast.warning("Item esgotado no balcão para pronta-entrega. Para encomendar, mude para 'Sob Encomenda'.");
+          return;
+        }
+        if (atualNoCarrinho >= saldo) {
+          toast.warning(`Limite de estoque no balcão atingido (${saldo} un). Para quantidades maiores, use 'Sob Encomenda'.`);
+          return;
+        }
+      }
+    }
+
     setCarrinho((prev) =>
       prev
         .map((i) => {
@@ -411,6 +449,20 @@ export function PaginaVendas() {
             : "Selecione o parceiro ou revendedor antes de salvar o pedido."
         );
         return;
+      }
+    }
+
+    const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
+    if (ehRevendaPronta) {
+      for (const it of carrinho) {
+        const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === it.produto.id);
+        const saldo = itemPdv ? itemPdv.saldo_atual : 0;
+        if (it.quantidade > saldo) {
+          toast.error(
+            `"${it.produto.nome}" possui apenas ${saldo} un no estoque do PDV para pronta-entrega. Ajuste a quantidade ou altere para "Sob Encomenda".`
+          );
+          return;
+        }
       }
     }
 
@@ -764,40 +816,40 @@ export function PaginaVendas() {
       </section>
 
       {/* TOP 3 PRODUTOS E TOP 3 CLIENTES (VISÃO REVENDEDORA / VISÃO DONA) */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1.5">
         {/* CARD: TOP 3 PRODUTOS MAIS VENDIDOS */}
-        <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 shadow-xs space-y-3.5">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-border/40">
-            <div className="flex items-center gap-2.5">
-              <div className="size-9 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 shadow-xs">
-                <Trophy className="size-4.5" />
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 shadow-xs space-y-2">
+          <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-border/40">
+            <div className="flex items-center gap-2">
+              <div className="size-7 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 shadow-2xs">
+                <Trophy className="size-3.5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-foreground">
+                <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-foreground leading-tight">
                   Top 3 Produtos Mais Vendidos
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[10px] text-slate-500 leading-tight">
                   {ehRevendedor ? "No seu ponto de venda" : "Em todo o ateliê"} · por quantidade
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full border border-amber-200/60">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-full border border-amber-200/60">
               Quantidade (un)
             </span>
           </div>
 
           {top3Produtos.length === 0 ? (
-            <p className="text-xs text-slate-400 italic py-4 text-center">
+            <p className="text-xs text-slate-400 italic py-3 text-center">
               Nenhuma venda registrada até o momento.
             </p>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               {top3Produtos.map((p, idx) => {
                 const maxQtd = top3Produtos[0]?.quantidade || 1;
                 const perc = Math.round((p.quantidade / maxQtd) * 100);
                 const medalhas = ["🥇 1º", "🥈 2º", "🥉 3º"];
                 const coresMedalha = [
-                  "bg-amber-500 text-white shadow-xs",
+                  "bg-amber-500 text-white shadow-2xs",
                   "bg-slate-400 text-white",
                   "bg-amber-700/80 text-white",
                 ];
@@ -805,29 +857,29 @@ export function PaginaVendas() {
                 return (
                   <div
                     key={p.nome}
-                    className="p-2.5 sm:p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/30 border border-slate-100 dark:border-border/40 space-y-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/30 border border-slate-100 dark:border-border/40 space-y-1 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${coresMedalha[idx]}`}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${coresMedalha[idx]}`}>
                           {medalhas[idx]}
                         </span>
-                        <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 truncate">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                           {p.nome}
                         </span>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-foreground">
-                          {num(p.quantidade)} <span className="text-[11px] font-semibold text-slate-500">un</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-foreground leading-tight">
+                          {num(p.quantidade)} <span className="text-[10px] font-semibold text-slate-500">un</span>
                         </span>
-                        <span className="text-[10px] text-slate-500 block">
+                        <span className="text-[9px] text-slate-500 block leading-tight">
                           {brl(p.valorTotal)}
                         </span>
                       </div>
                     </div>
 
                     {/* BARRA DE PROGRESSO RELATIVO */}
-                    <div className="w-full h-1.5 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-1 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-[#084463] rounded-full transition-all duration-500"
                         style={{ width: `${perc}%` }}
@@ -841,38 +893,38 @@ export function PaginaVendas() {
         </div>
 
         {/* CARD: TOP 3 CLIENTES QUE MAIS COMPRAM */}
-        <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 shadow-xs space-y-3.5">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-border/40">
-            <div className="flex items-center gap-2.5">
-              <div className="size-9 rounded-2xl bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0 shadow-xs">
-                <Users className="size-4.5" />
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 shadow-xs space-y-2">
+          <div className="flex items-center justify-between pb-1.5 border-b border-slate-100 dark:border-border/40">
+            <div className="flex items-center gap-2">
+              <div className="size-7 rounded-xl bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 flex items-center justify-center shrink-0 shadow-2xs">
+                <Users className="size-3.5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-foreground">
+                <h3 className="font-black text-xs sm:text-sm text-slate-900 dark:text-foreground leading-tight">
                   Top 3 Clientes Que Mais Compram
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[10px] text-slate-500 leading-tight">
                   {ehRevendedor ? "No seu ponto de venda" : "Em todo o ateliê"} · por quantidade
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-full border border-purple-200/60">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-full border border-purple-200/60">
               Itens Comprados
             </span>
           </div>
 
           {top3Clientes.length === 0 ? (
-            <p className="text-xs text-slate-400 italic py-4 text-center">
+            <p className="text-xs text-slate-400 italic py-3 text-center">
               Nenhum cliente com compras registrado ainda.
             </p>
           ) : (
-            <div className="space-y-2.5">
+            <div className="space-y-1.5">
               {top3Clientes.map((c, idx) => {
                 const maxQtd = top3Clientes[0]?.quantidadeItens || 1;
                 const perc = Math.round((c.quantidadeItens / maxQtd) * 100);
                 const medalhas = ["🥇 1º", "🥈 2º", "🥉 3º"];
                 const coresMedalha = [
-                  "bg-purple-600 text-white shadow-xs",
+                  "bg-purple-600 text-white shadow-2xs",
                   "bg-slate-400 text-white",
                   "bg-amber-700/80 text-white",
                 ];
@@ -880,36 +932,36 @@ export function PaginaVendas() {
                 return (
                   <div
                     key={c.id}
-                    className="p-2.5 sm:p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/30 border border-slate-100 dark:border-border/40 space-y-1.5 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-50/70 dark:bg-slate-900/30 border border-slate-100 dark:border-border/40 space-y-1 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${coresMedalha[idx]}`}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${coresMedalha[idx]}`}>
                           {medalhas[idx]}
                         </span>
-                        <div className="min-w-0">
-                          <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 truncate block">
+                        <div className="min-w-0 flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block">
                             {c.nome}
                           </span>
                           {c.tag && (
-                            <span className="text-[10px] font-semibold text-purple-700 bg-purple-100 dark:bg-purple-950/60 px-1.5 py-0.5 rounded-md inline-block">
+                            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-amber-800 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 border border-amber-300/60 px-1.5 py-0.2 rounded-md shrink-0">
                               🏷️ {c.tag}
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-xs sm:text-sm font-black text-slate-900 dark:text-foreground">
-                          {num(c.quantidadeItens)} <span className="text-[11px] font-semibold text-slate-500">itens</span>
+                        <span className="text-xs font-black text-slate-900 dark:text-foreground leading-tight">
+                          {num(c.quantidadeItens)} <span className="text-[10px] font-semibold text-slate-500">itens</span>
                         </span>
-                        <span className="text-[10px] text-slate-500 block">
+                        <span className="text-[9px] text-slate-500 block leading-tight">
                           {c.totalPedidos} {c.totalPedidos === 1 ? "pedido" : "pedidos"} · {brl(c.valorTotal)}
                         </span>
                       </div>
                     </div>
 
                     {/* BARRA DE PROGRESSO RELATIVO */}
-                    <div className="w-full h-1.5 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <div className="w-full h-1 bg-slate-200/70 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-purple-600 rounded-full transition-all duration-500"
                         style={{ width: `${perc}%` }}
@@ -1293,24 +1345,36 @@ export function PaginaVendas() {
                       <SelectContent className="max-h-60 rounded-2xl">
                         <SelectItem value="avulso">🛍️ Venda Balcão / Cliente Rápido</SelectItem>
                         {ehRevendedor ? (
-                          clientesDoRevendedor.map((c) => {
-                            const rotuloExtra = c.tag?.trim() ? `(${c.tag.trim()})` : "";
-                            return (
-                              <SelectItem key={c.id} value={c.id}>
-                                👤 {c.nome} {rotuloExtra}
-                              </SelectItem>
-                            );
-                          })
+                          clientesDoRevendedor.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              <div className="flex items-center gap-2">
+                                <span>👤 {c.nome}</span>
+                                {c.tag?.trim() && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                                    🏷️ {c.tag.trim()}
+                                  </span>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))
                         ) : (
                           clientes.map((c) => {
                             const revNome = c.revendedora_id
                               ? revendedoras.find((r) => r.id === c.revendedora_id)?.nome
                               : null;
-                            const rotuloExtra = c.tag?.trim() ? `(${c.tag.trim()})` : "";
                             return (
                               <SelectItem key={c.id} value={c.id}>
-                                👤 {c.nome} {rotuloExtra}
-                                {revNome ? ` · 🏪 ${revNome}` : ""}
+                                <div className="flex items-center gap-2">
+                                  <span>👤 {c.nome}</span>
+                                  {c.tag?.trim() && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                                      🏷️ {c.tag.trim()}
+                                    </span>
+                                  )}
+                                  {revNome && (
+                                    <span className="text-[10px] text-slate-400">· 🏪 {revNome}</span>
+                                  )}
+                                </div>
                               </SelectItem>
                             );
                           })
@@ -1479,7 +1543,7 @@ export function PaginaVendas() {
                   Nenhum produto encontrado nesta categoria ou busca.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto p-1 pr-1.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] sm:max-h-[420px] overflow-y-auto p-1 pr-1.5">
                   {produtosFiltradosParaSelecao.map((p) => {
                     const itemNoCarrinho = carrinho.find((i) => i.produto.id === p.id);
                     const qtd = itemNoCarrinho?.quantidade ?? 0;
@@ -1487,45 +1551,65 @@ export function PaginaVendas() {
                     // Saldo em estoque
                     const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === p.id);
                     const saldoPdv = itemPdv ? itemPdv.saldo_atual : 0;
-                    const ehRevendaPronta = canal === "revendedora" && tipoPedido === "pronta_entrega" && Boolean(revendedoraId);
+                    const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
+                    const esgotadoPdv = ehRevendaPronta && saldoPdv <= 0;
+                    const atingiuLimitePdv = ehRevendaPronta && qtd >= saldoPdv;
+                    const podeAdicionar = !esgotadoPdv && !atingiuLimitePdv;
 
                     return (
                       <div
                         key={p.id}
                         className={cn(
-                          "p-3.5 rounded-2xl bg-white border transition-all flex items-center justify-between gap-3 shadow-xs",
+                          "px-3 py-2 rounded-xl bg-white border transition-all flex items-center justify-between gap-2.5 shadow-2xs",
                           qtd > 0
                             ? "border-[#6366F1] ring-1 ring-[#6366F1]/20 bg-[#6366F1]/[0.02]"
+                            : esgotadoPdv
+                            ? "border-slate-200/60 bg-slate-50/60 opacity-80"
                             : "border-slate-200/90 hover:border-slate-300"
                         )}
                       >
                         <div className="min-w-0 flex-1">
-                          <p className="font-bold text-slate-800 text-sm truncate">
-                            {p.nome}
-                          </p>
-                          <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full mt-1">
-                            {p.categoria || "Geral"}
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate leading-tight">
+                              {p.nome}
+                            </p>
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0 leading-tight">
+                              {p.categoria || "Geral"}
+                            </span>
+                          </div>
                           <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-sm font-extrabold text-[#6366F1]">
+                            <span className="text-xs sm:text-sm font-extrabold text-[#6366F1] leading-none">
                               {brl(p.preco)}
                             </span>
-                            <span className="text-xs text-slate-400 font-normal">
-                              {ehRevendaPronta
-                                ? `(${saldoPdv} un no PDV)`
-                                : `(${p.estoque ?? 0} un em estoque)`}
-                            </span>
+                            {ehRevendaPronta ? (
+                              <span
+                                className={cn(
+                                  "text-[11px] leading-none font-medium",
+                                  esgotadoPdv
+                                    ? "text-rose-600 font-bold"
+                                    : saldoPdv <= 2
+                                    ? "text-amber-700 font-semibold"
+                                    : "text-slate-500"
+                                )}
+                              >
+                                {esgotadoPdv ? "· 🔴 0 un (Esgotado)" : `· ${saldoPdv} un no PDV`}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-slate-400 font-normal leading-none">
+                                · {p.estoque ?? 0} un estoque
+                              </span>
+                            )}
                           </div>
                         </div>
 
                         {/* CONTADOR / STEPPER PILL */}
-                        <div className="flex items-center bg-slate-50 border border-slate-200 rounded-full p-1 shrink-0">
+                        <div className="flex items-center bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-full p-0.5 shrink-0">
                           <button
                             type="button"
                             onClick={() => alterarQtd(p.id, -1)}
                             disabled={qtd === 0}
                             className={cn(
-                              "size-7 rounded-full flex items-center justify-center font-bold text-slate-600 transition-colors",
+                              "size-6 sm:size-6.5 rounded-full flex items-center justify-center font-bold text-slate-600 transition-colors",
                               qtd === 0
                                 ? "opacity-30 cursor-not-allowed text-slate-400"
                                 : "hover:bg-white hover:text-slate-900 cursor-pointer shadow-2xs"
@@ -1533,13 +1617,26 @@ export function PaginaVendas() {
                           >
                             -
                           </button>
-                          <span className="w-6 text-center font-black text-sm text-slate-800">
+                          <span className="w-5 sm:w-6 text-center font-black text-xs sm:text-sm text-slate-800 dark:text-slate-100">
                             {qtd}
                           </span>
                           <button
                             type="button"
                             onClick={() => adicionarAoCarrinho(p)}
-                            className="size-7 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white hover:text-slate-900 transition-colors cursor-pointer shadow-2xs"
+                            disabled={!podeAdicionar}
+                            title={
+                              esgotadoPdv
+                                ? "Produto esgotado no balcão para pronta-entrega. Altere para 'Sob Encomenda' para encomendar."
+                                : atingiuLimitePdv
+                                ? `Limite disponível no balcão atingido (${saldoPdv} un). Use 'Sob Encomenda' para pedir mais.`
+                                : "Adicionar unidade"
+                            }
+                            className={cn(
+                              "size-6 sm:size-6.5 rounded-full flex items-center justify-center font-bold transition-colors",
+                              !podeAdicionar
+                                ? "opacity-30 cursor-not-allowed text-slate-400 bg-slate-100"
+                                : "text-slate-700 hover:bg-white hover:text-slate-900 cursor-pointer shadow-2xs"
+                            )}
                           >
                             +
                           </button>
@@ -1767,14 +1864,14 @@ export function PaginaVendas() {
 
       {/* MODAL: DETALHES DO ESTOQUE DO REVENDEDOR (ABERTO VIA KPI) */}
       <Dialog open={modalEstoquePdv} onOpenChange={setModalEstoquePdv}>
-        <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-5">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="size-11 rounded-2xl bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center text-purple-700 dark:text-purple-300 shrink-0 shadow-xs">
+              <div className="size-10 sm:size-11 rounded-2xl bg-purple-100 dark:bg-purple-950/40 flex items-center justify-center text-purple-700 dark:text-purple-300 shrink-0 shadow-xs">
                 <Store className="size-5" />
               </div>
               <div>
-                <DialogTitle className="text-xl font-black text-slate-900 dark:text-foreground">
+                <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 dark:text-foreground">
                   Estoque no Balcão (PDV)
                 </DialogTitle>
                 <DialogDescription>
@@ -1784,37 +1881,37 @@ export function PaginaVendas() {
             </div>
           </DialogHeader>
 
-          <div className="space-y-4 pt-2">
+          <div className="space-y-3 pt-1">
             {/* METRICAS DO MODAL */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3.5 rounded-2xl bg-purple-50/70 border border-purple-100 dark:bg-purple-950/30 dark:border-purple-900/40">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="p-2.5 sm:p-3 rounded-xl bg-purple-50/70 border border-purple-100 dark:bg-purple-950/30 dark:border-purple-900/40">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">
                   Disponíveis no Balcão
                 </span>
-                <span className="text-2xl font-black text-purple-950 dark:text-purple-100 mt-0.5 block">
+                <span className="text-xl font-black text-purple-950 dark:text-purple-100 mt-0.5 block">
                   {totalPecasEstoqueRevendedor} un
                 </span>
-                <span className="text-[11px] text-purple-600/80">Prontos para venda imediata</span>
+                <span className="text-[10px] text-purple-600/80">Prontos para venda imediata</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">
+              <div className="p-2.5 sm:p-3 rounded-xl bg-emerald-50/70 border border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 block">
                   Valor Estimado em Estoque
                 </span>
-                <span className="text-2xl font-black text-emerald-950 dark:text-emerald-100 mt-0.5 block">
+                <span className="text-xl font-black text-emerald-950 dark:text-emerald-100 mt-0.5 block">
                   {brl(valorTotalEstoqueRevendedor)}
                 </span>
-                <span className="text-[11px] text-emerald-600/80">Preço final de balcão</span>
+                <span className="text-[10px] text-emerald-600/80">Preço final de balcão</span>
               </div>
 
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 dark:bg-slate-900/40 dark:border-slate-800">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
+              <div className="p-2.5 sm:p-3 rounded-xl bg-slate-50 border border-slate-200/80 dark:bg-slate-900/40 dark:border-slate-800">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 block">
                   Variedade de Itens
                 </span>
-                <span className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-0.5 block">
+                <span className="text-xl font-black text-slate-900 dark:text-slate-100 mt-0.5 block">
                   {estoqueConsignadoRevendedor.length} tipos
                 </span>
-                <span className="text-[11px] text-slate-500">Sabores e produtos</span>
+                <span className="text-[10px] text-slate-500">Sabores e produtos</span>
               </div>
             </div>
 
@@ -1825,14 +1922,14 @@ export function PaginaVendas() {
                 placeholder="Filtrar por nome do produto..."
                 value={buscaEstoqueModal}
                 onChange={(e) => setBuscaEstoqueModal(e.target.value)}
-                className="pl-10 rounded-xl h-10 border-slate-200"
+                className="pl-9 rounded-xl h-9 text-xs border-slate-200"
               />
             </div>
 
-            {/* LISTA / GRID DE PRODUTOS */}
+            {/* LISTA / GRID DE PRODUTOS COMPACTA */}
             {produtosEstoqueModal.length === 0 ? (
-              <div className="p-10 text-center bg-slate-50 rounded-2xl border border-slate-200/80 text-slate-500">
-                <Package className="size-10 mx-auto text-slate-300 mb-2" />
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200/80 text-slate-500">
+                <Package className="size-8 mx-auto text-slate-300 mb-2" />
                 <p className="font-bold text-sm text-slate-700">Nenhum produto encontrado</p>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {buscaEstoqueModal
@@ -1841,7 +1938,7 @@ export function PaginaVendas() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[380px] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-[440px] overflow-y-auto pr-1">
                 {produtosEstoqueModal.map((item) => {
                   const percVendido =
                     item.total_entregue > 0
@@ -1851,20 +1948,20 @@ export function PaginaVendas() {
                   return (
                     <div
                       key={item.produto_id}
-                      className="p-4 bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 rounded-2xl shadow-xs space-y-3"
+                      className="p-3 bg-white dark:bg-card border border-slate-200/80 dark:border-border/60 rounded-xl shadow-2xs space-y-2 hover:border-slate-300 transition-colors"
                     >
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-1.5">
                         <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-sm text-slate-900 dark:text-foreground truncate">
+                          <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-foreground truncate leading-tight">
                             {item.nome_produto}
                           </h4>
-                          <span className="inline-block text-[10px] font-extrabold uppercase tracking-wider text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full mt-1">
+                          <span className="inline-block text-[9px] font-extrabold uppercase tracking-wider text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded mt-0.5">
                             {item.categoria || "Geral"}
                           </span>
                         </div>
                         <span
                           className={cn(
-                            "inline-block px-2.5 py-1 rounded-full text-xs font-black shrink-0",
+                            "inline-block px-2 py-0.5 rounded-full text-[11px] font-black shrink-0",
                             item.saldo_atual <= 0
                               ? "bg-rose-100 text-rose-700"
                               : item.saldo_atual <= item.minimo_alerta
@@ -1877,16 +1974,16 @@ export function PaginaVendas() {
                       </div>
 
                       {/* DETALHES DE PREÇO E VALOR */}
-                      <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 dark:bg-slate-900/30 p-2.5 rounded-xl">
+                      <div className="flex items-center justify-between text-xs bg-slate-50 dark:bg-slate-900/30 px-2 py-1.5 rounded-lg">
                         <div>
-                          <span className="text-[10px] text-slate-500 block">Preço unitário:</span>
-                          <span className="font-bold text-slate-800 dark:text-foreground">
+                          <span className="text-[9px] text-slate-400 block leading-none">Preço unitário:</span>
+                          <span className="font-bold text-slate-800 dark:text-foreground text-[11px]">
                             {brl(item.preco_unitario)}
                           </span>
                         </div>
                         <div className="text-right">
-                          <span className="text-[10px] text-slate-500 block">Subtotal em balcão:</span>
-                          <span className="font-bold text-purple-700 dark:text-purple-400">
+                          <span className="text-[9px] text-slate-400 block leading-none">Subtotal em balcão:</span>
+                          <span className="font-bold text-purple-700 dark:text-purple-400 text-[11px]">
                             {brl(item.saldo_atual * item.preco_unitario)}
                           </span>
                         </div>
@@ -1894,7 +1991,7 @@ export function PaginaVendas() {
 
                       {/* BARRA DE PROGRESSO ENTREGUE VS VENDIDO */}
                       <div className="space-y-1">
-                        <div className="flex justify-between text-[11px] text-slate-500 font-medium">
+                        <div className="flex justify-between text-[10px] text-slate-500 font-medium leading-none">
                           <span>
                             Entregue: <strong>{item.total_entregue} un</strong>
                           </span>
@@ -1902,7 +1999,7 @@ export function PaginaVendas() {
                             Vendido: <strong>{item.total_vendido} un</strong> ({percVendido}%)
                           </span>
                         </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
                           <div
                             className="bg-purple-600 h-full rounded-full transition-all"
                             style={{ width: `${percVendido}%` }}
