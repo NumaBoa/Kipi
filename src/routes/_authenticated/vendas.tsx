@@ -1172,11 +1172,7 @@ export function PaginaVendas() {
                         <SelectItem value="avulso">🛍️ Venda Balcão / Cliente Rápido</SelectItem>
                         {ehRevendedor ? (
                           clientesDoRevendedor.map((c) => {
-                            const rotuloExtra = c.tag?.trim()
-                              ? `(${c.tag.trim()})`
-                              : c.telefone
-                              ? `${formatarTelefone(c.telefone)}`
-                              : "";
+                            const rotuloExtra = c.tag?.trim() ? `(${c.tag.trim()})` : "";
                             return (
                               <SelectItem key={c.id} value={c.id}>
                                 👤 {c.nome} {rotuloExtra}
@@ -1188,11 +1184,7 @@ export function PaginaVendas() {
                             const revNome = c.revendedora_id
                               ? revendedoras.find((r) => r.id === c.revendedora_id)?.nome
                               : null;
-                            const rotuloExtra = c.tag?.trim()
-                              ? `(${c.tag.trim()})`
-                              : c.telefone
-                              ? `${formatarTelefone(c.telefone)}`
-                              : "";
+                            const rotuloExtra = c.tag?.trim() ? `(${c.tag.trim()})` : "";
                             return (
                               <SelectItem key={c.id} value={c.id}>
                                 👤 {c.nome} {rotuloExtra}
