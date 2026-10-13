@@ -1237,26 +1237,35 @@ export function PaginaVendas() {
               const temSaldo = Number(v.saldo_na_entrega || 0) > 0;
               const dataFormatada = new Date(v.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
               const entregaFormatada = v.data_entrega_prometida ? new Date(v.data_entrega_prometida).toLocaleDateString("pt-BR") : null;
+              const cli = clientes.find((c) => c.id === v.cliente_id);
+              const tagCliente = cli?.tag?.trim();
+              const nomeRevendedor = v.revendedoras?.nome || (v.revendedora_id ? revendedoras.find((r) => r.id === v.revendedora_id)?.nome : null);
 
               return (
                 <div key={v.id} className="p-4 sm:p-5 hover:bg-slate-50/80 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1.5 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* NOME DO CLIENTE */}
                       <span className="font-bold text-slate-900 text-base">
-                        {v.clientes?.nome || "Venda Balcão / Avulsa"}
+                        {v.clientes?.nome || cli?.nome || "Venda Balcão / Avulsa"}
                       </span>
-                      {eEncomenda ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
-                          <Calendar className="size-3" /> Sob Encomenda
+
+                      {/* 1. TAG DO CLIENTE */}
+                      {tagCliente && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                          🏷️ {tagCliente}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                          <Package className="size-3" /> Pronta-Entrega
+                      )}
+
+                      {/* 3. INDICA APENAS SE FOR ENCOMENDA, COM DATA INTEGRADA (NÃO EXIBE PRONTA-ENTREGA) */}
+                      {eEncomenda && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 border border-purple-200">
+                          <Calendar className="size-3" /> Encomenda{entregaFormatada ? ` · Entrega: ${entregaFormatada}` : ""}
                         </span>
                       )}
 
                       {eEncomenda && v.status_producao && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                        <span className={`text-[11px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
                           v.status_producao === "a_fazer" ? "bg-slate-100 text-slate-700" :
                           v.status_producao === "fazendo" ? "bg-amber-100 text-amber-800" :
                           v.status_producao === "pronto_retirada" ? "bg-emerald-100 text-emerald-800" :
@@ -1268,45 +1277,63 @@ export function PaginaVendas() {
                         </span>
                       )}
 
+                      {/* 2. STATUS DE PAGAMENTO COM FORMA INTEGRADA (EVITA CAMPO REDUNDANTE) */}
                       {temSaldo ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                          <AlertCircle className="size-3" /> A receber: {brl(v.saldo_na_entrega || 0)}
-                        </span>
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                            <AlertCircle className="size-3" /> A receber: {brl(v.saldo_na_entrega || 0)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => abrirEditarPagamento(v)}
+                            className="text-slate-400 hover:text-slate-700 p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                            title="Editar pagamento / recebimento"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+                        </div>
+                      ) : v.pagamento === "pendente" || v.status === "pendente" ? (
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                            <Clock className="size-3" /> Pagamento Pendente
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => abrirEditarPagamento(v)}
+                            className="text-slate-400 hover:text-slate-700 p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                            title="Registrar pagamento"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+                        </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                          <CheckCircle2 className="size-3" /> Pago
-                        </span>
+                        <div className="inline-flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                            <CheckCircle2 className="size-3" /> Pago ({(v.pagamento || "pix").toUpperCase()})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => abrirEditarPagamento(v)}
+                            className="text-slate-400 hover:text-slate-700 p-0.5 rounded hover:bg-slate-100 cursor-pointer"
+                            title="Alterar forma de pagamento"
+                          >
+                            <Pencil className="size-3" />
+                          </button>
+                        </div>
                       )}
                     </div>
 
-                    <div className="text-sm text-slate-600 flex flex-wrap items-center gap-x-4 gap-y-1">
+                    <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span>{dataFormatada}</span>
-                      {entregaFormatada && (
-                        <span className="font-semibold text-purple-900 bg-purple-50 px-2 py-0.5 rounded">
-                          🗓️ Entrega prevista: {entregaFormatada}
+                      {/* 4. TAG ENXUTA DE REVENDEDOR */}
+                      {(v.canal === "revendedora" || v.revendedora_id) && (
+                        <span className="text-[11px] font-bold text-indigo-900 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                          🏪 Revendedor: {nomeRevendedor || "Revendedor"}
                         </span>
                       )}
-                      <span className="inline-flex items-center gap-1.5">
-                        Pagamento:{" "}
-                        {v.pagamento === "pendente" ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                            <Clock className="size-3" /> Pendente
-                          </span>
-                        ) : (
-                          <strong className="uppercase">{v.pagamento}</strong>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => abrirEditarPagamento(v)}
-                          className="text-xs text-brand-primary hover:underline font-semibold ml-1 inline-flex items-center gap-0.5 cursor-pointer"
-                          title="Alterar forma de pagamento realizada"
-                        >
-                          <Pencil className="size-3" /> Editar
-                        </button>
-                      </span>
-                      {v.canal === "revendedora" && (
-                        <span className="text-indigo-800 font-semibold bg-indigo-50 px-2 py-0.5 rounded">
-                          🏪 {v.revendedoras?.nome || "Revendedor"} · {v.tipo_pedido === "sob_encomenda" ? "📅 Encomenda" : "🛍️ Pronta-Entrega (Consignado)"}
+                      {temSaldo && Number(v.valor_sinal_pago || 0) > 0 && (
+                        <span className="text-[11px] text-amber-800 font-medium">
+                          (Sinal recebido: {brl(v.valor_sinal_pago || 0)})
                         </span>
                       )}
                     </div>
