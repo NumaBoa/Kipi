@@ -266,16 +266,56 @@ export const useProdutos = () => useQuery({
 export const useClientes = () => useQuery({
   queryKey: [...chaves.clientes, obterEmpresaAtivaId()],
   queryFn: async () => {
+    const dadosLocais = ler().clientes || [];
     if (isSupabaseConfigured) {
-      const empId = obterEmpresaAtivaId();
-      const { data, error } = await supabase
-        .from("clientes")
-        .select("*")
-        .or(`empresa_id.eq.${empId},empresa_id.is.null`);
-      if (error) throw error;
-      return (data || []) as Cliente[];
+      try {
+        const empId = obterEmpresaAtivaId();
+        const { data, error } = await supabase
+          .from("clientes")
+          .select("*")
+          .or(`empresa_id.eq.${empId},empresa_id.is.null`);
+        if (!error && data) {
+          const map = new Map<string, Cliente>();
+          dadosLocais.forEach((c) => map.set(c.id, c));
+          data.forEach((sc: any) => {
+            const local = map.get(sc.id);
+            let tagFinal = (sc.tag && typeof sc.tag === "string" && sc.tag.trim())
+              ? sc.tag.trim()
+              : (local?.tag && typeof local.tag === "string" && local.tag.trim())
+              ? local.tag.trim()
+              : null;
+
+            let obsFinal = sc.observacoes ?? local?.observacoes ?? null;
+            if (obsFinal && typeof obsFinal === "string" && obsFinal.includes("[TAG:")) {
+              const match = obsFinal.match(/\[TAG:\s*([^\]]+)\]/);
+              if (match?.[1]) {
+                if (!tagFinal) tagFinal = match[1].trim();
+                obsFinal = obsFinal.replace(/\[TAG:[^\]]*\]/g, "").trim() || null;
+              }
+            }
+
+            map.set(sc.id, {
+              ...sc,
+              tag: tagFinal,
+              observacoes: obsFinal,
+              rua: sc.rua ?? local?.rua ?? null,
+              numero: sc.numero ?? local?.numero ?? null,
+              bairro: sc.bairro ?? local?.bairro ?? null,
+              complemento: sc.complemento ?? local?.complemento ?? null,
+              revendedora_id: sc.revendedora_id ?? local?.revendedora_id ?? null,
+            });
+          });
+          const lista = Array.from(map.values());
+          const d = ler();
+          d.clientes = lista;
+          gravar(d);
+          return lista;
+        }
+      } catch (err) {
+        console.warn("Supabase clientes aviso:", err);
+      }
     }
-    return ler().clientes;
+    return dadosLocais;
   }
 });
 
@@ -830,6 +870,14 @@ export const useSalvarCliente = () => {
       // 2. Sincroniza com Supabase sanitizando os campos da tabela clientes
       if (isSupabaseConfigured) {
         try {
+          let obsComTag = novo.observacoes || "";
+          if (novo.tag) {
+            const limpa = obsComTag.replace(/\[TAG:[^\]]*\]/g, "").trim();
+            obsComTag = limpa ? `[TAG:${novo.tag}] ${limpa}` : `[TAG:${novo.tag}]`;
+          } else {
+            obsComTag = obsComTag.replace(/\[TAG:[^\]]*\]/g, "").trim();
+          }
+
           const payloadSupabase = {
             id: novo.id,
             nome: novo.nome,
@@ -839,7 +887,7 @@ export const useSalvarCliente = () => {
             numero: novo.numero,
             bairro: novo.bairro,
             complemento: novo.complemento,
-            observacoes: novo.observacoes,
+            observacoes: obsComTag || null,
             tipo_contato: novo.tipo_contato,
             revendedora_id: novo.revendedora_id,
             empresa_id: empId,
