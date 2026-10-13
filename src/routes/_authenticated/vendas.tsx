@@ -23,6 +23,7 @@ import {
   Package,
   Search,
   Trophy,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -620,6 +621,86 @@ export function PaginaVendas() {
     toast.success("Resumo do pedido copiado! Pronto para colar no WhatsApp.");
   };
 
+  const copiarRelatorioVendasWhatsApp = () => {
+    if (!ehRevendedor || !revendedorLogado) {
+      toast.error("Disponível para o ponto de revenda conectado.");
+      return;
+    }
+
+    const nomeRevendedor = revendedorLogado.nome;
+    const dataHoje = new Date().toLocaleDateString("pt-BR");
+    const vendasParaRelatorio = validas;
+
+    if (vendasParaRelatorio.length === 0 && estoqueConsignadoRevendedor.length === 0) {
+      toast.info("Nenhuma venda ou item em estoque registrado para este ponto.");
+      return;
+    }
+
+    const linhasVendas = vendasParaRelatorio.length === 0
+      ? ["_Nenhuma venda registrada até o momento._"]
+      : vendasParaRelatorio.map((v, idx) => {
+          const cli = clientes.find((c) => c.id === v.cliente_id);
+          const tagStr = cli?.tag?.trim() ? ` [Tag: ${cli.tag.trim()}]` : "";
+          const nomeCli = (v.clientes?.nome || cli?.nome || "Venda Balcão / Avulsa") + tagStr;
+          const temSaldo = Number(v.saldo_na_entrega || 0) > 0;
+          const statusPgto = temSaldo
+            ? `⚠️ A Receber (Saldo restante: ${brl(v.saldo_na_entrega || 0)})`
+            : v.pagamento === "pendente" || v.status === "pendente"
+            ? "⏳ Pagamento Pendente"
+            : `✅ Pago (${(v.pagamento || "pix").toUpperCase()})`;
+
+          const itens = (v.venda_itens || []).map((it) => {
+            const nomeProd = it.nome_produto || produtos.find((p) => p.id === it.produto_id)?.nome || "Produto";
+            return `   • ${it.quantidade}x ${nomeProd}`;
+          }).join("\n");
+
+          const obsTexto = v.observacoes ? `\n   📝 Obs: "${v.observacoes}"` : "";
+
+          return [
+            `${idx + 1}. *${nomeCli}*`,
+            itens || "   • (Itens não especificados)",
+            `   💰 Total: *${brl(v.total)}* | ${statusPgto}${obsTexto}`,
+          ].join("\n");
+        });
+
+    const linhasEstoque = estoqueConsignadoRevendedor.length === 0
+      ? ["_Nenhum produto em estoque consignado registrado._"]
+      : estoqueConsignadoRevendedor.map((item) => {
+          const statusDesc = item.saldo_atual === 0 ? "🔴 Esgotado" : item.saldo_atual <= 2 ? "🟡 Poucas unidades" : "🟢 Em estoque";
+          return `• ${item.nome_produto}: *${item.saldo_atual} un* (${statusDesc})`;
+        });
+
+    const comissaoRegra = revendedorLogado.tipo_comissao === "valor_fixo"
+      ? `${brl(revendedorLogado.comissao_fixa || 0)} por peça vendida`
+      : `${revendedorLogado.comissao_percentual || 0}% sobre vendas`;
+
+    const texto = [
+      `📊 *RELATÓRIO DE VENDAS & FECHAMENTO*`,
+      `🏪 *Ponto de Venda:* ${nomeRevendedor}`,
+      `📅 *Data:* ${dataHoje}`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `🛍️ *VENDAS REALIZADAS (${vendasParaRelatorio.length} pedidos):*`,
+      "",
+      linhasVendas.join("\n\n"),
+      "",
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `📦 *ESTOQUE ATUAL NO PONTO (${totalPecasEstoqueRevendedor} un em posse):*`,
+      linhasEstoque.join("\n"),
+      "",
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      `💰 *RESUMO FINANCEIRO & COMISSÃO:*`,
+      `• Total Vendido: *${brl(totalFaturado)}*`,
+      `• Minha Comissão: *${brl(comissaoTotalRevendedor)}* (${comissaoRegra})`,
+      totalAReceber > 0
+        ? `• Saldo a Receber de Clientes: *${brl(totalAReceber)}*`
+        : `• Pagamentos de Clientes: *100% Quitados* ✅`,
+      `━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+    ].join("\n");
+
+    navigator.clipboard.writeText(texto);
+    toast.success("Relatório de vendas e estoque copiado! Pronto para colar no WhatsApp.");
+  };
+
   return (
     <Estrutura
       titulo={ehRevendedor ? "Painel do Revendedor" : "Pedidos & Vendas"}
@@ -888,6 +969,18 @@ export function PaginaVendas() {
               className="rounded-xl border-slate-300 h-9 sm:h-10 text-xs sm:text-sm"
             />
           </div>
+          {ehRevendedor && (
+            <Button
+              type="button"
+              onClick={copiarRelatorioVendasWhatsApp}
+              className="rounded-xl gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0 cursor-pointer"
+              title="Copiar relatório completo de vendas, clientes, estoque e comissão para WhatsApp"
+            >
+              <Copy className="size-4" />
+              <span className="hidden sm:inline">Copiar Vendas</span>
+              <span className="sm:hidden">Copiar</span>
+            </Button>
+          )}
           <Button
             className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0"
             onClick={() => setModalNovoPedido(true)}
@@ -896,6 +989,32 @@ export function PaginaVendas() {
           </Button>
         </div>
       </div>
+
+      {/* BANNER DE FECHAMENTO PARA REVENDEDORES: COPIAR PARA WHATSAPP */}
+      {ehRevendedor && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/30 dark:via-teal-950/20 dark:to-emerald-950/30 border border-emerald-200/90 dark:border-emerald-800/40 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <MessageCircle className="size-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-emerald-950 dark:text-emerald-100">
+                Relatório de Fechamento do Ponto (WhatsApp)
+              </h4>
+              <p className="text-xs text-emerald-800/90 dark:text-emerald-300/80">
+                Copie o relatório pronto com nome do revendedor, clientes, itens vendidos, pagamentos, estoque atual e comissão.
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            onClick={copiarRelatorioVendasWhatsApp}
+            className="rounded-xl gap-2 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm px-4 h-9 text-xs sm:text-sm shrink-0 cursor-pointer"
+          >
+            <Copy className="size-4" /> Copiar para WhatsApp
+          </Button>
+        </div>
+      )}
 
       {/* LISTAGEM DE PEDIDOS */}
       <Painel className="p-0 overflow-hidden">
