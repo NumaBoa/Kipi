@@ -161,10 +161,10 @@ export function PaginaVendas() {
   const [clienteId, setClienteId] = useState<string>("avulso");
   const [canal, setCanal] = useState<"propria" | "revendedora">(ehRevendedor ? "revendedora" : "propria");
   const [revendedoraId, setRevendedoraId] = useState<string>(() => revendedorLogado?.id || revendedorVinculado?.id || "");
-  const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "cartao" | "transferencia" | "pendente">("pix");
+  const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "cartao" | "pendente">("pix");
   const [modalEditarPagamento, setModalEditarPagamento] = useState(false);
   const [vendaEditandoPagamento, setVendaEditandoPagamento] = useState<Venda | null>(null);
-  const [novoPagamentoSelecionado, setNovoPagamentoSelecionado] = useState<"pix" | "dinheiro" | "cartao" | "transferencia" | "pendente">("pix");
+  const [novoPagamentoSelecionado, setNovoPagamentoSelecionado] = useState<"pix" | "dinheiro" | "cartao" | "pendente">("pix");
   const [quitarSaldoAoMudar, setQuitarSaldoAoMudar] = useState(true);
   const [dataEntrega, setDataEntrega] = useState<string>(() => {
     const d = new Date();
@@ -462,7 +462,11 @@ export function PaginaVendas() {
   // Abertura e salvamento de edição de pagamento
   const abrirEditarPagamento = (v: Venda) => {
     setVendaEditandoPagamento(v);
-    setNovoPagamentoSelecionado(v.pagamento === "pendente" ? "pix" : v.pagamento);
+    setNovoPagamentoSelecionado(
+      v.pagamento === "pendente" || (v.pagamento as string) === "transferencia"
+        ? "pix"
+        : (v.pagamento as "pix" | "dinheiro" | "cartao")
+    );
     setQuitarSaldoAoMudar(true);
     setModalEditarPagamento(true);
   };
@@ -481,8 +485,7 @@ export function PaginaVendas() {
 
       const nomeForma = novoPagamentoSelecionado === "pix" ? "PIX" :
         novoPagamentoSelecionado === "cartao" ? "Cartão" :
-        novoPagamentoSelecionado === "dinheiro" ? "Dinheiro" :
-        novoPagamentoSelecionado === "transferencia" ? "Transferência" : "Pendente";
+        novoPagamentoSelecionado === "dinheiro" ? "Dinheiro" : "Pendente";
 
       toast.success(
         quitando
@@ -1457,7 +1460,6 @@ export function PaginaVendas() {
                       <SelectItem value="pix">PIX</SelectItem>
                       <SelectItem value="dinheiro">Dinheiro</SelectItem>
                       <SelectItem value="cartao">Cartão de Crédito/Débito</SelectItem>
-                      <SelectItem value="transferencia">Transferência</SelectItem>
                       <SelectItem value="pendente">⏳ Pendente (A Receber / Fiado)</SelectItem>
                     </SelectContent>
                   </Select>
@@ -2069,7 +2071,6 @@ export function PaginaVendas() {
                     <SelectItem value="pix">PIX</SelectItem>
                     <SelectItem value="dinheiro">Dinheiro</SelectItem>
                     <SelectItem value="cartao">Cartão de Crédito/Débito</SelectItem>
-                    <SelectItem value="transferencia">Transferência</SelectItem>
                     <SelectItem value="pendente">⏳ Manter Pendente (A Receber)</SelectItem>
                   </SelectContent>
                 </Select>
