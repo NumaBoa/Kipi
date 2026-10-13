@@ -1121,7 +1121,7 @@ export function PaginaContatos() {
                       )}
                       {item.revendedoraObj && (
                         <span className="text-slate-600 font-medium">
-                          Comissão: {item.revendedoraObj.tipo_comissao === "porcentagem" ? `${item.revendedoraObj.comissao_percentual}%` : brl(item.revendedoraObj.comissao_fixa)}
+                          Comissão: {item.revendedoraObj.tipo_comissao === "porcentagem" ? `${item.revendedoraObj.comissao_percentual}%` : brl(item.revendedoraObj.comissao_fixa || 0)}
                         </span>
                       )}
                     </div>
@@ -1316,7 +1316,7 @@ export function PaginaContatos() {
                             <span className="text-[11px] font-semibold text-purple-900 block">Comissão Acumulada</span>
                             <span className="font-black text-purple-950 text-sm block">{brl(totalComissaoRev)}</span>
                             <span className="text-[10px] text-purple-700/80 font-medium block">
-                              {rev.tipo_comissao === "porcentagem" ? `${rev.comissao_percentual}% sobre vendas` : `${brl(rev.comissao_fixa)} por unidade`}
+                              {rev.tipo_comissao === "porcentagem" ? `${rev.comissao_percentual}% sobre vendas` : `${brl(rev.comissao_fixa || 0)} por unidade`}
                             </span>
                           </div>
 
@@ -1523,7 +1523,7 @@ export function PaginaContatos() {
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-700">Tag / Identificador (Exibido nas Vendas)</Label>
+                <Label className="text-xs font-bold text-slate-700 whitespace-nowrap">Tag</Label>
                 <Input
                   placeholder="Ex: Vizinha, Instagram, VIP"
                   value={formCliente.tag || ""}
@@ -1882,7 +1882,7 @@ export function PaginaContatos() {
                     <span className="text-[10px] text-purple-700/80 block">
                       {parceiroAcerto.tipo_comissao === "porcentagem"
                         ? `${parceiroAcerto.comissao_percentual}% sobre vendas`
-                        : `${brl(parceiroAcerto.comissao_fixa)}/un`}
+                        : `${brl(parceiroAcerto.comissao_fixa || 0)}/un`}
                     </span>
                   </div>
                   <div>

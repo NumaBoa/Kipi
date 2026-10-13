@@ -278,7 +278,7 @@ export function obterEmpresaAtivaId(): string {
     return sessao.empresaAtivaId;
   }
   const empresas = lerEmpresasLocais();
-  if (empresas && empresas.length > 0 && empresas[0].id) {
+  if (empresas && empresas.length > 0 && empresas[0]?.id) {
     return empresas[0].id;
   }
   return "emp_fatio";

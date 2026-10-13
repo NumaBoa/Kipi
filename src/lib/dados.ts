@@ -895,13 +895,13 @@ export const useSalvarRevendedora = () => {
 
       const comissaoPercentual = ehValorFixo
         ? null
-        : v.comissao_percentual !== null && v.comissao_percentual !== undefined && v.comissao_percentual !== ""
+        : v.comissao_percentual !== null && v.comissao_percentual !== undefined && (v.comissao_percentual as unknown) !== ""
           ? Number(v.comissao_percentual)
           : null;
 
       const comissaoFixa = !ehValorFixo
         ? null
-        : v.comissao_fixa !== null && v.comissao_fixa !== undefined && v.comissao_fixa !== ""
+        : v.comissao_fixa !== null && v.comissao_fixa !== undefined && (v.comissao_fixa as unknown) !== ""
           ? Number(v.comissao_fixa)
           : null;
 
