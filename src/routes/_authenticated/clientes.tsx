@@ -1113,7 +1113,7 @@ export function PaginaContatos() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-black text-slate-900 text-base">{item.nome}</span>
                       {tagCliente && (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border border-indigo-200/80">
                           🏷️ {tagCliente}
                         </span>
                       )}
@@ -1224,9 +1224,9 @@ export function PaginaContatos() {
 
                         {/* TAG NOS DETALHES RÁPIDOS */}
                         {tagCliente ? (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-300 text-xs font-semibold">
-                            <Tag className="size-3.5 text-amber-600 shrink-0" />
-                            <span>Tag: <strong className="font-black text-amber-950 dark:text-amber-100">{tagCliente}</strong></span>
+                          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-900 dark:text-indigo-200 border border-indigo-200/80 text-xs font-semibold">
+                            <Tag className="size-3.5 text-indigo-600 shrink-0" />
+                            <span>Tag: <strong className="font-black text-indigo-950 dark:text-indigo-100">{tagCliente}</strong></span>
                           </div>
                         ) : (
                           <button
@@ -1655,7 +1655,7 @@ export function PaginaContatos() {
                             <div>
                               <span className="text-[11px] text-slate-400 block font-medium mb-1">Tag do Cliente</span>
                               {tagCliente ? (
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 text-amber-900 border border-amber-300 font-black text-xs">
+                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-900 dark:text-indigo-200 border border-indigo-200/80 font-black text-xs">
                                   🏷️ {tagCliente}
                                 </span>
                               ) : (
