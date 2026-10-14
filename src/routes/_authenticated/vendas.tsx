@@ -153,20 +153,19 @@ export function PaginaVendas() {
   // Abrir direto via atalho de busca
   useEffect(() => {
     if (search.nova) {
-      setModalNovoPedido(true);
+      abrirNovoPedido();
     }
   }, [search.nova]);
 
-  // FORMULÁRIO DE NOVO PEDIDO
+  // FORMULÁRIO DE PEDIDO (CRIAÇÃO & EDIÇÃO COMPLETA)
+  const [vendaEmEdicao, setVendaEmEdicao] = useState<Venda | null>(null);
+  const [dataVendaEdicao, setDataVendaEdicao] = useState<string>("");
+  const [statusProducaoEdicao, setStatusProducaoEdicao] = useState<"a_fazer" | "fazendo" | "pronto_retirada" | "entregue">("a_fazer");
   const [tipoPedido, setTipoPedido] = useState<"pronta_entrega" | "sob_encomenda">("pronta_entrega");
   const [clienteId, setClienteId] = useState<string>("avulso");
   const [canal, setCanal] = useState<"propria" | "revendedora">(ehRevendedor ? "revendedora" : "propria");
   const [revendedoraId, setRevendedoraId] = useState<string>(() => revendedorLogado?.id || revendedorVinculado?.id || "");
   const [pagamento, setPagamento] = useState<"pix" | "dinheiro" | "cartao" | "pendente">("pix");
-  const [modalEditarPagamento, setModalEditarPagamento] = useState(false);
-  const [vendaEditandoPagamento, setVendaEditandoPagamento] = useState<Venda | null>(null);
-  const [novoPagamentoSelecionado, setNovoPagamentoSelecionado] = useState<"pix" | "dinheiro" | "cartao" | "pendente">("pix");
-  const [quitarSaldoAoMudar, setQuitarSaldoAoMudar] = useState(true);
   const [dataEntrega, setDataEntrega] = useState<string>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 3);
@@ -385,7 +384,7 @@ export function PaginaVendas() {
 
   // Ações de Carrinho
   const adicionarAoCarrinho = (p: Produto) => {
-    const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
+    const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega" && !vendaEmEdicao;
     if (ehRevendaPronta) {
       const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === p.id);
       const saldo = itemPdv ? itemPdv.saldo_atual : 0;
@@ -415,7 +414,7 @@ export function PaginaVendas() {
 
   const alterarQtd = (produtoId: string, delta: number) => {
     if (delta > 0) {
-      const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
+      const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega" && !vendaEmEdicao;
       if (ehRevendaPronta) {
         const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === produtoId);
         const saldo = itemPdv ? itemPdv.saldo_atual : 0;
@@ -445,6 +444,83 @@ export function PaginaVendas() {
     );
   };
 
+  const abrirNovoPedido = () => {
+    setVendaEmEdicao(null);
+    setTipoPedido("pronta_entrega");
+    setClienteId("avulso");
+    setCarrinho([]);
+    setPersonalizacao("");
+    setSinalCustomizado(false);
+    setSinalPago(0);
+    setSinalPagoTexto("0,00");
+    setPagamento("pix");
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    setDataEntrega(d.toISOString().split("T")[0] ?? "");
+    setDataVendaEdicao("");
+    setStatusProducaoEdicao("a_fazer");
+    if (!ehRevendedor) {
+      setCanal("propria");
+      setRevendedoraId("");
+    }
+    setModalNovoPedido(true);
+  };
+
+  const abrirEditarVenda = (v: Venda) => {
+    setModalSaldosPendentes(false);
+    setVendaEmEdicao(v);
+    const tipo = v.tipo_pedido === "sob_encomenda" ? "sob_encomenda" : "pronta_entrega";
+    setTipoPedido(tipo);
+    setClienteId(v.cliente_id || "avulso");
+    setCanal(v.canal || "propria");
+    setRevendedoraId(v.revendedora_id || "");
+    setDataEntrega(v.data_entrega_prometida ? v.data_entrega_prometida.slice(0, 10) : "");
+    setDataVendaEdicao(v.data ? v.data.slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setStatusProducaoEdicao(v.status_producao || "a_fazer");
+    setPersonalizacao(v.observacoes || "");
+    setPagamento(v.pagamento === "transferencia" ? "pix" : (v.pagamento || "pix"));
+
+    const sinal = Number(v.valor_sinal_pago) || 0;
+    setSinalPago(sinal);
+    setSinalPagoTexto(sinal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    setSinalCustomizado(true);
+
+    const itensCarrinho: ItemCarrinho[] = (v.venda_itens || []).map((it) => {
+      const prodExistente = produtos.find((p) => p.id === it.produto_id);
+      if (prodExistente) {
+        return {
+          produto: {
+            ...prodExistente,
+            preco: Number(it.preco_unitario) || prodExistente.preco,
+          },
+          quantidade: Number(it.quantidade) || 1,
+        };
+      }
+      return {
+        produto: {
+          id: it.produto_id || `prod_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+          nome: it.nome_produto || "Produto",
+          preco: Number(it.preco_unitario) || 0,
+          categoria: "Geral",
+          estoque: 0,
+          ativo: true,
+        },
+        quantidade: Number(it.quantidade) || 1,
+      };
+    });
+    setCarrinho(itensCarrinho);
+    setModalNovoPedido(true);
+  };
+
+  // Redireciona cliques de quitação / edição de pagamento para o modal completo de pedido
+  const abrirEditarPagamento = (v: Venda) => {
+    abrirEditarVenda(v);
+  };
+
+  const quitarSaldo = (v: Venda) => {
+    abrirEditarVenda(v);
+  };
+
   const salvarPedido = async () => {
     if (carrinho.length === 0) {
       toast.error("Adicione ao menos um produto ou serviço ao pedido.");
@@ -465,7 +541,7 @@ export function PaginaVendas() {
     }
 
     const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
-    if (ehRevendaPronta) {
+    if (ehRevendaPronta && !vendaEmEdicao) {
       for (const it of carrinho) {
         const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === it.produto.id);
         const saldo = itemPdv ? itemPdv.saldo_atual : 0;
@@ -483,6 +559,41 @@ export function PaginaVendas() {
       const saldoFinal = ehPendente ? totalPedido : saldoNaEntrega;
       const sinalFinal = ehPendente ? 0 : (tipoPedido === "sob_encomenda" ? Number(sinalPago) || 0 : totalPedido);
 
+      if (vendaEmEdicao) {
+        // MODO EDIÇÃO: Atualiza a venda existente com todos os dados
+        await atualizarVenda.mutateAsync({
+          id: vendaEmEdicao.id,
+          cliente_id: clienteId === "avulso" ? null : clienteId,
+          canal,
+          revendedora_id: canal === "revendedora" && revendedoraId ? revendedoraId : null,
+          data: dataVendaEdicao ? new Date(`${dataVendaEdicao}T12:00:00Z`).toISOString() : vendaEmEdicao.data,
+          tipo_pedido: tipoPedido,
+          data_entrega_prometida: tipoPedido === "sob_encomenda" && dataEntrega ? new Date(`${dataEntrega}T12:00:00Z`).toISOString() : null,
+          status_producao: tipoPedido === "sob_encomenda" ? (statusProducaoEdicao || vendaEmEdicao.status_producao || "a_fazer") : undefined,
+          pagamento,
+          status: (saldoFinal > 0 || ehPendente) ? "pendente" : "pago",
+          valor_sinal_pago: sinalFinal,
+          saldo_na_entrega: saldoFinal,
+          total: totalPedido,
+          custo_total: custoTotalEstimado > 0 ? custoTotalEstimado : vendaEmEdicao.custo_total,
+          observacoes: personalizacao.trim() || null,
+          venda_itens: carrinho.map((it) => ({
+            id: `vitem_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            venda_id: vendaEmEdicao.id,
+            produto_id: it.produto.id,
+            nome_produto: it.produto.nome,
+            quantidade: it.quantidade,
+            preco_unitario: it.produto.preco,
+          })),
+        });
+
+        toast.success("Pedido atualizado com sucesso!");
+        setModalNovoPedido(false);
+        setVendaEmEdicao(null);
+        return;
+      }
+
+      // MODO CRIAÇÃO: Registra novo pedido
       await registrarVenda.mutateAsync({
         itens: carrinho,
         clienteId: clienteId === "avulso" ? null : clienteId,
@@ -520,53 +631,8 @@ export function PaginaVendas() {
         setRevendedoraId("");
       }
     } catch {
-      toast.error("Erro ao registrar pedido.");
+      toast.error("Erro ao salvar pedido.");
     }
-  };
-
-  // Abertura e salvamento de edição de pagamento
-  const abrirEditarPagamento = (v: Venda) => {
-    setVendaEditandoPagamento(v);
-    setNovoPagamentoSelecionado(
-      v.pagamento === "pendente" || (v.pagamento as string) === "transferencia"
-        ? "pix"
-        : (v.pagamento as "pix" | "dinheiro" | "cartao")
-    );
-    setQuitarSaldoAoMudar(true);
-    setModalEditarPagamento(true);
-  };
-
-  const handleSalvarEdicaoPagamento = async () => {
-    if (!vendaEditandoPagamento) return;
-    try {
-      const quitando = novoPagamentoSelecionado !== "pendente" && quitarSaldoAoMudar;
-      await atualizarVenda.mutateAsync({
-        ...vendaEditandoPagamento,
-        pagamento: novoPagamentoSelecionado,
-        saldo_na_entrega: quitando ? 0 : (novoPagamentoSelecionado === "pendente" ? vendaEditandoPagamento.total : vendaEditandoPagamento.saldo_na_entrega),
-        valor_sinal_pago: quitando ? vendaEditandoPagamento.total : (novoPagamentoSelecionado === "pendente" ? 0 : vendaEditandoPagamento.valor_sinal_pago),
-        status: quitando ? "pago" : (novoPagamentoSelecionado === "pendente" || (vendaEditandoPagamento.saldo_na_entrega && vendaEditandoPagamento.saldo_na_entrega > 0) ? "pendente" : "pago"),
-      });
-
-      const nomeForma = novoPagamentoSelecionado === "pix" ? "PIX" :
-        novoPagamentoSelecionado === "cartao" ? "Cartão" :
-        novoPagamentoSelecionado === "dinheiro" ? "Dinheiro" : "Pendente";
-
-      toast.success(
-        quitando
-          ? `Pagamento quitado com sucesso via ${nomeForma}!`
-          : `Forma de pagamento atualizada para ${nomeForma}!`
-      );
-      setModalEditarPagamento(false);
-      setVendaEditandoPagamento(null);
-    } catch {
-      toast.error("Erro ao atualizar pagamento.");
-    }
-  };
-
-  // Quitar saldo devedor de um pedido abre a escolha da forma realizada
-  const quitarSaldo = (v: Venda) => {
-    abrirEditarPagamento(v);
   };
 
   // Filtragem de pedidos
@@ -742,6 +808,13 @@ export function PaginaVendas() {
     return vendasDoPeriodo.reduce((acc, v) => acc + calcularComissaoRevendedora(v, revendedorLogado), 0);
   }, [vendasDoPeriodo, revendedorLogado]);
 
+  const totalItensPeriodo = useMemo(() => {
+    return vendasDoPeriodo.reduce((acc, v) => {
+      const somaVenda = (v.venda_itens || []).reduce((s, it) => s + (Number(it.quantidade) || 0), 0);
+      return acc + (somaVenda > 0 ? somaVenda : 1);
+    }, 0);
+  }, [vendasDoPeriodo]);
+
   // Agrupamento de vendas por dia (para separar quando houver mais de um dia)
   const vendasAgrupadasPorDia = useMemo(() => {
     const grupos: Record<string, { data: Date; vendas: Venda[] }> = {};
@@ -809,6 +882,11 @@ export function PaginaVendas() {
           });
           const dataFormatada = dataExtensa.charAt(0).toUpperCase() + dataExtensa.slice(1);
           const totalDia = grupo.vendas.reduce((acc, v) => acc + Number(v.total || 0), 0);
+          const totalItensDia = grupo.vendas.reduce((acc, v) => {
+            const somaVenda = (v.venda_itens || []).reduce((s, it) => s + (Number(it.quantidade) || 0), 0);
+            return acc + (somaVenda > 0 ? somaVenda : 1);
+          }, 0);
+          const rotuloItens = totalItensDia === 1 ? "1 produto vendido" : `${totalItensDia} produtos vendidos`;
 
           const linhasDoDia = grupo.vendas
             .map((v, idx) => {
@@ -841,7 +919,7 @@ export function PaginaVendas() {
             .join("\n\n");
 
           return [
-            `📅 *${dataFormatada}* — ${grupo.vendas.length} ${grupo.vendas.length === 1 ? "venda" : "vendas"} (Total: ${brl(totalDia)})`,
+            `📅 *${dataFormatada}* — ${rotuloItens} (Total: ${brl(totalDia)})`,
             linhasDoDia,
           ].join("\n");
         })
@@ -856,6 +934,12 @@ export function PaginaVendas() {
         weekday: "long",
       });
       const dataFormatada = dataExtensa.charAt(0).toUpperCase() + dataExtensa.slice(1);
+      const totalDia = grupo.vendas.reduce((acc, v) => acc + Number(v.total || 0), 0);
+      const totalItensDia = grupo.vendas.reduce((acc, v) => {
+        const somaVenda = (v.venda_itens || []).reduce((s, it) => s + (Number(it.quantidade) || 0), 0);
+        return acc + (somaVenda > 0 ? somaVenda : 1);
+      }, 0);
+      const rotuloItens = totalItensDia === 1 ? "1 produto vendido" : `${totalItensDia} produtos vendidos`;
 
       const linhas = grupo.vendas
         .map((v, idx) => {
@@ -887,7 +971,7 @@ export function PaginaVendas() {
         .join("\n\n");
 
       secaoVendas = [
-        `📅 *${dataFormatada}*`,
+        `📅 *${dataFormatada}* — ${rotuloItens} (Total: ${brl(totalDia)})`,
         linhas,
       ].join("\n");
     }
@@ -1213,7 +1297,7 @@ export function PaginaVendas() {
           )}
           <Button
             className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0"
-            onClick={() => setModalNovoPedido(true)}
+            onClick={abrirNovoPedido}
           >
             <Plus className="size-4" /> Novo Pedido
           </Button>
@@ -1285,9 +1369,9 @@ export function PaginaVendas() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => abrirEditarPagamento(v)}
+                            onClick={() => abrirEditarVenda(v)}
                             className="text-slate-400 hover:text-slate-700 p-0.5 rounded hover:bg-slate-100 cursor-pointer"
-                            title="Editar pagamento / recebimento"
+                            title="Editar todos os dados do pedido"
                           >
                             <Pencil className="size-3" />
                           </button>
@@ -1299,9 +1383,9 @@ export function PaginaVendas() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => abrirEditarPagamento(v)}
+                            onClick={() => abrirEditarVenda(v)}
                             className="text-slate-400 hover:text-slate-700 p-0.5 rounded hover:bg-slate-100 cursor-pointer"
-                            title="Registrar pagamento"
+                            title="Editar todos os dados do pedido"
                           >
                             <Pencil className="size-3" />
                           </button>
@@ -1313,9 +1397,9 @@ export function PaginaVendas() {
                           </span>
                           <button
                             type="button"
-                            onClick={() => abrirEditarPagamento(v)}
+                            onClick={() => abrirEditarVenda(v)}
                             className="text-slate-400 hover:text-slate-700 p-0.5 rounded hover:bg-slate-100 cursor-pointer"
-                            title="Alterar forma de pagamento"
+                            title="Editar todos os dados do pedido"
                           >
                             <Pencil className="size-3" />
                           </button>
@@ -1374,6 +1458,15 @@ export function PaginaVendas() {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="h-8 text-xs gap-1.5 font-bold rounded-lg text-[#084463] border-[#084463]/30 hover:bg-[#084463]/10 flex-1 sm:flex-initial"
+                        onClick={() => abrirEditarVenda(v)}
+                        title="Editar todos os dados do pedido"
+                      >
+                        <Pencil className="size-3.5" /> Editar Pedido
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
                         className="h-8 text-xs gap-1 rounded-lg text-emerald-700 border-emerald-300 hover:bg-emerald-50 flex-1 sm:flex-initial"
                         onClick={() => copiarComprovanteWhatsApp(v)}
                         title="Copiar comprovante para WhatsApp"
@@ -1405,13 +1498,62 @@ export function PaginaVendas() {
       <Dialog open={modalNovoPedido} onOpenChange={setModalNovoPedido}>
         <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black text-[#084463]">Registrar Novo Pedido</DialogTitle>
+            <DialogTitle className="text-xl font-black text-[#084463]">
+              {vendaEmEdicao ? "Editar Pedido" : "Registrar Novo Pedido"}
+            </DialogTitle>
             <DialogDescription>
-              Venda pronta-entrega imediata ou encomenda sob medida com sinal e prazo.
+              {vendaEmEdicao
+                ? "Altere produtos, quantidades, modalidade, cliente, prazos e pagamento deste pedido."
+                : "Venda pronta-entrega imediata ou encomenda sob medida com sinal e prazo."}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 pt-2">
+            {/* INFORMAÇÕES EXTRAS SE FOR EDIÇÃO DE PEDIDO */}
+            {vendaEmEdicao && (
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="w-full sm:w-48">
+                    <Label className="text-xs font-bold text-slate-700">Data da Venda</Label>
+                    <Input
+                      type="date"
+                      value={dataVendaEdicao}
+                      onChange={(e) => setDataVendaEdicao(e.target.value)}
+                      className="mt-1 bg-white rounded-xl h-9 text-xs"
+                    />
+                  </div>
+
+                  {tipoPedido === "sob_encomenda" && (
+                    <div className="flex-1">
+                      <Label className="text-xs font-bold text-slate-700">Status de Produção</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 mt-1">
+                        {[
+                          { id: "a_fazer", label: "A Fazer" },
+                          { id: "fazendo", label: "Em Produção" },
+                          { id: "pronto_retirada", label: "Pronto" },
+                          { id: "entregue", label: "Entregue" },
+                        ].map((st) => (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => setStatusProducaoEdicao(st.id as any)}
+                            className={cn(
+                              "py-1.5 px-2 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center",
+                              statusProducaoEdicao === st.id
+                                ? "bg-[#084463] text-white border-[#084463] shadow-xs"
+                                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            )}
+                          >
+                            {st.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* SELETOR DE MODALIDADE */}
             <div className="grid grid-cols-2 gap-3 p-1.5 bg-slate-100 rounded-2xl">
               <button
@@ -1730,7 +1872,7 @@ export function PaginaVendas() {
                     // Saldo em estoque
                     const itemPdv = estoquePdvAtual.find((i: ItemEstoqueConsignado) => i.produto_id === p.id);
                     const saldoPdv = itemPdv ? itemPdv.saldo_atual : 0;
-                    const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega";
+                    const ehRevendaPronta = (ehRevendedor || canal === "revendedora") && tipoPedido === "pronta_entrega" && !vendaEmEdicao;
                     const esgotadoPdv = ehRevendaPronta && saldoPdv <= 0;
                     const atingiuLimitePdv = ehRevendaPronta && qtd >= saldoPdv;
                     const podeAdicionar = !esgotadoPdv && !atingiuLimitePdv;
@@ -1826,18 +1968,63 @@ export function PaginaVendas() {
                 </div>
               )}
 
-              {/* RESUMO DO CARRINHO */}
+              {/* ITENS NO CARRINHO / PEDIDO */}
               {carrinho.length > 0 && (
-                <div className="p-3 bg-purple-50/60 border border-purple-200/80 rounded-2xl flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <ShoppingCart className="size-4 text-purple-700" />
-                    <span className="font-bold text-purple-950">
-                      Carrinho: {carrinho.reduce((s, i) => s + i.quantidade, 0)} itens selecionados
+                <div className="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-purple-950 pb-1 border-b border-purple-200/60">
+                    <span className="flex items-center gap-1.5">
+                      <ShoppingCart className="size-4 text-purple-700" />
+                      Itens do Pedido ({carrinho.reduce((s, i) => s + i.quantidade, 0)})
+                    </span>
+                    <span className="text-sm font-black text-purple-950">
+                      Subtotal: {brl(totalPedido)}
                     </span>
                   </div>
-                  <span className="font-black text-sm text-purple-950">
-                    Subtotal: {brl(totalPedido)}
-                  </span>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {carrinho.map((item) => (
+                      <div
+                        key={item.produto.id}
+                        className="flex items-center justify-between bg-white border border-purple-200/60 rounded-xl px-2.5 py-1.5 text-xs shadow-2xs"
+                      >
+                        <div className="min-w-0 flex-1 pr-2">
+                          <p className="font-bold text-slate-800 truncate">{item.produto.nome}</p>
+                          <span className="text-[11px] font-semibold text-[#6366F1]">
+                            {brl(item.produto.preco)} un
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200">
+                            <button
+                              type="button"
+                              onClick={() => alterarQtd(item.produto.id, -1)}
+                              className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <span className="w-5 text-center font-bold text-xs">{item.quantidade}</span>
+                            <button
+                              type="button"
+                              onClick={() => alterarQtd(item.produto.id, 1)}
+                              className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className="font-extrabold text-xs text-slate-900 w-16 text-right">
+                            {brl(item.quantidade * item.produto.preco)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => alterarQtd(item.produto.id, -item.quantidade)}
+                            className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                            title="Remover produto do pedido"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -1928,14 +2115,28 @@ export function PaginaVendas() {
           </div>
 
           <DialogFooter className="mt-4 gap-2">
-            <Button variant="outline" className="rounded-xl" onClick={() => setModalNovoPedido(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => {
+                setModalNovoPedido(false);
+                setVendaEmEdicao(null);
+              }}
+            >
               Cancelar
             </Button>
             <Button
+              type="button"
               className="rounded-xl font-bold bg-[#084463] text-white hover:bg-[#06344C] px-6"
               onClick={salvarPedido}
+              disabled={registrarVenda.isPending || atualizarVenda.isPending}
             >
-              Salvar Pedido
+              {registrarVenda.isPending || atualizarVenda.isPending
+                ? "Salvando..."
+                : vendaEmEdicao
+                ? "Salvar Alterações do Pedido"
+                : "Salvar Pedido"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2206,7 +2407,7 @@ export function PaginaVendas() {
               className="rounded-xl font-bold bg-[#084463] text-white hover:bg-[#06344C] gap-1.5"
               onClick={() => {
                 setModalEstoquePdv(false);
-                setModalNovoPedido(true);
+                abrirNovoPedido();
               }}
             >
               <Plus className="size-4" /> Realizar Venda
@@ -2403,122 +2604,6 @@ export function PaginaVendas() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: EDITAR FORMA DE PAGAMENTO / DAR BAIXA */}
-      <Dialog open={modalEditarPagamento} onOpenChange={setModalEditarPagamento}>
-        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-4 sm:p-6">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="size-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0 shadow-xs">
-                <Wallet className="size-5" />
-              </div>
-              <div>
-                <DialogTitle className="text-xl font-black text-slate-900 dark:text-foreground">
-                  {vendaEditandoPagamento?.pagamento === "pendente" || (vendaEditandoPagamento?.saldo_na_entrega && vendaEditandoPagamento.saldo_na_entrega > 0)
-                    ? "Receber Pagamento / Dar Baixa"
-                    : "Editar Forma de Pagamento"}
-                </DialogTitle>
-                <DialogDescription>
-                  {vendaEditandoPagamento?.clientes?.nome
-                    ? `Cliente: ${vendaEditandoPagamento.clientes.nome}`
-                    : "Venda avulsa no balcão"}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {vendaEditandoPagamento && (
-            <div className="space-y-4 pt-2">
-              {/* RESUMO DO PEDIDO */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-                <div className="flex justify-between items-center text-xs text-slate-500">
-                  <span>Total da Venda:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200 text-sm">{brl(vendaEditandoPagamento.total)}</span>
-                </div>
-                {Number(vendaEditandoPagamento.saldo_na_entrega || 0) > 0 && (
-                  <div className="flex justify-between items-center text-xs text-amber-700 font-semibold bg-amber-50 dark:bg-amber-950/40 p-2 rounded-xl border border-amber-200/80">
-                    <span className="flex items-center gap-1">
-                      <AlertCircle className="size-3.5" /> Saldo em aberto:
-                    </span>
-                    <span className="font-extrabold text-sm">{brl(vendaEditandoPagamento.saldo_na_entrega || 0)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center text-xs text-slate-500 pt-1 border-t border-slate-200/60">
-                  <span>Forma registrada atualmente:</span>
-                  <span className="font-bold uppercase text-slate-700 dark:text-slate-300">
-                    {vendaEditandoPagamento.pagamento === "pendente" ? "⏳ Pendente" : vendaEditandoPagamento.pagamento}
-                  </span>
-                </div>
-              </div>
-
-              {/* SELEÇÃO DA NOVA FORMA DE PAGAMENTO */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Forma de Pagamento Realizada / Destino
-                </Label>
-                <Select
-                  value={novoPagamentoSelecionado}
-                  onValueChange={(val: any) => setNovoPagamentoSelecionado(val)}
-                >
-                  <SelectTrigger className="rounded-xl bg-white dark:bg-card h-11">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pix">PIX</SelectItem>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="cartao">Cartão de Crédito/Débito</SelectItem>
-                    <SelectItem value="pendente">⏳ Manter Pendente (A Receber)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* OPÇÃO DE DAR BAIXA / QUITAR SALDO */}
-              {novoPagamentoSelecionado !== "pendente" && (
-                <div className="p-3 bg-emerald-50/70 border border-emerald-200 rounded-xl space-y-2">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={quitarSaldoAoMudar}
-                      onChange={(e) => setQuitarSaldoAoMudar(e.target.checked)}
-                      className="mt-0.5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
-                    />
-                    <div className="text-xs">
-                      <span className="font-bold text-emerald-900 block">
-                        Dar baixa total e marcar como recebido
-                      </span>
-                      <span className="text-emerald-700">
-                        Zera o saldo a receber deste pedido e define o status como pago.
-                      </span>
-                    </div>
-                  </label>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="mt-4 flex flex-col sm:flex-row gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl w-full sm:w-auto"
-              onClick={() => {
-                setModalEditarPagamento(false);
-                setVendaEditandoPagamento(null);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              className="rounded-xl font-bold bg-[#084463] text-white hover:bg-[#06344C] w-full sm:w-auto gap-1.5"
-              onClick={handleSalvarEdicaoPagamento}
-              disabled={atualizarVenda.isPending}
-            >
-              <CheckCircle2 className="size-4" />
-              {atualizarVenda.isPending ? "Salvando..." : "Confirmar e Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* MODAL: SELECIONAR PERÍODO PARA COPIAR VENDAS (WHATSAPP) */}
       <Dialog open={modalCopiarVendas} onOpenChange={setModalCopiarVendas}>
@@ -2599,7 +2684,7 @@ export function PaginaVendas() {
               <div className="flex items-center justify-between text-xs font-extrabold text-emerald-950 dark:text-emerald-100">
                 <span>Resumo Selecionado:</span>
                 <span className="bg-emerald-200/70 dark:bg-emerald-900/50 text-emerald-900 dark:text-emerald-200 px-2 py-0.5 rounded-full text-[10px]">
-                  {vendasDoPeriodo.length} {vendasDoPeriodo.length === 1 ? "venda" : "vendas"}
+                  {vendasDoPeriodo.length} {vendasDoPeriodo.length === 1 ? "pedido" : "pedidos"} ({totalItensPeriodo} {totalItensPeriodo === 1 ? "produto" : "produtos"})
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-emerald-200/60 dark:border-emerald-900/40">
