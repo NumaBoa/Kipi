@@ -159,7 +159,6 @@ export function PaginaVendas() {
 
   // FORMULÁRIO DE PEDIDO (CRIAÇÃO & EDIÇÃO COMPLETA)
   const [vendaEmEdicao, setVendaEmEdicao] = useState<Venda | null>(null);
-  const [dataVendaEdicao, setDataVendaEdicao] = useState<string>("");
   const [statusProducaoEdicao, setStatusProducaoEdicao] = useState<"a_fazer" | "fazendo" | "pronto_retirada" | "entregue">("a_fazer");
   const [tipoPedido, setTipoPedido] = useState<"pronta_entrega" | "sob_encomenda">("pronta_entrega");
   const [clienteId, setClienteId] = useState<string>("avulso");
@@ -457,7 +456,6 @@ export function PaginaVendas() {
     const d = new Date();
     d.setDate(d.getDate() + 3);
     setDataEntrega(d.toISOString().split("T")[0] ?? "");
-    setDataVendaEdicao("");
     setStatusProducaoEdicao("a_fazer");
     if (!ehRevendedor) {
       setCanal("propria");
@@ -475,7 +473,6 @@ export function PaginaVendas() {
     setCanal(v.canal || "propria");
     setRevendedoraId(v.revendedora_id || "");
     setDataEntrega(v.data_entrega_prometida ? v.data_entrega_prometida.slice(0, 10) : "");
-    setDataVendaEdicao(v.data ? v.data.slice(0, 10) : new Date().toISOString().slice(0, 10));
     setStatusProducaoEdicao(v.status_producao || "a_fazer");
     setPersonalizacao(v.observacoes || "");
     setPagamento(v.pagamento === "transferencia" ? "pix" : (v.pagamento || "pix"));
@@ -566,7 +563,7 @@ export function PaginaVendas() {
           cliente_id: clienteId === "avulso" ? null : clienteId,
           canal,
           revendedora_id: canal === "revendedora" && revendedoraId ? revendedoraId : null,
-          data: dataVendaEdicao ? new Date(`${dataVendaEdicao}T12:00:00Z`).toISOString() : vendaEmEdicao.data,
+          data: vendaEmEdicao.data,
           tipo_pedido: tipoPedido,
           data_entrega_prometida: tipoPedido === "sob_encomenda" && dataEntrega ? new Date(`${dataEntrega}T12:00:00Z`).toISOString() : null,
           status_producao: tipoPedido === "sob_encomenda" ? (statusProducaoEdicao || vendaEmEdicao.status_producao || "a_fazer") : undefined,
@@ -1513,14 +1510,22 @@ export function PaginaVendas() {
             {vendaEmEdicao && (
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="w-full sm:w-48">
-                    <Label className="text-xs font-bold text-slate-700">Data da Venda</Label>
-                    <Input
-                      type="date"
-                      value={dataVendaEdicao}
-                      onChange={(e) => setDataVendaEdicao(e.target.value)}
-                      className="mt-1 bg-white rounded-xl h-9 text-xs"
-                    />
+                  <div className="flex items-center gap-2.5 text-xs text-slate-700 bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-2xs">
+                    <Clock className="size-4 text-slate-400 shrink-0" />
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Data de Criação</span>
+                      <strong className="text-slate-800 text-xs">
+                        {vendaEmEdicao.data
+                          ? new Date(vendaEmEdicao.data).toLocaleDateString("pt-BR", {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "—"}
+                      </strong>
+                    </div>
                   </div>
 
                   {tipoPedido === "sob_encomenda" && (
