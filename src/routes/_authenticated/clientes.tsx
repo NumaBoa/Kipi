@@ -28,6 +28,11 @@ import {
   Tag,
   ShoppingBag,
   ExternalLink,
+  Mail,
+  Calendar,
+  FileText,
+  Search,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Estrutura } from "@/components/app/estrutura";
@@ -183,6 +188,57 @@ export function PaginaContatos() {
   const [subtipoParceria, setSubtipoParceria] = useState<string>("Cerimonialista");
   const [emailRevendedor, setEmailRevendedor] = useState<string>("");
   const [senhaRevendedor, setSenhaRevendedor] = useState<string>("");
+  const [buscandoCep, setBuscandoCep] = useState<boolean>(false);
+
+  const formatarCep = (v: string) => {
+    const d = v.replace(/\D/g, "").slice(0, 8);
+    if (d.length > 5) return `${d.slice(0, 5)}-${d.slice(5)}`;
+    return d;
+  };
+
+  const formatarCpfCnpj = (v: string) => {
+    const d = v.replace(/\D/g, "");
+    if (d.length <= 11) {
+      return d
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    }
+    return d
+      .slice(0, 14)
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
+  };
+
+  const buscarCep = async (cepValor: string) => {
+    const cepLimpo = cepValor.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) return;
+    try {
+      setBuscandoCep(true);
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`);
+      const dados = await res.json();
+      if (!dados.erro) {
+        setFormCliente((prev) => ({
+          ...prev,
+          cep: formatarCep(cepLimpo),
+          rua: dados.logradouro || prev.rua || "",
+          bairro: dados.bairro || prev.bairro || "",
+          cidade: dados.localidade || prev.cidade || "",
+          estado: dados.uf || prev.estado || "",
+          complemento: dados.complemento || prev.complemento || "",
+        }));
+        toast.success(`Endereço localizado: ${dados.logradouro}, ${dados.bairro} - ${dados.localidade}/${dados.uf}`);
+      } else {
+        toast.warning("CEP não localizado. Preencha o endereço manualmente.");
+      }
+    } catch {
+      // Ignora erro de rede silenciosamente
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
 
   // MODAL DE ACERTO DE CONTAS COM REVENDEDOR
   const [modalComissao, setModalComissao] = useState(false);
@@ -208,9 +264,15 @@ export function PaginaContatos() {
       id: string;
       nome: string;
       telefone: string | null;
+      email?: string | null;
+      cpf_cnpj?: string | null;
+      aniversario?: string | null;
+      cep?: string | null;
       rua: string | null;
       numero: string | null;
       bairro: string | null;
+      cidade?: string | null;
+      estado?: string | null;
       complemento: string | null;
       observacoes: string | null;
       perfil: PerfilContato;
@@ -271,9 +333,15 @@ export function PaginaContatos() {
         id: c.id,
         nome: c.nome,
         telefone: c.telefone,
+        email: c.email || null,
+        cpf_cnpj: c.cpf_cnpj || null,
+        aniversario: c.aniversario || null,
+        cep: c.cep || null,
         rua: c.rua,
         numero: c.numero,
         bairro: c.bairro,
+        cidade: c.cidade || null,
+        estado: c.estado || null,
         complemento: c.complemento,
         observacoes: c.observacoes,
         perfil,
@@ -378,7 +446,11 @@ export function PaginaContatos() {
   const abrirModalNovo = (item?: any) => {
     if (ehRevendedor && revendedorLogado) {
       if (item?.clienteObj) {
-        setFormCliente({ ...item.clienteObj, revendedora_id: revendedorLogado.id });
+        setFormCliente({
+          ...item.clienteObj,
+          telefone: item.clienteObj.telefone ? formatarTelefone(item.clienteObj.telefone) : "",
+          revendedora_id: revendedorLogado.id,
+        });
       } else {
         setFormCliente({ tipo_contato: "cliente", revendedora_id: revendedorLogado.id });
       }
@@ -387,10 +459,13 @@ export function PaginaContatos() {
       return;
     }
     if (item?.clienteObj) {
-      setFormCliente({ ...item.clienteObj, telefone: item.clienteObj.telefone ? formatarTelefone(item.clienteObj.telefone) : "" });
+      setFormCliente({
+        ...item.clienteObj,
+        telefone: item.clienteObj.telefone ? formatarTelefone(item.clienteObj.telefone) : "",
+      });
+      const perfilAtual = item.perfil || item.clienteObj.tipo_contato || "cliente";
+      setPerfilSelecionado(perfilAtual);
       if (item.revendedoraObj) {
-        const cat = item.revendedoraObj.categoria_parceria || "revendedor";
-        setPerfilSelecionado(cat === "parceiro" ? "parceiro" : "revendedor");
         setTipoComissao(item.revendedoraObj.tipo_comissao);
         setComissaoPercentual(item.revendedoraObj.comissao_percentual ?? 15);
         setComissaoFixa(item.revendedoraObj.comissao_fixa ?? 0);
@@ -405,16 +480,18 @@ export function PaginaContatos() {
         );
         setSenhaRevendedor(user?.senha || "");
       } else {
-        setPerfilSelecionado(item.clienteObj.tipo_contato || "cliente");
         setComissaoFixaTexto("0,00");
-        setEmailRevendedor("");
+        setEmailRevendedor(item.clienteObj.email || "");
         setSenhaRevendedor("");
       }
     } else if (item?.revendedoraObj) {
       setFormCliente({
+        id: item.revendedoraObj.id,
         nome: item.revendedoraObj.nome,
         telefone: item.revendedoraObj.telefone ? formatarTelefone(item.revendedoraObj.telefone) : "",
+        email: item.revendedoraObj.email || "",
         observacoes: item.revendedoraObj.observacoes,
+        tipo_contato: item.revendedoraObj.categoria_parceria === "parceiro" ? "parceiro" : "revendedor",
       });
       const cat = item.revendedoraObj.categoria_parceria || "revendedor";
       setPerfilSelecionado(cat === "parceiro" ? "parceiro" : "revendedor");
@@ -800,6 +877,18 @@ export function PaginaContatos() {
         nome: formCliente.nome.trim(),
         tipo_contato: "cliente",
         revendedora_id: revIdFinal,
+        email: formCliente.email?.trim() || null,
+        cpf_cnpj: formCliente.cpf_cnpj?.trim() || null,
+        aniversario: formCliente.aniversario?.trim() || null,
+        cep: formCliente.cep?.trim() || null,
+        rua: formCliente.rua?.trim() || null,
+        numero: formCliente.numero?.trim() || null,
+        bairro: formCliente.bairro?.trim() || null,
+        cidade: formCliente.cidade?.trim() || null,
+        estado: formCliente.estado?.trim() || null,
+        complemento: formCliente.complemento?.trim() || null,
+        observacoes: formCliente.observacoes?.trim() || null,
+        tag: formCliente.tag?.trim() || null,
       });
 
       const revNome = revIdFinal
@@ -807,7 +896,9 @@ export function PaginaContatos() {
         : null;
 
       toast.success(
-        ehRevendedor
+        formCliente.id
+          ? `Cliente "${formCliente.nome.trim()}" atualizado com sucesso!`
+          : ehRevendedor
           ? `Cliente "${formCliente.nome.trim()}" cadastrado com sucesso!`
           : revNome
           ? `Cliente "${formCliente.nome.trim()}" salvo e vinculado a ${revNome}!`
@@ -1090,6 +1181,8 @@ export function PaginaContatos() {
                 item.rua ? `${item.rua}${item.numero ? `, nº ${item.numero}` : ""}` : (item.numero ? `Nº ${item.numero}` : ""),
                 item.complemento,
                 item.bairro,
+                item.cidade ? `${item.cidade}${item.estado ? `/${item.estado}` : ""}` : (item.estado || ""),
+                item.cep ? `CEP ${item.cep}` : "",
               ].filter(Boolean);
               const temEndereco = enderecoPartes.length > 0;
               const enderecoFormatado = enderecoPartes.join(" • ");
@@ -1097,6 +1190,8 @@ export function PaginaContatos() {
                 item.rua ? `${item.rua}${item.numero ? `, nº ${item.numero}` : ""}` : "",
                 item.complemento,
                 item.bairro,
+                item.cidade ? `${item.cidade}${item.estado ? `/${item.estado}` : ""}` : "",
+                item.cep ? `CEP ${item.cep}` : "",
               ].filter(Boolean).join(", ");
 
               return (
@@ -1590,6 +1685,21 @@ export function PaginaContatos() {
                                 </div>
                               </div>
 
+                              {(item.cidade || item.estado || item.cep) && (
+                                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                                  <div>
+                                    <span className="text-[11px] text-slate-400 block font-medium">Cidade / UF</span>
+                                    <span className="font-bold text-slate-800 block">
+                                      {item.cidade ? `${item.cidade}${item.estado ? `/${item.estado}` : ""}` : (item.estado || "—")}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-[11px] text-slate-400 block font-medium">CEP</span>
+                                    <span className="font-bold text-slate-800 block">{item.cep || "—"}</span>
+                                  </div>
+                                </div>
+                              )}
+
                               <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
                                 <Button
                                   size="sm"
@@ -1652,6 +1762,23 @@ export function PaginaContatos() {
                           </div>
 
                           <div className="space-y-2.5 text-xs">
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pb-1 border-b border-slate-100">
+                              <div>
+                                <span className="text-[11px] text-slate-400 block font-medium">E-mail</span>
+                                <span className="font-semibold text-slate-800 block truncate" title={item.email || "Não informado"}>
+                                  {item.email || "—"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-[11px] text-slate-400 block font-medium">CPF / CNPJ</span>
+                                <span className="font-semibold text-slate-800 block">{item.cpf_cnpj || "—"}</span>
+                              </div>
+                              <div>
+                                <span className="text-[11px] text-slate-400 block font-medium">Aniversário</span>
+                                <span className="font-semibold text-slate-800 block">{item.aniversario ? `🎂 ${item.aniversario}` : "—"}</span>
+                              </div>
+                            </div>
+
                             <div>
                               <span className="text-[11px] text-slate-400 block font-medium mb-1">Tag do Cliente</span>
                               {tagCliente ? (
@@ -1856,12 +1983,48 @@ export function PaginaContatos() {
                 />
               </div>
               <div>
-                <Label className="text-xs font-bold text-slate-700 whitespace-nowrap">Tag</Label>
+                <Label className="text-xs font-bold text-slate-700 whitespace-nowrap">Tag / Classificação</Label>
                 <Input
                   placeholder="Ex: Vizinha, Instagram, VIP"
                   value={formCliente.tag || ""}
                   onChange={(e) => setFormCliente({ ...formCliente, tag: e.target.value })}
                   className="mt-1 rounded-xl"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs font-bold text-slate-700">E-mail</Label>
+                <Input
+                  type="email"
+                  placeholder="exemplo@email.com"
+                  value={formCliente.email || ""}
+                  onChange={(e) => {
+                    setFormCliente({ ...formCliente, email: e.target.value });
+                    if (perfilSelecionado === "revendedor") {
+                      setEmailRevendedor(e.target.value);
+                    }
+                  }}
+                  className="mt-1 rounded-xl text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-bold text-slate-700">CPF / CNPJ</Label>
+                <Input
+                  placeholder="000.000.000-00"
+                  value={formCliente.cpf_cnpj || ""}
+                  onChange={(e) => setFormCliente({ ...formCliente, cpf_cnpj: formatarCpfCnpj(e.target.value) })}
+                  className="mt-1 rounded-xl text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-bold text-slate-700">Aniversário</Label>
+                <Input
+                  placeholder="Ex: 15/08 ou AAAA-MM-DD"
+                  value={formCliente.aniversario || ""}
+                  onChange={(e) => setFormCliente({ ...formCliente, aniversario: e.target.value })}
+                  className="mt-1 rounded-xl text-xs"
                 />
               </div>
             </div>
@@ -2106,49 +2269,105 @@ export function PaginaContatos() {
               </div>
             )}
 
-            {/* ENDEREÇO (APENAS PARA CLIENTES, REVENDEDOR E PARCEIRO NÃO PRECISAM) */}
-            {perfilSelecionado === "cliente" && (
-              <div className="space-y-2 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl">
-                <Label className="text-xs font-bold text-slate-700 block">Endereço de Entrega</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-2">
-                    <Input
-                      placeholder="Rua / Avenida"
-                      value={formCliente.rua || ""}
-                      onChange={(e) => setFormCliente({ ...formCliente, rua: e.target.value })}
-                      className="bg-white rounded-xl text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      placeholder="Número"
-                      value={formCliente.numero || ""}
-                      onChange={(e) => setFormCliente({ ...formCliente, numero: e.target.value })}
-                      className="bg-white rounded-xl text-xs"
-                    />
-                  </div>
-                </div>
+            {/* ENDEREÇO COMPLETO */}
+            <div className="space-y-2.5 p-3.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <MapPin className="size-3.5 text-rose-500" />
+                  {perfilSelecionado === "cliente" ? "Endereço de Entrega" : "Endereço do Estabelecimento / Loja"}
+                </Label>
+                {buscandoCep && (
+                  <span className="text-[11px] font-semibold text-blue-600 animate-pulse flex items-center gap-1">
+                    <Loader2 className="size-3 animate-spin" /> Buscando CEP...
+                  </span>
+                )}
+              </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Input
-                      placeholder="Bairro"
-                      value={formCliente.bairro || ""}
-                      onChange={(e) => setFormCliente({ ...formCliente, bairro: e.target.value })}
-                      className="bg-white rounded-xl text-xs"
-                    />
-                  </div>
-                  <div>
-                    <Input
-                      placeholder="Complemento / Apt"
-                      value={formCliente.complemento || ""}
-                      onChange={(e) => setFormCliente({ ...formCliente, complemento: e.target.value })}
-                      className="bg-white rounded-xl text-xs"
-                    />
-                  </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">CEP</Label>
+                  <Input
+                    placeholder="00000-000"
+                    maxLength={9}
+                    value={formCliente.cep || ""}
+                    onChange={(e) => {
+                      const v = formatarCep(e.target.value);
+                      setFormCliente({ ...formCliente, cep: v });
+                      if (v.replace(/\D/g, "").length === 8) {
+                        buscarCep(v);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (e.target.value.replace(/\D/g, "").length === 8) {
+                        buscarCep(e.target.value);
+                      }
+                    }}
+                    className="bg-white rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Rua / Logradouro</Label>
+                  <Input
+                    placeholder="Ex: Rua das Flores"
+                    value={formCliente.rua || ""}
+                    onChange={(e) => setFormCliente({ ...formCliente, rua: e.target.value })}
+                    className="bg-white rounded-xl text-xs mt-0.5"
+                  />
                 </div>
               </div>
-            )}
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Número</Label>
+                  <Input
+                    placeholder="Nº ou S/N"
+                    value={formCliente.numero || ""}
+                    onChange={(e) => setFormCliente({ ...formCliente, numero: e.target.value })}
+                    className="bg-white rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Complemento / Apt</Label>
+                  <Input
+                    placeholder="Ex: Apto 102, Bloco B"
+                    value={formCliente.complemento || ""}
+                    onChange={(e) => setFormCliente({ ...formCliente, complemento: e.target.value })}
+                    className="bg-white rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Bairro</Label>
+                  <Input
+                    placeholder="Ex: Centro"
+                    value={formCliente.bairro || ""}
+                    onChange={(e) => setFormCliente({ ...formCliente, bairro: e.target.value })}
+                    className="bg-white rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">Cidade</Label>
+                  <Input
+                    placeholder="Ex: São Paulo"
+                    value={formCliente.cidade || ""}
+                    onChange={(e) => setFormCliente({ ...formCliente, cidade: e.target.value })}
+                    className="bg-white rounded-xl text-xs mt-0.5"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] font-bold text-slate-500 uppercase">UF</Label>
+                  <Input
+                    placeholder="SP"
+                    maxLength={2}
+                    value={formCliente.estado || ""}
+                    onChange={(e) => setFormCliente({ ...formCliente, estado: e.target.value.toUpperCase() })}
+                    className="bg-white rounded-xl text-xs uppercase mt-0.5"
+                  />
+                </div>
+              </div>
+            </div>
 
             <div>
               <Label className="text-xs font-bold text-slate-700">Observações Gerais</Label>

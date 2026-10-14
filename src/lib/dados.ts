@@ -32,9 +32,15 @@ export type Cliente = {
   nome: string;
   telefone: string | null;
   tag?: string | null | undefined;
+  email?: string | null | undefined;
+  cpf_cnpj?: string | null | undefined;
+  aniversario?: string | null | undefined;
+  cep?: string | null | undefined;
   rua: string | null;
   numero: string | null;
   bairro: string | null;
+  cidade?: string | null | undefined;
+  estado?: string | null | undefined;
   complemento: string | null;
   observacoes: string | null;
   tipo_contato?: "cliente" | "revendedor" | "parceiro" | undefined;
@@ -302,6 +308,12 @@ export const useClientes = () => useQuery({
               numero: sc.numero ?? local?.numero ?? null,
               bairro: sc.bairro ?? local?.bairro ?? null,
               complemento: sc.complemento ?? local?.complemento ?? null,
+              cidade: sc.cidade ?? local?.cidade ?? null,
+              estado: sc.estado ?? local?.estado ?? null,
+              cep: sc.cep ?? local?.cep ?? null,
+              email: sc.email ?? local?.email ?? null,
+              cpf_cnpj: sc.cpf_cnpj ?? local?.cpf_cnpj ?? null,
+              aniversario: sc.aniversario ?? local?.aniversario ?? null,
               revendedora_id: sc.revendedora_id ?? local?.revendedora_id ?? null,
             });
           });
@@ -851,9 +863,15 @@ export const useSalvarCliente = () => {
         nome: v.nome ?? "",
         telefone: v.telefone ?? null,
         tag: v.tag ? v.tag.trim() : null,
+        email: v.email ?? null,
+        cpf_cnpj: v.cpf_cnpj ?? null,
+        aniversario: v.aniversario ?? null,
+        cep: v.cep ?? null,
         rua: v.rua ?? null,
         numero: v.numero ?? null,
         bairro: v.bairro ?? null,
+        cidade: v.cidade ?? null,
+        estado: v.estado ?? null,
         complemento: v.complemento ?? null,
         observacoes: v.observacoes ?? null,
         tipo_contato: v.tipo_contato ?? "cliente",
@@ -878,14 +896,20 @@ export const useSalvarCliente = () => {
             obsComTag = obsComTag.replace(/\[TAG:[^\]]*\]/g, "").trim();
           }
 
-          const payloadSupabase = {
+          const payloadSupabase: any = {
             id: novo.id,
             nome: novo.nome,
             telefone: novo.telefone,
             tag: novo.tag,
+            email: novo.email,
+            cpf_cnpj: novo.cpf_cnpj,
+            aniversario: novo.aniversario,
+            cep: novo.cep,
             rua: novo.rua,
             numero: novo.numero,
             bairro: novo.bairro,
+            cidade: novo.cidade,
+            estado: novo.estado,
             complemento: novo.complemento,
             observacoes: obsComTag || null,
             tipo_contato: novo.tipo_contato,
@@ -894,10 +918,25 @@ export const useSalvarCliente = () => {
           };
           const { error } = await supabase.from("clientes").upsert(payloadSupabase);
           if (error) {
-            console.warn("Supabase clientes upsert:", error.message);
-            // Fallback caso a coluna 'tag' ainda não exista no Supabase antes da migração DDL
-            if (error.message?.includes("tag") || error.code === "PGRST204" || error.code === "42703") {
-              const { tag: _, ...semTag } = payloadSupabase;
+            console.warn("Supabase clientes upsert aviso:", error.message);
+            // Fallback caso colunas estendidas ainda não existam no Supabase
+            const basePayload = {
+              id: novo.id,
+              nome: novo.nome,
+              telefone: novo.telefone,
+              tag: novo.tag,
+              rua: novo.rua,
+              numero: novo.numero,
+              bairro: novo.bairro,
+              complemento: novo.complemento,
+              observacoes: obsComTag || null,
+              tipo_contato: novo.tipo_contato,
+              revendedora_id: novo.revendedora_id,
+              empresa_id: empId,
+            };
+            const { error: errBase } = await supabase.from("clientes").upsert(basePayload);
+            if (errBase && (errBase.message?.includes("tag") || errBase.code === "PGRST204" || errBase.code === "42703")) {
+              const { tag: _, ...semTag } = basePayload;
               await supabase.from("clientes").upsert(semTag);
             }
           }
@@ -1146,7 +1185,23 @@ export const useAtualizarVenda = () => {
       const d = ler();
       const idx = d.vendas.findIndex((i) => i.id === v.id);
       if (idx !== -1) {
-        d.vendas[idx] = { ...d.vendas[idx], ...v } as Venda;
+        let clientesEmbed = v.clientes;
+        if (v.cliente_id !== undefined && !clientesEmbed) {
+          const cli = d.clientes.find((c) => c.id === v.cliente_id);
+          clientesEmbed = cli ? { nome: cli.nome } : null;
+        }
+        let revEmbed = v.revendedoras;
+        if (v.revendedora_id !== undefined && !revEmbed) {
+          const rev = d.revendedoras.find((r) => r.id === v.revendedora_id);
+          revEmbed = rev ? { nome: rev.nome } : null;
+        }
+
+        d.vendas[idx] = {
+          ...d.vendas[idx],
+          ...v,
+          ...(clientesEmbed !== undefined ? { clientes: clientesEmbed } : {}),
+          ...(revEmbed !== undefined ? { revendedoras: revEmbed } : {}),
+        } as Venda;
         gravar(d);
       }
 
@@ -1161,12 +1216,34 @@ export const useAtualizarVenda = () => {
               await supabase.from("vendas").update({ ...resto, pagamento: "pix" }).eq("id", vendaId);
             }
           }
+
+          // Se itens da venda foram alterados, sincroniza a tabela de itens
+          if (venda_itens && Array.isArray(venda_itens)) {
+            const empId = obterEmpresaAtivaId();
+            await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
+            const novosItens = venda_itens.map((it) => ({
+              id: it.id || id(),
+              venda_id: vendaId,
+              produto_id: it.produto_id,
+              nome_produto: it.nome_produto,
+              quantidade: Number(it.quantidade) || 1,
+              preco_unitario: Number(it.preco_unitario) || 0,
+              empresa_id: empId,
+            }));
+            if (novosItens.length > 0) {
+              const { error: errItens } = await supabase.from("venda_itens").insert(novosItens);
+              if (errItens) console.warn("Supabase atualizar venda_itens aviso:", errItens.message);
+            }
+          }
         } catch (err) {
           console.warn("Erro ao atualizar venda no Supabase:", err);
         }
       }
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: chaves.vendas }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chaves.vendas });
+      qc.invalidateQueries({ queryKey: chaves.produtos });
+    },
   });
 };
 
