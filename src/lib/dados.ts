@@ -252,7 +252,7 @@ export const useProdutos = () => useQuery({
             ...sp,
             preco: Number(sp.preco ?? local?.preco ?? 0),
             estoque: Number(sp.estoque ?? local?.estoque ?? 0),
-            estoque_congelado: Number(local?.estoque_congelado ?? 0),
+            estoque_congelado: Number(sp.estoque_congelado ?? local?.estoque_congelado ?? 0),
             rendimento_unidades: Number(sp.rendimento_unidades ?? local?.rendimento_unidades ?? 1),
             tempo_preparo_minutos: Number(sp.tempo_preparo_minutos ?? local?.tempo_preparo_minutos ?? 0),
           });
@@ -1466,6 +1466,13 @@ export function useProduzirLoteEstoque() {
 
         if (tipoDestino === "congelado") {
           prod.estoque_congelado = (Number(prod.estoque_congelado) || 0) + quantidadeProduzida;
+          if (isSupabaseConfigured) {
+            try {
+              await supabase.from("produtos").update({ estoque_congelado: prod.estoque_congelado }).eq("id", prod.id);
+            } catch (e) {
+              console.warn("Supabase update estoque_congelado:", e);
+            }
+          }
         } else {
           prod.estoque = (Number(prod.estoque) || 0) + quantidadeProduzida;
           if (isSupabaseConfigured) {
@@ -1543,6 +1550,48 @@ export function useAssarFornada() {
         const congeladoAtual = Number(prod.estoque_congelado || 0);
         prod.estoque_congelado = Math.max(0, congeladoAtual - quantidadeAssada);
         prod.estoque = (Number(prod.estoque) || 0) + quantidadeAssada;
+        gravar(dados);
+
+        if (isSupabaseConfigured) {
+          try {
+            await supabase.from("produtos").update({
+              estoque: prod.estoque,
+              estoque_congelado: prod.estoque_congelado,
+            }).eq("id", prod.id);
+          } catch (e) {
+            console.warn("Supabase update estoque:", e);
+          }
+        }
+      }
+      return prod;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chaves.produtos });
+    },
+  });
+}
+
+export function useAjustarEstoqueAssado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      produtoId,
+      quantidadePerda,
+    }: {
+      produtoId: string;
+      quantidadePerda: number;
+    }) => {
+      const dados = ler();
+      const produtosCache = qc.getQueryData<Produto[]>(chaves.produtos) || [];
+      let prod = dados.produtos.find((p: Produto) => p.id === produtoId) || produtosCache.find((p) => p.id === produtoId);
+
+      if (prod) {
+        const idx = dados.produtos.findIndex((p) => p.id === prod!.id);
+        if (idx >= 0) {
+          dados.produtos[idx] = { ...dados.produtos[idx], ...prod };
+          prod = dados.produtos[idx];
+        }
+        prod.estoque = Math.max(0, (Number(prod.estoque) || 0) - quantidadePerda);
         gravar(dados);
 
         if (isSupabaseConfigured) {
@@ -2077,3 +2126,4 @@ export function obterAlertasReposicaoRevendedores(
 
   return alertas;
 }
+
