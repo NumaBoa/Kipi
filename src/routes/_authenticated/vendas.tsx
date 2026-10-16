@@ -354,6 +354,15 @@ export function PaginaVendas() {
     }, 0);
   }, [carrinho, receitas, insumos]);
 
+  const revendedorSelecionado = useMemo(() => {
+    if (ehRevendedor) return revendedorLogado;
+    return revendedoras.find((r) => r.id === revendedoraId) || null;
+  }, [ehRevendedor, revendedorLogado, revendedoras, revendedoraId]);
+
+  const comissaoEstimadaCarrinho = useMemo(() => {
+    return calcularComissaoEstimadaCarrinho(carrinho, revendedorSelecionado);
+  }, [carrinho, revendedorSelecionado]);
+
   // Se for sob encomenda e o usuário não digitou sinal customizado, sugerimos 50%
   useEffect(() => {
     if (tipoPedido === "sob_encomenda" && !sinalCustomizado) {
@@ -407,8 +416,18 @@ export function PaginaVendas() {
       if (existe) {
         return prev.map((i) => (i.produto.id === p.id ? { ...i, quantidade: i.quantidade + 1 } : i));
       }
-      return [...prev, { produto: p, quantidade: 1 }];
+      return [...prev, { produto: p, quantidade: 1, com_desconto: false }];
     });
+  };
+
+  const alternarDescontoItem = (produtoId: string, comDesconto?: boolean) => {
+    setCarrinho((prev) =>
+      prev.map((i) =>
+        i.produto.id === produtoId
+          ? { ...i, com_desconto: comDesconto !== undefined ? comDesconto : !i.com_desconto }
+          : i
+      )
+    );
   };
 
   const alterarQtd = (produtoId: string, delta: number) => {
@@ -491,6 +510,7 @@ export function PaginaVendas() {
             preco: Number(it.preco_unitario) || prodExistente.preco,
           },
           quantidade: Number(it.quantidade) || 1,
+          com_desconto: Boolean(it.com_desconto),
         };
       }
       return {
@@ -503,6 +523,7 @@ export function PaginaVendas() {
           ativo: true,
         },
         quantidade: Number(it.quantidade) || 1,
+        com_desconto: Boolean(it.com_desconto),
       };
     });
     setCarrinho(itensCarrinho);
@@ -581,6 +602,7 @@ export function PaginaVendas() {
             nome_produto: it.produto.nome,
             quantidade: it.quantidade,
             preco_unitario: it.produto.preco,
+            com_desconto: Boolean(it.com_desconto),
           })),
         });
 
@@ -727,7 +749,7 @@ export function PaginaVendas() {
 
   const copiarComprovanteWhatsApp = (v: Venda) => {
     const nome = v.clientes?.nome || "Cliente";
-    const itens = (v.venda_itens || []).map((i) => `- ${i.quantidade}x ${i.nome_produto} (${brl(i.preco_unitario * i.quantidade)})`).join("\n");
+    const itens = (v.venda_itens || []).map((i) => `- ${i.quantidade}x ${i.nome_produto}${i.com_desconto ? " (com desconto)" : ""} (${brl(i.preco_unitario * i.quantidade)})`).join("\n");
     const prazo = v.data_entrega_prometida ? new Date(v.data_entrega_prometida).toLocaleDateString("pt-BR") : "Pronta-entrega";
     const financeiro = v.saldo_na_entrega && v.saldo_na_entrega > 0
       ? `*Total:* ${brl(v.total)}\n*Sinal pago:* ${brl(v.valor_sinal_pago || 0)}\n*Saldo a acertar na entrega:* ${brl(v.saldo_na_entrega)}`
@@ -901,7 +923,8 @@ export function PaginaVendas() {
               const itens = (v.venda_itens || [])
                 .map((it) => {
                   const nomeProd = it.nome_produto || produtos.find((p) => p.id === it.produto_id)?.nome || "Produto";
-                  return `   • ${it.quantidade}x ${nomeProd}`;
+                  const desc = it.com_desconto ? " (com desconto)" : "";
+                  return `   • ${it.quantidade}x ${nomeProd}${desc}`;
                 })
                 .join("\n");
 
@@ -953,7 +976,8 @@ export function PaginaVendas() {
           const itens = (v.venda_itens || [])
             .map((it) => {
               const nomeProd = it.nome_produto || produtos.find((p) => p.id === it.produto_id)?.nome || "Produto";
-              return `   • ${it.quantidade}x ${nomeProd}`;
+              const desc = it.com_desconto ? " (com desconto)" : "";
+              return `   • ${it.quantidade}x ${nomeProd}${desc}`;
             })
             .join("\n");
 
@@ -1422,7 +1446,7 @@ export function PaginaVendas() {
                     {/* ITENS */}
                     <div className="text-xs text-slate-500 pt-1">
                       <span className="font-semibold text-slate-700">Itens: </span>
-                      {(v.venda_itens || []).map((i) => `${i.quantidade}x ${i.nome_produto}`).join(", ")}
+                      {(v.venda_itens || []).map((i) => `${i.quantidade}x ${i.nome_produto}${i.com_desconto ? " 🏷️(c/ desconto)" : ""}`).join(", ")}
                     </div>
 
                     {v.observacoes && (
@@ -1886,7 +1910,7 @@ export function PaginaVendas() {
                       <div
                         key={p.id}
                         className={cn(
-                          "px-3 py-2 rounded-xl bg-white border transition-all flex items-center justify-between gap-2.5 shadow-2xs",
+                          "px-3 py-2.5 rounded-xl bg-white border transition-all flex flex-col justify-between gap-1.5 shadow-2xs",
                           qtd > 0
                             ? "border-[#6366F1] ring-1 ring-[#6366F1]/20 bg-[#6366F1]/[0.02]"
                             : esgotadoPdv
@@ -1894,79 +1918,109 @@ export function PaginaVendas() {
                             : "border-slate-200/90 hover:border-slate-300"
                         )}
                       >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate leading-tight">
-                              {p.nome}
-                            </p>
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0 leading-tight">
-                              {p.categoria || "Geral"}
-                            </span>
+                        <div className="flex items-center justify-between gap-2.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <p className="font-bold text-slate-800 dark:text-slate-100 text-xs sm:text-sm truncate leading-tight">
+                                {p.nome}
+                              </p>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded shrink-0 leading-tight">
+                                {p.categoria || "Geral"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <span className="text-xs sm:text-sm font-extrabold text-[#6366F1] leading-none">
+                                {brl(p.preco)}
+                              </span>
+                              {ehRevendaPronta ? (
+                                <span
+                                  className={cn(
+                                    "text-[11px] leading-none font-medium",
+                                    esgotadoPdv
+                                      ? "text-rose-600 font-bold"
+                                      : saldoPdv <= 2
+                                      ? "text-amber-700 font-semibold"
+                                      : "text-slate-500"
+                                  )}
+                                >
+                                  {esgotadoPdv ? "· 🔴 0 un (Esgotado)" : `· ${saldoPdv} un no PDV`}
+                                </span>
+                              ) : (
+                                <span className="text-[11px] text-slate-400 font-normal leading-none">
+                                  · {p.estoque ?? 0} un estoque
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <span className="text-xs sm:text-sm font-extrabold text-[#6366F1] leading-none">
-                              {brl(p.preco)}
+
+                          {/* CONTADOR / STEPPER PILL */}
+                          <div className="flex items-center bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-full p-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => alterarQtd(p.id, -1)}
+                              disabled={qtd === 0}
+                              className={cn(
+                                "size-6 sm:size-6.5 rounded-full flex items-center justify-center font-bold text-slate-600 transition-colors",
+                                qtd === 0
+                                  ? "opacity-30 cursor-not-allowed text-slate-400"
+                                  : "hover:bg-white hover:text-slate-900 cursor-pointer shadow-2xs"
+                              )}
+                            >
+                              -
+                            </button>
+                            <span className="w-5 sm:w-6 text-center font-black text-xs sm:text-sm text-slate-800 dark:text-slate-100">
+                              {qtd}
                             </span>
-                            {ehRevendaPronta ? (
-                              <span
-                                className={cn(
-                                  "text-[11px] leading-none font-medium",
-                                  esgotadoPdv
-                                    ? "text-rose-600 font-bold"
-                                    : saldoPdv <= 2
-                                    ? "text-amber-700 font-semibold"
-                                    : "text-slate-500"
-                                )}
-                              >
-                                {esgotadoPdv ? "· 🔴 0 un (Esgotado)" : `· ${saldoPdv} un no PDV`}
-                              </span>
-                            ) : (
-                              <span className="text-[11px] text-slate-400 font-normal leading-none">
-                                · {p.estoque ?? 0} un estoque
-                              </span>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => adicionarAoCarrinho(p)}
+                              disabled={!podeAdicionar}
+                              title={
+                                esgotadoPdv
+                                  ? "Produto esgotado no balcão para pronta-entrega. Altere para 'Sob Encomenda' para encomendar."
+                                  : atingiuLimitePdv
+                                  ? `Limite disponível no balcão atingido (${saldoPdv} un). Use 'Sob Encomenda' para pedir mais.`
+                                  : "Adicionar unidade"
+                              }
+                              className={cn(
+                                "size-6 sm:size-6.5 rounded-full flex items-center justify-center font-bold transition-colors",
+                                !podeAdicionar
+                                  ? "opacity-30 cursor-not-allowed text-slate-400 bg-slate-100"
+                                  : "text-slate-700 hover:bg-white hover:text-slate-900 cursor-pointer shadow-2xs"
+                              )}
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
 
-                        {/* CONTADOR / STEPPER PILL */}
-                        <div className="flex items-center bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-full p-0.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => alterarQtd(p.id, -1)}
-                            disabled={qtd === 0}
-                            className={cn(
-                              "size-6 sm:size-6.5 rounded-full flex items-center justify-center font-bold text-slate-600 transition-colors",
-                              qtd === 0
-                                ? "opacity-30 cursor-not-allowed text-slate-400"
-                                : "hover:bg-white hover:text-slate-900 cursor-pointer shadow-2xs"
-                            )}
-                          >
-                            -
-                          </button>
-                          <span className="w-5 sm:w-6 text-center font-black text-xs sm:text-sm text-slate-800 dark:text-slate-100">
-                            {qtd}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => adicionarAoCarrinho(p)}
-                            disabled={!podeAdicionar}
-                            title={
-                              esgotadoPdv
-                                ? "Produto esgotado no balcão para pronta-entrega. Altere para 'Sob Encomenda' para encomendar."
-                                : atingiuLimitePdv
-                                ? `Limite disponível no balcão atingido (${saldoPdv} un). Use 'Sob Encomenda' para pedir mais.`
-                                : "Adicionar unidade"
-                            }
-                            className={cn(
-                              "size-6 sm:size-6.5 rounded-full flex items-center justify-center font-bold transition-colors",
-                              !podeAdicionar
-                                ? "opacity-30 cursor-not-allowed text-slate-400 bg-slate-100"
-                                : "text-slate-700 hover:bg-white hover:text-slate-900 cursor-pointer shadow-2xs"
-                            )}
-                          >
-                            +
-                          </button>
-                        </div>
+                        {/* INDICADOR SELECIONADO: DESCONTO */}
+                        {qtd > 0 && (
+                          <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() => alternarDescontoItem(p.id)}
+                              className={cn(
+                                "w-full py-1 px-2.5 rounded-lg text-[10px] font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer select-none",
+                                itemNoCarrinho?.com_desconto
+                                  ? "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950 dark:text-amber-200"
+                                  : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                              )}
+                            >
+                              <span
+                                className={cn(
+                                  "size-2 rounded-full shrink-0",
+                                  itemNoCarrinho?.com_desconto ? "bg-amber-500 animate-pulse" : "bg-slate-300"
+                                )}
+                              />
+                              <span>
+                                {itemNoCarrinho?.com_desconto
+                                  ? "🏷️ Com Desconto (Comissão 50%)"
+                                  : "🏷️ Sem Desconto (Comissão Normal)"}
+                              </span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1985,47 +2039,94 @@ export function PaginaVendas() {
                       Subtotal: {brl(totalPedido)}
                     </span>
                   </div>
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                     {carrinho.map((item) => (
                       <div
                         key={item.produto.id}
-                        className="flex items-center justify-between bg-white border border-purple-200/60 rounded-xl px-2.5 py-1.5 text-xs shadow-2xs"
+                        className={cn(
+                          "bg-white border rounded-xl p-2.5 text-xs shadow-2xs transition-all space-y-1.5",
+                          item.com_desconto
+                            ? "border-amber-300 bg-amber-50/30"
+                            : "border-purple-200/60"
+                        )}
                       >
-                        <div className="min-w-0 flex-1 pr-2">
-                          <p className="font-bold text-slate-800 truncate">{item.produto.nome}</p>
-                          <span className="text-[11px] font-semibold text-[#6366F1]">
-                            {brl(item.produto.preco)} un
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1 pr-2">
+                            <div className="flex items-center gap-1.5 truncate">
+                              <p className="font-bold text-slate-800 truncate">{item.produto.nome}</p>
+                              {item.com_desconto && (
+                                <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                                  -50% comissão
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] font-semibold text-[#6366F1]">
+                              {brl(item.produto.preco)} un
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200">
+                              <button
+                                type="button"
+                                onClick={() => alterarQtd(item.produto.id, -1)}
+                                className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
+                              >
+                                -
+                              </button>
+                              <span className="w-5 text-center font-bold text-xs">{item.quantidade}</span>
+                              <button
+                                type="button"
+                                onClick={() => alterarQtd(item.produto.id, 1)}
+                                className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <span className="font-extrabold text-xs text-slate-900 w-16 text-right">
+                              {brl(item.quantidade * item.produto.preco)}
+                            </span>
                             <button
                               type="button"
-                              onClick={() => alterarQtd(item.produto.id, -1)}
-                              className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
+                              onClick={() => alterarQtd(item.produto.id, -item.quantidade)}
+                              className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                              title="Remover produto do pedido"
                             >
-                              -
-                            </button>
-                            <span className="w-5 text-center font-bold text-xs">{item.quantidade}</span>
-                            <button
-                              type="button"
-                              onClick={() => alterarQtd(item.produto.id, 1)}
-                              className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
-                            >
-                              +
+                              <Trash2 className="size-3.5" />
                             </button>
                           </div>
-                          <span className="font-extrabold text-xs text-slate-900 w-16 text-right">
-                            {brl(item.quantidade * item.produto.preco)}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => alterarQtd(item.produto.id, -item.quantidade)}
-                            className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
-                            title="Remover produto do pedido"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
+                        </div>
+
+                        {/* INDICADOR SE FOI VENDIDO COM DESCONTO OU NÃO */}
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={!!item.com_desconto}
+                              onChange={(e) => alternarDescontoItem(item.produto.id, e.target.checked)}
+                              className="size-3.5 rounded text-amber-600 border-slate-300 focus:ring-amber-500 cursor-pointer"
+                            />
+                            <span
+                              className={cn(
+                                "text-[11px]",
+                                item.com_desconto ? "text-amber-900 font-bold" : "text-slate-600 font-medium"
+                              )}
+                            >
+                              {item.com_desconto
+                                ? "Vendido com desconto (comissão pela metade)"
+                                : "Vendido com desconto?"}
+                            </span>
+                          </label>
+
+                          {canal === "revendedora" && revendedorSelecionado && (
+                            <span className={cn(
+                              "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                              item.com_desconto
+                                ? "bg-amber-100 text-amber-800"
+                                : "text-slate-400"
+                            )}>
+                              {item.com_desconto ? "Comissão: 50%" : "Comissão: 100%"}
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2116,6 +2217,31 @@ export function PaginaVendas() {
                   </div>
                 ) : null}
               </div>
+
+              {/* ESTIMATIVA DE COMISSÃO CASO SEJA VENDA DE REVENDEDOR/PARCEIRO */}
+              {canal === "revendedora" && revendedorSelecionado && (
+                <div className="pt-2.5 mt-2.5 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-purple-50/60 p-2.5 rounded-xl border border-purple-200/80">
+                  <div>
+                    <span className="text-xs font-bold text-purple-950 flex items-center gap-1.5">
+                      <Wallet className="size-3.5 text-purple-700" />
+                      Comissão Prevista ({revendedorSelecionado.nome}):
+                    </span>
+                    <span className="text-[11px] text-purple-800 block">
+                      Regra: {revendedorSelecionado.tipo_comissao === "valor_fixo"
+                        ? `${brl(revendedorSelecionado.comissao_fixa || 0)} por peça`
+                        : `${revendedorSelecionado.comissao_percentual || 0}% sobre venda`}
+                      {carrinho.some((it) => it.com_desconto) && (
+                        <strong className="text-amber-800 ml-1">
+                          · ⚡ Com desconto: metade da comissão nos itens marcados
+                        </strong>
+                      )}
+                    </span>
+                  </div>
+                  <span className="text-lg font-black text-purple-950">
+                    {brl(comissaoEstimadaCarrinho)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -2560,7 +2686,7 @@ export function PaginaVendas() {
                           {(v.venda_itens || [])
                             .map(
                               (i) =>
-                                `${i.quantidade}x ${i.nome_produto} (${brl(i.preco_unitario * i.quantidade)})`
+                                `${i.quantidade}x ${i.nome_produto}${i.com_desconto ? " [c/ desconto]" : ""} (${brl(i.preco_unitario * i.quantidade)})`
                             )
                             .join(" · ")}
                         </p>

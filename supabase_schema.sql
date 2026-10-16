@@ -163,7 +163,8 @@ CREATE TABLE IF NOT EXISTS public.venda_itens (
   produto_id TEXT REFERENCES public.produtos(id) ON DELETE SET NULL,
   nome_produto TEXT NOT NULL,
   quantidade NUMERIC NOT NULL DEFAULT 1,
-  preco_unitario NUMERIC NOT NULL DEFAULT 0
+  preco_unitario NUMERIC NOT NULL DEFAULT 0,
+  com_desconto BOOLEAN DEFAULT false
 );
 
 -- 12. TABELA DE REMESSAS DE CONSIGNAÇÃO (ENTREGAS AO REVENDEDOR)
@@ -285,5 +286,8 @@ ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS tag TEXT;
 -- PERMITIR FORMA DE PAGAMENTO 'pendente' NA TABELA VENDAS
 ALTER TABLE public.vendas DROP CONSTRAINT IF EXISTS vendas_pagamento_check;
 ALTER TABLE public.vendas ADD CONSTRAINT vendas_pagamento_check CHECK (pagamento IN ('pix', 'dinheiro', 'cartao', 'transferencia', 'pendente'));
+
+-- ADIÇÃO DO CAMPO COM_DESCONTO EM VENDA_ITENS (COMISSÃO PELA METADE)
+ALTER TABLE public.venda_itens ADD COLUMN IF NOT EXISTS com_desconto BOOLEAN DEFAULT false;
 
 

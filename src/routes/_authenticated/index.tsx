@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { brl, dataHora, num } from "@/lib/format";
 import {
+  calcularComissaoRevendedora,
   custoProduto,
   statusInsumo,
   useInsumos,
@@ -294,8 +295,7 @@ function PainelNegocio() {
     return vendasParceiros.reduce((s, v) => {
       const rev = revendedoras.find((r) => r.id === v.revendedora_id);
       if (!rev) return s + Number(v.total) * 0.15;
-      if (rev.tipo_comissao === "porcentagem") return s + (Number(v.total) * Number(rev.comissao_percentual || 0)) / 100;
-      return s + (v.venda_itens?.length || 1) * Number(rev.comissao_fixa || 0);
+      return s + calcularComissaoRevendedora(v, rev);
     }, 0);
   }, [vendasParceiros, revendedoras]);
 

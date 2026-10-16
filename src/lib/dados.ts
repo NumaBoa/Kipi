@@ -76,7 +76,7 @@ export type Categoria = {
   empresa_id?: string | undefined;
 };
 export type ReceitaItem = { id: string; produto_id: string; insumo_id: string; quantidade: number; empresa_id?: string | undefined };
-export type VendaItem = { id: string; venda_id: string; produto_id: string | null; nome_produto: string; quantidade: number; preco_unitario: number; empresa_id?: string | undefined };
+export type VendaItem = { id: string; venda_id: string; produto_id: string | null; nome_produto: string; quantidade: number; preco_unitario: number; com_desconto?: boolean | undefined; empresa_id?: string | undefined };
 export type Venda = {
   id: string;
   cliente_id: string | null;
@@ -138,7 +138,7 @@ export type AlertaReposicaoConsignado = {
   status: "esgotado" | "critico";
 };
 
-export type ItemCarrinho = { produto: Produto; quantidade: number };
+export type ItemCarrinho = { produto: Produto; quantidade: number; com_desconto?: boolean | undefined };
 
 type Dados = {
   insumos: Insumo[];
@@ -627,11 +627,27 @@ export function calcularComissaoRevendedora(venda: Venda, revendedora?: Revended
   if (venda.status === "cancelado") return 0;
   
   if (revendedora.tipo_comissao === "valor_fixo") {
+    const fixa = Number(revendedora.comissao_fixa ?? 0);
+    if (venda.venda_itens && venda.venda_itens.length > 0) {
+      return venda.venda_itens.reduce((s, i) => {
+        const taxa = i.com_desconto ? fixa / 2 : fixa;
+        return s + (Number(i.quantidade) || 1) * taxa;
+      }, 0);
+    }
     const qtdItens = (venda.venda_itens || []).reduce((s, i) => s + i.quantidade, 0);
-    return qtdItens * Number(revendedora.comissao_fixa ?? 0);
+    return qtdItens * fixa;
   }
   
-  return Number(venda.total) * (Number(revendedora.comissao_percentual ?? 0) / 100);
+  const perc = Number(revendedora.comissao_percentual ?? 0) / 100;
+  if (venda.venda_itens && venda.venda_itens.length > 0) {
+    return venda.venda_itens.reduce((s, i) => {
+      const taxa = i.com_desconto ? perc / 2 : perc;
+      const valorItem = (Number(i.preco_unitario) || 0) * (Number(i.quantidade) || 1);
+      return s + valorItem * taxa;
+    }, 0);
+  }
+  
+  return Number(venda.total) * perc;
 }
 
 export function calcularComissaoEstimadaCarrinho(
@@ -639,14 +655,21 @@ export function calcularComissaoEstimadaCarrinho(
   revendedora?: Revendedora | null
 ): number {
   if (!revendedora) return 0;
-  const qtdTotal = carrinho.reduce((s, i) => s + i.quantidade, 0);
-  const valorTotal = carrinho.reduce((s, i) => s + Number(i.produto.preco) * i.quantidade, 0);
   
   if (revendedora.tipo_comissao === "valor_fixo") {
-    return qtdTotal * Number(revendedora.comissao_fixa ?? 0);
+    const fixa = Number(revendedora.comissao_fixa ?? 0);
+    return carrinho.reduce((s, i) => {
+      const taxa = i.com_desconto ? fixa / 2 : fixa;
+      return s + (Number(i.quantidade) || 1) * taxa;
+    }, 0);
   }
   
-  return valorTotal * (Number(revendedora.comissao_percentual ?? 0) / 100);
+  const perc = Number(revendedora.comissao_percentual ?? 0) / 100;
+  return carrinho.reduce((s, i) => {
+    const taxa = i.com_desconto ? perc / 2 : perc;
+    const valorItem = (Number(i.produto.preco) || 0) * (Number(i.quantidade) || 1);
+    return s + valorItem * taxa;
+  }, 0);
 }
 
 // MUTATIONS COM SUPABASE + FALLBACK
@@ -1228,10 +1251,16 @@ export const useAtualizarVenda = () => {
               nome_produto: it.nome_produto,
               quantidade: Number(it.quantidade) || 1,
               preco_unitario: Number(it.preco_unitario) || 0,
+              com_desconto: Boolean(it.com_desconto),
               empresa_id: empId,
             }));
             if (novosItens.length > 0) {
-              const { error: errItens } = await supabase.from("venda_itens").insert(novosItens);
+              let { error: errItens } = await supabase.from("venda_itens").insert(novosItens);
+              if (errItens && (errItens.message?.includes("com_desconto") || errItens.code === "PGRST204" || errItens.code === "42703")) {
+                const fallbackItens = novosItens.map(({ com_desconto, ...r }) => r);
+                const { error: errRetry } = await supabase.from("venda_itens").insert(fallbackItens);
+                if (!errRetry) errItens = null;
+              }
               if (errItens) console.warn("Supabase atualizar venda_itens aviso:", errItens.message);
             }
           }
@@ -1327,9 +1356,15 @@ export const useRegistrarVenda = () => {
           nome_produto: i.produto.nome,
           quantidade: i.quantidade,
           preco_unitario: i.produto.preco,
+          com_desconto: Boolean(i.com_desconto),
           empresa_id: empId,
         }));
-        const { error: errItens } = await supabase.from("venda_itens").insert(itensParaInserir);
+        let { error: errItens } = await supabase.from("venda_itens").insert(itensParaInserir);
+        if (errItens && (errItens.message?.includes("com_desconto") || errItens.code === "PGRST204" || errItens.code === "42703")) {
+          const fallbackItens = itensParaInserir.map(({ com_desconto, ...r }) => r);
+          const { error: errRetry } = await supabase.from("venda_itens").insert(fallbackItens);
+          if (!errRetry) errItens = null;
+        }
         if (errItens) throw errItens;
 
         // Se for pronta entrega, atualizar estoque
@@ -1369,6 +1404,7 @@ export const useRegistrarVenda = () => {
             nome_produto: i.produto.nome,
             quantidade: i.quantidade,
             preco_unitario: i.produto.preco,
+            com_desconto: Boolean(i.com_desconto),
           })),
         };
 
