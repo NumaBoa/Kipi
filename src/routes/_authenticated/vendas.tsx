@@ -277,7 +277,18 @@ export function PaginaVendas() {
 
   // Vendas válidas (filtradas para a loja do revendedor caso logado como revendedor)
   const validas = useMemo(() => {
-    const list = vendas.filter((v) => v.status !== "cancelado");
+    const list = vendas.filter((v) => {
+      if (v.status === "cancelado") return false;
+      if (v.tipo_pedido === "fornada_freezer" || v.tipo_pedido === "producao_lote") return false;
+      if (
+        Number(v.total || 0) === 0 &&
+        v.observacoes &&
+        (v.observacoes.includes("fornada") || v.observacoes.includes("lote para guardar") || v.observacoes.includes("Assar fornada"))
+      ) {
+        return false;
+      }
+      return true;
+    });
     if (ehRevendedor && revendedorLogado) {
       return list.filter((v) => v.canal === "revendedora" && v.revendedora_id === revendedorLogado.id);
     }
@@ -1533,8 +1544,15 @@ export function PaginaVendas() {
                         variant="ghost"
                         className="h-8 w-8 p-0 text-slate-400 hover:text-rose-600 shrink-0"
                         onClick={() => {
-                          if (confirm("Excluir este pedido?")) {
-                            apagarVenda.mutate(v.id);
+                          if (confirm("Excluir este pedido? Os cookies serão devolvidos ao estoque da vitrine.")) {
+                            apagarVenda.mutate(v.id, {
+                              onSuccess: () => {
+                                toast.success("Pedido excluído! Os itens retornaram ao estoque da vitrine.");
+                              },
+                              onError: (e: any) => {
+                                toast.error(e?.message || "Erro ao excluir pedido.");
+                              },
+                            });
                           }
                         }}
                       >

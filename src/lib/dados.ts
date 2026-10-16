@@ -390,19 +390,31 @@ export const useVendas = () => useQuery({
           .or(`empresa_id.eq.${empId},empresa_id.is.null`)
           .order("data", { ascending: false });
         if (!error && data) {
-          const vendasSupabase = (data || []).map((sv: any) => ({
-            ...sv,
-            tipo_pedido: sv.tipo_pedido ?? "pronta_entrega",
-            status_producao: sv.status_producao,
-            tipo_destino_lote: sv.tipo_destino_lote,
-            baixar_insumos_lote: sv.baixar_insumos_lote,
-            valor_sinal_pago: sv.valor_sinal_pago,
-            saldo_na_entrega: sv.saldo_na_entrega,
-            data_entrega_prometida: sv.data_entrega_prometida,
-            clientes: sv.clientes || null,
-            revendedoras: sv.revendedoras || null,
-            venda_itens: sv.venda_itens || [],
-          })) as Venda[];
+          const vendasSupabase = (data || [])
+            .filter((sv: any) => {
+              if (sv.tipo_pedido === "fornada_freezer" || sv.tipo_pedido === "producao_lote") return false;
+              if (
+                Number(sv.total || 0) === 0 &&
+                sv.observacoes &&
+                (sv.observacoes.includes("fornada") || sv.observacoes.includes("lote para guardar") || sv.observacoes.includes("Assar fornada"))
+              ) {
+                return false;
+              }
+              return true;
+            })
+            .map((sv: any) => ({
+              ...sv,
+              tipo_pedido: sv.tipo_pedido ?? "pronta_entrega",
+              status_producao: sv.status_producao,
+              tipo_destino_lote: sv.tipo_destino_lote,
+              baixar_insumos_lote: sv.baixar_insumos_lote,
+              valor_sinal_pago: sv.valor_sinal_pago,
+              saldo_na_entrega: sv.saldo_na_entrega,
+              data_entrega_prometida: sv.data_entrega_prometida,
+              clientes: sv.clientes || null,
+              revendedoras: sv.revendedoras || null,
+              venda_itens: sv.venda_itens || [],
+            })) as Venda[];
 
           dadosLocais.vendas = vendasSupabase;
           gravar(dadosLocais);
@@ -412,7 +424,17 @@ export const useVendas = () => useQuery({
         console.warn("Supabase vendas aviso:", err);
       }
     }
-    return dadosLocais.vendas || [];
+    return (dadosLocais.vendas || []).filter((sv: any) => {
+      if (sv.tipo_pedido === "fornada_freezer" || sv.tipo_pedido === "producao_lote") return false;
+      if (
+        Number(sv.total || 0) === 0 &&
+        sv.observacoes &&
+        (sv.observacoes.includes("fornada") || sv.observacoes.includes("lote para guardar") || sv.observacoes.includes("Assar fornada"))
+      ) {
+        return false;
+      }
+      return true;
+    });
   }
 });
 
@@ -1324,17 +1346,84 @@ export const useAtualizarVenda = () => {
 export const useApagarVenda = () => {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (v: string) => {
-      if (isSupabaseConfigured) {
-        const { error } = await supabase.from("vendas").delete().eq("id", v);
-        if (error) throw error;
-      } else {
-        const d = ler();
-        d.vendas = d.vendas.filter((x) => x.id !== v);
-        gravar(d);
+    mutationFn: async (vendaId: string) => {
+      const dados = ler();
+      const vendasCache = qc.getQueryData<Venda[]>(chaves.vendas) || [];
+      const produtosCache = qc.getQueryData<Produto[]>(chaves.produtos) || [];
+
+      let venda = dados.vendas.find((x) => x.id === vendaId) || vendasCache.find((x) => x.id === vendaId);
+
+      // Se não encontrou no cache, buscar no Supabase com seus itens
+      if (!venda && isSupabaseConfigured) {
+        try {
+          const { data } = await supabase
+            .from("vendas")
+            .select("*, venda_itens(*)")
+            .eq("id", vendaId)
+            .maybeSingle();
+          if (data) venda = data as Venda;
+        } catch (e) {
+          console.warn("Supabase buscar venda para apagar:", e);
+        }
       }
+
+      // 1. DEVOLVER PRODUTOS AO ESTOQUE (SE PRONTA-ENTREGA OU VENDA REGISTRADA)
+      if (venda && venda.tipo_pedido !== "sob_encomenda" && venda.canal !== "revendedora") {
+        const itens = venda.venda_itens || [];
+        for (const item of itens) {
+          if (item.produto_id && Number(item.quantidade) > 0) {
+            let prod = dados.produtos.find((p) => p.id === item.produto_id) || produtosCache.find((p) => p.id === item.produto_id);
+            if (!prod && isSupabaseConfigured) {
+              try {
+                const { data } = await supabase.from("produtos").select("*").eq("id", item.produto_id).maybeSingle();
+                if (data) prod = data as Produto;
+              } catch (e) {
+                console.warn("Supabase buscar produto para devolver estoque:", e);
+              }
+            }
+
+            if (prod) {
+              const estoqueAntigo = Number(prod.estoque || 0);
+              const novoEstoque = estoqueAntigo + Number(item.quantidade);
+              prod.estoque = novoEstoque;
+
+              const idx = dados.produtos.findIndex((p) => p.id === prod!.id);
+              if (idx >= 0) {
+                dados.produtos[idx].estoque = novoEstoque;
+              } else {
+                dados.produtos.push(prod);
+              }
+
+              if (isSupabaseConfigured) {
+                try {
+                  await supabase.from("produtos").update({ estoque: novoEstoque }).eq("id", prod.id);
+                } catch (errProd) {
+                  console.warn("Supabase devolver estoque ao apagar venda:", errProd);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // 2. EXCLUIR REGISTRO DA VENDA E DE SEUS ITENS
+      if (isSupabaseConfigured) {
+        try {
+          await supabase.from("venda_itens").delete().eq("venda_id", vendaId);
+        } catch (eItens) {
+          console.warn("Supabase delete venda_itens:", eItens);
+        }
+        const { error } = await supabase.from("vendas").delete().eq("id", vendaId);
+        if (error) throw error;
+      }
+
+      dados.vendas = dados.vendas.filter((x) => x.id !== vendaId);
+      gravar(dados);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: chaves.vendas }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chaves.vendas });
+      qc.invalidateQueries({ queryKey: chaves.produtos });
+    },
   });
 };
 
