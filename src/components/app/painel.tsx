@@ -78,7 +78,7 @@ export function CartaoIndicador({
 }: {
   rotulo: string;
   valor: string;
-  detalhe?: string | undefined;
+  detalhe?: ReactNode;
   etiqueta?: string | undefined;
   tom?: Tom | undefined;
   onClick?: (() => void) | undefined;
@@ -101,7 +101,7 @@ export function CartaoIndicador({
         {etiqueta ? <Etiqueta tom={tom} className="px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-[11px]">{etiqueta}</Etiqueta> : null}
       </div>
       <p className="mt-2 sm:mt-3 font-display text-2xl sm:text-3xl font-extrabold text-[#084463] dark:text-foreground tracking-tight">{valor}</p>
-      {detalhe ? <p className="mt-1 text-[11px] sm:text-xs text-slate-500 dark:text-muted-foreground font-medium leading-tight">{detalhe}</p> : null}
+      {detalhe ? <div className="mt-1 text-[11px] sm:text-xs text-slate-500 dark:text-muted-foreground font-medium leading-tight">{detalhe}</div> : null}
     </Painel>
   );
 }

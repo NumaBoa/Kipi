@@ -118,6 +118,7 @@ export function PaginaVendas() {
   const { data: insumos = [] } = useInsumos();
   const { data: vendas = [] } = useVendas();
   const { data: remessas = [] } = useRemessasConsignacao();
+  const { data: pagamentosComissao = [] } = usePagamentosComissao();
 
   const { usuario } = useAuth();
   const revendedorVinculado = useMemo(() => {
@@ -289,6 +290,24 @@ export function PaginaVendas() {
     return validas.reduce((acc, v) => acc + calcularComissaoRevendedora(v, revendedorLogado), 0);
   }, [ehRevendedor, revendedoras, revendedorLogado, validas]);
 
+  const comissaoJaRecebidaRevendedor = useMemo(() => {
+    if (!ehRevendedor || !revendedorLogado) return 0;
+    return pagamentosComissao
+      .filter((p) => p.revendedora_id === revendedorLogado.id)
+      .reduce((acc, p) => acc + Number(p.valor || 0), 0);
+  }, [ehRevendedor, revendedorLogado, pagamentosComissao]);
+
+  const comissaoAReceberRevendedor = useMemo(() => {
+    return Math.max(0, comissaoTotalRevendedor - comissaoJaRecebidaRevendedor);
+  }, [comissaoTotalRevendedor, comissaoJaRecebidaRevendedor]);
+
+  const pagamentosDoRevendedor = useMemo(() => {
+    if (!ehRevendedor || !revendedorLogado) return [];
+    return pagamentosComissao
+      .filter((p) => p.revendedora_id === revendedorLogado.id)
+      .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  }, [ehRevendedor, revendedorLogado, pagamentosComissao]);
+
   const estoqueConsignadoRevendedor = useMemo(() => {
     if (!ehRevendedor || !revendedorLogado) return [];
     return calcularEstoqueConsignadoRevendedor(revendedorLogado.id, remessas, validas, produtos);
@@ -298,12 +317,14 @@ export function PaginaVendas() {
     return estoqueConsignadoRevendedor.reduce((s, i) => s + i.saldo_atual, 0);
   }, [estoqueConsignadoRevendedor]);
 
-  // Modais de detalhes para os KPIs clicáveis (Estoque do PDV e Saldos a Baixar)
+  // Modais de detalhes para os KPIs clicáveis (Estoque do PDV, Saldos a Baixar e Extrato de Comissão)
   const [modalEstoquePdv, setModalEstoquePdv] = useState(false);
   const [buscaEstoqueModal, setBuscaEstoqueModal] = useState("");
 
   const [modalSaldosPendentes, setModalSaldosPendentes] = useState(false);
   const [buscaSaldosModal, setBuscaSaldosModal] = useState("");
+
+  const [modalComissaoRevendedor, setModalComissaoRevendedor] = useState(false);
 
   const produtosEstoqueModal = useMemo(() => {
     if (!buscaEstoqueModal.trim()) return estoqueConsignadoRevendedor;
@@ -1056,19 +1077,32 @@ export function PaginaVendas() {
         />
         <CartaoIndicador
           rotulo={ehRevendedor ? "Minha Comissão" : "A Receber na Entrega"}
-          valor={ehRevendedor ? brl(comissaoTotalRevendedor) : brl(totalAReceber)}
+          valor={ehRevendedor ? brl(comissaoAReceberRevendedor) : brl(totalAReceber)}
           detalhe={
-            ehRevendedor
-              ? revendedorLogado?.tipo_comissao === "valor_fixo"
-                ? `${brl(revendedorLogado.comissao_fixa || 0)} por unidade vendida`
-                : `${revendedorLogado?.comissao_percentual || 0}% sobre o total vendido`
-              : totalAReceber > 0
-              ? "👉 Clique para ver clientes pendentes"
-              : "Saldos pendentes de encomendas"
+            ehRevendedor ? (
+              <div className="space-y-0.5">
+                <div className="text-slate-600 dark:text-slate-300">
+                  Já recebi: <strong className="font-bold text-emerald-600 dark:text-emerald-400">{brl(comissaoJaRecebidaRevendedor)}</strong>
+                </div>
+                <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                  Total acumulado: <strong className="font-semibold text-slate-600 dark:text-slate-400">{brl(comissaoTotalRevendedor)}</strong> (recebido + a receber)
+                </div>
+              </div>
+            ) : totalAReceber > 0 ? (
+              "👉 Clique para ver clientes pendentes"
+            ) : (
+              "Saldos pendentes de encomendas"
+            )
           }
-          etiqueta={ehRevendedor ? "comissão" : "saldo"}
-          tom={ehRevendedor ? "brand" : totalAReceber > 0 ? "warning" : "neutro"}
-          onClick={!ehRevendedor && totalAReceber > 0 ? () => setModalSaldosPendentes(true) : undefined}
+          etiqueta={ehRevendedor ? (comissaoAReceberRevendedor > 0 ? "a receber" : "em dia") : "saldo"}
+          tom={ehRevendedor ? (comissaoAReceberRevendedor > 0 ? "warning" : "success") : totalAReceber > 0 ? "warning" : "neutro"}
+          onClick={
+            ehRevendedor
+              ? () => setModalComissaoRevendedor(true)
+              : totalAReceber > 0
+              ? () => setModalSaldosPendentes(true)
+              : undefined
+          }
         />
         <CartaoIndicador
           rotulo={ehRevendedor ? "Saldos a Baixar / Receber" : "Encomendas em Fila"}
@@ -2542,6 +2576,121 @@ export function PaginaVendas() {
               }}
             >
               <Plus className="size-4" /> Realizar Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: EXTRATO E HISTÓRICO DE COMISSÃO DO REVENDEDOR */}
+      <Dialog open={modalComissaoRevendedor} onOpenChange={setModalComissaoRevendedor}>
+        <DialogContent className="w-[95vw] sm:max-w-lg rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="size-11 rounded-2xl bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0 shadow-xs">
+                <DollarSign className="size-5" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg sm:text-xl font-black text-slate-900 dark:text-foreground">
+                  Extrato de Comissões
+                </DialogTitle>
+                <DialogDescription>
+                  {revendedorLogado?.nome || "Revendedor"} — Acompanhamento de comissões e repasses
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {/* CARDS DE RESUMO FINANCEIRO */}
+            <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 rounded-2xl">
+              <div>
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 block uppercase tracking-wider">
+                  A Receber
+                </span>
+                <strong className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 block">
+                  {brl(comissaoAReceberRevendedor)}
+                </strong>
+                <span className="text-[10px] text-slate-500 block">Pendente</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 block uppercase tracking-wider">
+                  Já Recebido
+                </span>
+                <strong className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 block">
+                  {brl(comissaoJaRecebidaRevendedor)}
+                </strong>
+                <span className="text-[10px] text-slate-500 block">
+                  {pagamentosDoRevendedor.length} {pagamentosDoRevendedor.length === 1 ? "repasse" : "repasses"}
+                </span>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 block uppercase tracking-wider">
+                  Total Gerado
+                </span>
+                <strong className="text-base sm:text-lg font-black text-slate-900 dark:text-foreground block">
+                  {brl(comissaoTotalRevendedor)}
+                </strong>
+                <span className="text-[10px] text-slate-400 block">Acumulado</span>
+              </div>
+            </div>
+
+            {/* REGRA DE COMISSIONAMENTO */}
+            <div className="text-xs p-3 rounded-xl bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Sua Regra de Comissão:</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">
+                {revendedorLogado?.tipo_comissao === "valor_fixo"
+                  ? `${brl(revendedorLogado.comissao_fixa || 0)} por unidade vendida`
+                  : `${revendedorLogado?.comissao_percentual || 0}% sobre vendas`}
+              </span>
+            </div>
+
+            {/* HISTÓRICO DE REPASSES */}
+            <div>
+              <Label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                Histórico de Repasses Recebidos ({pagamentosDoRevendedor.length})
+              </Label>
+              {pagamentosDoRevendedor.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
+                  Nenhum repasse ou acerto registrado até o momento.
+                </div>
+              ) : (
+                <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1">
+                  {pagamentosDoRevendedor.map((p) => (
+                    <div
+                      key={p.id}
+                      className="p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-card flex items-center justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <CheckCircle2 className="size-3.5 text-emerald-600" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            {dataHora(p.data)}
+                          </span>
+                        </div>
+                        {p.observacoes ? (
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {p.observacoes}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                        {brl(p.valor)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setModalComissaoRevendedor(false)}
+            >
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>
