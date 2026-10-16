@@ -56,7 +56,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { brl, num, formatarTelefone } from "@/lib/format";
+import { brl, num, formatarTelefone, formatarDataSemFuso } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import {
   calcularComissaoRevendedora,
@@ -677,7 +677,9 @@ export function PaginaContatos() {
     }
 
     try {
-      const dataIso = dataRemessa ? new Date(dataRemessa).toISOString() : new Date().toISOString();
+      const dataIso = dataRemessa
+        ? new Date(`${dataRemessa}T12:00:00`).toISOString()
+        : new Date().toISOString();
       const obs = obsRemessa.trim() || null;
       let totalPecas = 0;
 
@@ -947,7 +949,9 @@ export function PaginaContatos() {
       await salvarPagamentoComissao.mutateAsync({
         revendedora_id: parceiroAcerto.id,
         valor: Number(valorAcerto),
-        data: dataAcerto ? new Date(dataAcerto).toISOString() : new Date().toISOString(),
+        data: dataAcerto
+          ? new Date(`${dataAcerto}T12:00:00`).toISOString()
+          : new Date().toISOString(),
         observacoes: obsFinal,
       });
 
@@ -2573,11 +2577,7 @@ export function PaginaContatos() {
                   ) : (
                     <div className="divide-y divide-slate-100 bg-white border border-slate-200 rounded-2xl overflow-hidden max-h-48 overflow-y-auto">
                       {pagamentosRev.map((pag) => {
-                        const dataFormatada = new Date(pag.data).toLocaleDateString("pt-BR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                        });
+                        const dataFormatada = formatarDataSemFuso(pag.data);
                         return (
                           <div key={pag.id} className="p-2.5 flex items-center justify-between gap-2 text-xs">
                             <div>
@@ -2957,11 +2957,7 @@ export function PaginaContatos() {
               return (
                 <div className="divide-y divide-slate-100 bg-white border border-slate-200 rounded-2xl overflow-hidden">
                   {remessasRev.map((r) => {
-                    const dataFormatada = new Date(r.data).toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    });
+                    const dataFormatada = formatarDataSemFuso(r.data);
                     return (
                       <div key={r.id} className="p-3 flex items-center justify-between gap-3 text-xs">
                         <div>
