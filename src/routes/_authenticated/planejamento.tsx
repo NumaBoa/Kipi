@@ -46,11 +46,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { brl } from "@/lib/format";
+import { brl, dataHora } from "@/lib/format";
 import {
   useAjustarEstoqueAssado,
   useAssarFornada,
   useClientes,
+  useHistoricoProducao,
   useInsumos,
   useProduzirLoteEstoque,
   useProdutos,
@@ -61,6 +62,7 @@ import {
   useVendas,
   verificarIngredientesSuficientes,
   type Cliente,
+  type HistoricoProducao,
   type Insumo,
   type Produto,
   type Revendedora,
@@ -92,6 +94,7 @@ export function PaginaPlanejamento() {
   const { data: vendas = [] } = useVendas();
   const { data: revendedoras = [] } = useRevendedoras();
   const { data: clientes = [] } = useClientes();
+  const { data: historico = [] } = useHistoricoProducao();
 
   const assarFornada = useAssarFornada();
   const produzirMassas = useProduzirLoteEstoque();
@@ -103,6 +106,7 @@ export function PaginaPlanejamento() {
   const [busca, setBusca] = useState("");
   const [mostrarApenasAtivos, setMostrarApenasAtivos] = useState(true);
   const [expandirEncomendas, setExpandirEncomendas] = useState(false);
+  const [expandirHistorico, setExpandirHistorico] = useState(true);
 
   // Modal 1: Produzir massas para congelar
   const [modalProduzir, setModalProduzir] = useState(false);
@@ -781,6 +785,123 @@ export function PaginaPlanejamento() {
           )}
         </div>
       )}
+
+      {/* ========================================================= */}
+      {/* SEÇÃO: HISTÓRICO DE PRODUÇÃO & FORNADAS                   */}
+      {/* ========================================================= */}
+      <div className="mt-4 bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs">
+        <div
+          className="flex items-center justify-between cursor-pointer select-none"
+          onClick={() => setExpandirHistorico(!expandirHistorico)}
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="p-2 rounded-xl bg-amber-100 text-amber-900">
+              <Clock className="size-5" />
+            </span>
+            <div>
+              <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+                Histórico de Fornadas e Produção
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                  {historico.length} {historico.length === 1 ? "registro" : "registros"}
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                Extrato com data e hora de massas batidas para o freezer e fornadas assadas para a vitrine.
+              </p>
+            </div>
+          </div>
+
+          <Button variant="ghost" size="sm" className="rounded-xl text-slate-500">
+            {expandirHistorico ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          </Button>
+        </div>
+
+        {expandirHistorico && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            {historico.length === 0 ? (
+              <div className="text-center py-8 text-xs text-slate-400 font-medium space-y-2">
+                <Clock className="size-8 mx-auto text-slate-300" />
+                <p>Nenhuma produção ou fornada registrada ainda.</p>
+                <p className="text-[11px] text-slate-400">Ao bater massas ou assar fornadas, cada evento com data e hora exata aparecerá aqui.</p>
+              </div>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {historico.slice(0, 18).map((h) => {
+                  const ehFreezer = h.tipo === "bater_massa";
+                  const ehVitrine = h.tipo === "assar_fornada";
+                  const ehPerda = h.tipo === "descarte_perda";
+
+                  return (
+                    <div
+                      key={h.id}
+                      className={`p-3 rounded-2xl border flex items-center justify-between gap-3 text-xs transition-all ${
+                        ehFreezer
+                          ? "bg-sky-50/50 border-sky-200/80 hover:bg-sky-50"
+                          : ehVitrine
+                          ? "bg-amber-50/50 border-amber-200/80 hover:bg-amber-50"
+                          : "bg-rose-50/50 border-rose-200/80 hover:bg-rose-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span
+                          className={`p-2 rounded-xl shrink-0 ${
+                            ehFreezer
+                              ? "bg-sky-100 text-sky-700"
+                              : ehVitrine
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-rose-100 text-rose-700"
+                          }`}
+                        >
+                          {ehFreezer ? (
+                            <Snowflake className="size-4" />
+                          ) : ehVitrine ? (
+                            <Flame className="size-4" />
+                          ) : (
+                            <MinusCircle className="size-4" />
+                          )}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-extrabold text-slate-900 truncate">
+                            {h.nome_produto}
+                          </h4>
+                          <span className="text-[11px] font-semibold text-slate-500 block">
+                            {dataHora(h.created_at)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span
+                          className={`font-black text-sm block ${
+                            ehFreezer
+                              ? "text-sky-800"
+                              : ehVitrine
+                              ? "text-amber-900"
+                              : "text-rose-700"
+                          }`}
+                        >
+                          {ehPerda ? `-${h.quantidade}` : `+${h.quantidade}`} un
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full inline-block ${
+                            ehFreezer
+                              ? "bg-sky-100 text-sky-800 border border-sky-200"
+                              : ehVitrine
+                              ? "bg-amber-100 text-amber-900 border border-amber-200"
+                              : "bg-rose-100 text-rose-800 border border-rose-200"
+                          }`}
+                        >
+                          {ehFreezer ? "❄️ No Freezer" : ehVitrine ? "🔥 Na Vitrine" : "🗑️ Descarte"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ========================================================= */}
       {/* MODAL 1: PRODUZIR MASSAS CRUAS PARA O FREEZER              */}

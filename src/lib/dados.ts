@@ -140,6 +140,17 @@ export type AlertaReposicaoConsignado = {
 
 export type ItemCarrinho = { produto: Produto; quantidade: number; com_desconto?: boolean | undefined };
 
+export type HistoricoProducao = {
+  id: string;
+  empresa_id?: string | undefined;
+  tipo: "bater_massa" | "assar_fornada" | "descarte_perda";
+  produto_id?: string | null | undefined;
+  nome_produto: string;
+  quantidade: number;
+  observacoes?: string | null | undefined;
+  created_at: string;
+};
+
 type Dados = {
   insumos: Insumo[];
   produtos: Produto[];
@@ -150,6 +161,7 @@ type Dados = {
   pagamentos_comissao: PagamentoComissao[];
   categorias: Categoria[];
   remessas_consignacao: RemessaConsignacao[];
+  historico_producao: HistoricoProducao[];
 };
 
 const CHAVE = "meu-atelie-dados-v10";
@@ -165,6 +177,7 @@ const iniciais: Dados = {
   pagamentos_comissao: [],
   receitas: [],
   vendas: [],
+  historico_producao: [],
 };
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
@@ -197,6 +210,7 @@ function ler(): Dados {
     if (!d.pagamentos_comissao) d.pagamentos_comissao = [];
     if (!d.categorias) d.categorias = [];
     if (!d.remessas_consignacao) d.remessas_consignacao = [];
+    if (!d.historico_producao) d.historico_producao = [];
     if (d.produtos) d.produtos = d.produtos.filter((p: any) => p?.id && !p.id.startsWith("cookie-"));
     if (d.insumos) d.insumos = d.insumos.filter((i: any) => i?.id && !i.id.startsWith("ins-"));
     if (d.receitas) d.receitas = d.receitas.filter((r: any) => r?.id && !r.id.startsWith("rec-"));
@@ -219,6 +233,7 @@ export const chaves = {
   pagamentos_comissao: ["pagamentos_comissao"] as const,
   categorias: ["categorias"] as const,
   remessas_consignacao: ["remessas_consignacao"] as const,
+  historico_producao: ["historico_producao"] as const,
 };
 
 // HOOKS DE CONSULTA (SUPABASE + LOCALSTORAGE FALLBACK)
@@ -467,6 +482,33 @@ export const useRemessasConsignacao = () => useQuery({
       }
     }
     return ler().remessas_consignacao || [];
+  }
+});
+
+export const useHistoricoProducao = () => useQuery({
+  queryKey: [...chaves.historico_producao, obterEmpresaAtivaId()],
+  queryFn: async () => {
+    const dadosLocais = ler();
+    if (isSupabaseConfigured) {
+      try {
+        const empId = obterEmpresaAtivaId();
+        const { data, error } = await supabase
+          .from("historico_producao")
+          .select("*")
+          .or(`empresa_id.eq.${empId},empresa_id.is.null`)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (!error && data) {
+          const hist = data as HistoricoProducao[];
+          dadosLocais.historico_producao = hist;
+          gravar(dadosLocais);
+          return hist;
+        }
+      } catch (err) {
+        console.warn("Supabase historico_producao aviso:", err);
+      }
+    }
+    return dadosLocais.historico_producao || [];
   }
 });
 
@@ -1486,6 +1528,33 @@ export function useProduzirLoteEstoque() {
             }
           }
         }
+
+        const novoHist: HistoricoProducao = {
+          id: id(),
+          empresa_id: obterEmpresaAtivaId(),
+          tipo: tipoDestino === "congelado" ? "bater_massa" : "assar_fornada",
+          produto_id: prod.id,
+          nome_produto: prod.nome,
+          quantidade: quantidadeProduzida,
+          observacoes: tipoDestino === "congelado" ? "Massas cruas guardadas no freezer" : "Produção direta para vitrine",
+          created_at: new Date().toISOString(),
+        };
+        dados.historico_producao = [novoHist, ...(dados.historico_producao || [])].slice(0, 100);
+
+        if (isSupabaseConfigured) {
+          try {
+            await supabase.from("historico_producao").insert({
+              empresa_id: obterEmpresaAtivaId(),
+              tipo: novoHist.tipo,
+              produto_id: prod.id,
+              nome_produto: prod.nome,
+              quantidade: quantidadeProduzida,
+              observacoes: novoHist.observacoes,
+            });
+          } catch (e) {
+            console.warn("Supabase historico_producao insert:", e);
+          }
+        }
       }
 
       if (baixarMateriais && prod) {
@@ -1514,6 +1583,7 @@ export function useProduzirLoteEstoque() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: chaves.produtos });
       qc.invalidateQueries({ queryKey: chaves.insumos });
+      qc.invalidateQueries({ queryKey: chaves.historico_producao });
     },
   });
 }
@@ -1553,6 +1623,19 @@ export function useAssarFornada() {
         const congeladoAtual = Number(prod.estoque_congelado || 0);
         prod.estoque_congelado = Math.max(0, congeladoAtual - quantidadeAssada);
         prod.estoque = (Number(prod.estoque) || 0) + quantidadeAssada;
+
+        const novoHist: HistoricoProducao = {
+          id: id(),
+          empresa_id: obterEmpresaAtivaId(),
+          tipo: "assar_fornada",
+          produto_id: prod.id,
+          nome_produto: prod.nome,
+          quantidade: quantidadeAssada,
+          observacoes: "Fornada assada do freezer para a vitrine",
+          created_at: new Date().toISOString(),
+        };
+        dados.historico_producao = [novoHist, ...(dados.historico_producao || [])].slice(0, 100);
+
         gravar(dados);
 
         if (isSupabaseConfigured) {
@@ -1561,8 +1644,17 @@ export function useAssarFornada() {
               estoque: prod.estoque,
               estoque_congelado: prod.estoque_congelado,
             }).eq("id", prod.id);
+
+            await supabase.from("historico_producao").insert({
+              empresa_id: obterEmpresaAtivaId(),
+              tipo: "assar_fornada",
+              produto_id: prod.id,
+              nome_produto: prod.nome,
+              quantidade: quantidadeAssada,
+              observacoes: novoHist.observacoes,
+            });
           } catch (e) {
-            console.warn("Supabase update estoque:", e);
+            console.warn("Supabase update estoque/historico aviso:", e);
           }
         }
       }
@@ -1570,6 +1662,7 @@ export function useAssarFornada() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: chaves.produtos });
+      qc.invalidateQueries({ queryKey: chaves.historico_producao });
     },
   });
 }
@@ -1595,13 +1688,35 @@ export function useAjustarEstoqueAssado() {
           prod = dados.produtos[idx];
         }
         prod.estoque = Math.max(0, (Number(prod.estoque) || 0) - quantidadePerda);
+
+        const novoHist: HistoricoProducao = {
+          id: id(),
+          empresa_id: obterEmpresaAtivaId(),
+          tipo: "descarte_perda",
+          produto_id: prod.id,
+          nome_produto: prod.nome,
+          quantidade: quantidadePerda,
+          observacoes: "Descarte de assados na vitrine (quebra/perda)",
+          created_at: new Date().toISOString(),
+        };
+        dados.historico_producao = [novoHist, ...(dados.historico_producao || [])].slice(0, 100);
+
         gravar(dados);
 
         if (isSupabaseConfigured) {
           try {
             await supabase.from("produtos").update({ estoque: prod.estoque }).eq("id", prod.id);
+
+            await supabase.from("historico_producao").insert({
+              empresa_id: obterEmpresaAtivaId(),
+              tipo: "descarte_perda",
+              produto_id: prod.id,
+              nome_produto: prod.nome,
+              quantidade: quantidadePerda,
+              observacoes: novoHist.observacoes,
+            });
           } catch (e) {
-            console.warn("Supabase update estoque:", e);
+            console.warn("Supabase update estoque/historico perda aviso:", e);
           }
         }
       }
@@ -1609,6 +1724,7 @@ export function useAjustarEstoqueAssado() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: chaves.produtos });
+      qc.invalidateQueries({ queryKey: chaves.historico_producao });
     },
   });
 }
