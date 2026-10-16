@@ -49,7 +49,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { brl, dataHora, formatarTelefone, num } from "@/lib/format";
+import { brl, dataHora, formatarDataSemFuso, formatarTelefone, num } from "@/lib/format";
 import { useAuth } from "@/lib/auth";
 import {
   calcularComissaoEstimadaCarrinho,
@@ -150,6 +150,12 @@ export function PaginaVendas() {
   const [modalNovoPedido, setModalNovoPedido] = useState(false);
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "pronta_entrega" | "sob_encomenda" | "saldo_pendente">("todos");
   const [busca, setBusca] = useState("");
+
+  // Filtro por Período de Pedidos (solicitado pelo usuário)
+  type PeriodoFiltro = "todos" | "hoje" | "ontem" | "7dias" | "mes" | "personalizado";
+  const [filtroPeriodo, setFiltroPeriodo] = useState<PeriodoFiltro>("todos");
+  const [dataInicioFiltro, setDataInicioFiltro] = useState<string>("");
+  const [dataFimFiltro, setDataFimFiltro] = useState<string>("");
 
   // Abrir direto via atalho de busca
   useEffect(() => {
@@ -686,9 +692,87 @@ export function PaginaVendas() {
     }
   };
 
-  // Filtragem de pedidos
+  // Função para verificar se a venda pertence ao período selecionado
+  const vendaNoPeriodo = (v: Venda, periodo: PeriodoFiltro, dataIni: string, dataFim: string) => {
+    if (periodo === "todos") return true;
+
+    const d = new Date(v.data);
+    const tVenda = d.getTime();
+
+    const agora = new Date();
+    const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 0, 0, 0, 0);
+    const fimHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 59, 59, 999);
+
+    if (periodo === "hoje") {
+      return tVenda >= inicioHoje.getTime() && tVenda <= fimHoje.getTime();
+    }
+
+    if (periodo === "ontem") {
+      const inicioOntem = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1, 0, 0, 0, 0);
+      const fimOntem = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 1, 23, 59, 59, 999);
+      return tVenda >= inicioOntem.getTime() && tVenda <= fimOntem.getTime();
+    }
+
+    if (periodo === "7dias") {
+      const inicio7 = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() - 6, 0, 0, 0, 0);
+      return tVenda >= inicio7.getTime() && tVenda <= fimHoje.getTime();
+    }
+
+    if (periodo === "mes") {
+      const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1, 0, 0, 0, 0);
+      const fimMes = new Date(agora.getFullYear(), agora.getMonth() + 1, 0, 23, 59, 59, 999);
+      return tVenda >= inicioMes.getTime() && tVenda <= fimMes.getTime();
+    }
+
+    if (periodo === "personalizado") {
+      if (!dataIni && !dataFim) return true;
+
+      let tInicio = 0;
+      let tFim = Infinity;
+
+      if (dataIni) {
+        const [ano, mes, dia] = dataIni.split("-").map(Number);
+        if (ano && mes && dia) {
+          tInicio = new Date(ano, mes - 1, dia, 0, 0, 0, 0).getTime();
+        }
+      }
+      if (dataFim) {
+        const [ano, mes, dia] = dataFim.split("-").map(Number);
+        if (ano && mes && dia) {
+          tFim = new Date(ano, mes - 1, dia, 23, 59, 59, 999).getTime();
+        }
+      }
+
+      return tVenda >= tInicio && tVenda <= tFim;
+    }
+
+    return true;
+  };
+
+  // Vendas filtradas pelo período selecionado
+  const vendasNoPeriodo = useMemo(() => {
+    return validas.filter((v) => vendaNoPeriodo(v, filtroPeriodo, dataInicioFiltro, dataFimFiltro));
+  }, [validas, filtroPeriodo, dataInicioFiltro, dataFimFiltro]);
+
+  const rotuloPeriodo = useMemo(() => {
+    if (filtroPeriodo === "hoje") return "Hoje";
+    if (filtroPeriodo === "ontem") return "Ontem";
+    if (filtroPeriodo === "7dias") return "Últimos 7 dias";
+    if (filtroPeriodo === "mes") return "Este Mês";
+    if (filtroPeriodo === "personalizado") {
+      if (dataInicioFiltro && dataFimFiltro) {
+        return `${formatarDataSemFuso(dataInicioFiltro)} a ${formatarDataSemFuso(dataFimFiltro)}`;
+      }
+      if (dataInicioFiltro) return `A partir de ${formatarDataSemFuso(dataInicioFiltro)}`;
+      if (dataFimFiltro) return `Até ${formatarDataSemFuso(dataFimFiltro)}`;
+      return "Personalizado";
+    }
+    return "Todo o Histórico";
+  }, [filtroPeriodo, dataInicioFiltro, dataFimFiltro]);
+
+  // Filtragem combinada de pedidos (Período + Tipo + Busca)
   const pedidosFiltrados = useMemo(() => {
-    return validas.filter((v) => {
+    return vendasNoPeriodo.filter((v) => {
       // Filtro tipo
       if (filtroTipo === "pronta_entrega" && v.tipo_pedido !== "pronta_entrega") return false;
       if (filtroTipo === "sob_encomenda" && v.tipo_pedido !== "sob_encomenda") return false;
@@ -706,7 +790,30 @@ export function PaginaVendas() {
       }
       return true;
     });
-  }, [validas, filtroTipo, busca]);
+  }, [vendasNoPeriodo, filtroTipo, busca]);
+
+  // Contagens no período selecionado
+  const qtdProntaEntregaPeriodo = useMemo(
+    () => vendasNoPeriodo.filter((v) => v.tipo_pedido === "pronta_entrega").length,
+    [vendasNoPeriodo]
+  );
+  const qtdSobEncomendaPeriodo = useMemo(
+    () => vendasNoPeriodo.filter((v) => v.tipo_pedido === "sob_encomenda").length,
+    [vendasNoPeriodo]
+  );
+  const qtdSaldoPendentePeriodo = useMemo(
+    () => vendasNoPeriodo.filter((v) => Number(v.saldo_na_entrega) > 0 || v.pagamento === "pendente" || v.status === "pendente").length,
+    [vendasNoPeriodo]
+  );
+
+  const totalFiltradoValor = useMemo(
+    () => pedidosFiltrados.reduce((s, v) => s + Number(v.total || 0), 0),
+    [pedidosFiltrados]
+  );
+  const saldoPendenteFiltradoValor = useMemo(
+    () => pedidosFiltrados.reduce((s, v) => s + Number(v.saldo_na_entrega || 0), 0),
+    [pedidosFiltrados]
+  );
 
   // Indicadores
   const totalFaturado = validas.reduce((s, v) => s + Number(v.total || 0), 0);
@@ -1080,9 +1187,21 @@ export function PaginaVendas() {
       {/* CARDS DE INDICADORES */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         <CartaoIndicador
-          rotulo={ehRevendedor ? "Minhas Vendas Realizadas" : "Total Vendido"}
-          valor={brl(totalFaturado)}
-          detalhe={`${validas.length} pedidos ${ehRevendedor ? "no meu ponto de venda" : "no total"}`}
+          rotulo={
+            filtroPeriodo === "todos"
+              ? (ehRevendedor ? "Minhas Vendas Realizadas" : "Total Vendido")
+              : (ehRevendedor ? `Vendas (${rotuloPeriodo})` : `Vendido (${rotuloPeriodo})`)
+          }
+          valor={
+            filtroPeriodo === "todos"
+              ? brl(totalFaturado)
+              : brl(vendasNoPeriodo.reduce((s, v) => s + Number(v.total || 0), 0))
+          }
+          detalhe={
+            filtroPeriodo === "todos"
+              ? `${validas.length} pedidos ${ehRevendedor ? "no meu ponto de venda" : "no total"}`
+              : `${vendasNoPeriodo.length} pedidos no período selecionado`
+          }
           etiqueta="faturamento"
           tom="brand"
         />
@@ -1303,70 +1422,189 @@ export function PaginaVendas() {
         </div>
       </section>
 
-      {/* FILTROS E BUSCA */}
-      <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 items-stretch md:items-center justify-between mt-2">
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
-          <Button
-            size="sm"
-            variant={filtroTipo === "todos" ? "default" : "outline"}
-            className={filtroTipo === "todos" ? "bg-[#084463] text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
-            onClick={() => setFiltroTipo("todos")}
-          >
-            Todos ({validas.length})
-          </Button>
-          <Button
-            size="sm"
-            variant={filtroTipo === "pronta_entrega" ? "default" : "outline"}
-            className={filtroTipo === "pronta_entrega" ? "bg-[#084463] text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
-            onClick={() => setFiltroTipo("pronta_entrega")}
-          >
-            🛍️ Pronta-Entrega ({qtdProntaEntrega})
-          </Button>
-          <Button
-            size="sm"
-            variant={filtroTipo === "sob_encomenda" ? "default" : "outline"}
-            className={filtroTipo === "sob_encomenda" ? "bg-[#084463] text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
-            onClick={() => setFiltroTipo("sob_encomenda")}
-          >
-            📅 Sob Encomenda ({validas.filter((v) => v.tipo_pedido === "sob_encomenda").length})
-          </Button>
-          <Button
-            size="sm"
-            variant={filtroTipo === "saldo_pendente" ? "default" : "outline"}
-            className={filtroTipo === "saldo_pendente" ? "bg-amber-600 text-white font-bold h-8 sm:h-9 text-xs px-2.5 sm:px-3" : "rounded-xl text-amber-700 border-amber-300 h-8 sm:h-9 text-xs px-2.5 sm:px-3"}
-            onClick={() => setFiltroTipo("saldo_pendente")}
-          >
-            ⚠️ Saldo a Receber ({validas.filter((v) => Number(v.saldo_na_entrega) > 0).length})
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <div className="w-full md:w-64">
+      {/* BARRA DE FILTROS, BUSCA E PERÍODO */}
+      <div className="bg-white dark:bg-card border border-slate-200/90 dark:border-border/60 rounded-2xl sm:rounded-3xl p-3 sm:p-4 shadow-xs space-y-3 mt-2">
+        {/* LINHA 1: BUSCA + AÇÕES PRINCIPAIS */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
             <Input
-              placeholder="Buscar por cliente ou item..."
+              placeholder="Buscar por cliente, produto ou observação..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              className="rounded-xl border-slate-300 h-9 sm:h-10 text-xs sm:text-sm"
+              className="pl-9 pr-7 rounded-xl border-slate-200 h-9 sm:h-10 text-xs sm:text-sm bg-slate-50/50 focus:bg-white transition-all"
             />
+            {busca && (
+              <button
+                type="button"
+                onClick={() => setBusca("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 px-1 font-bold"
+                title="Limpar busca"
+              >
+                ✕
+              </button>
+            )}
           </div>
-          {ehRevendedor && (
+
+          <div className="flex items-center gap-2 shrink-0">
+            {ehRevendedor && (
+              <Button
+                type="button"
+                onClick={() => setModalCopiarVendas(true)}
+                className="rounded-xl gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0 cursor-pointer"
+                title="Copiar relatório de vendas para WhatsApp por período"
+              >
+                <Copy className="size-4" />
+                <span className="hidden sm:inline">Copiar Vendas</span>
+                <span className="sm:hidden">Copiar</span>
+              </Button>
+            )}
             <Button
-              type="button"
-              onClick={() => setModalCopiarVendas(true)}
-              className="rounded-xl gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0 cursor-pointer"
-              title="Copiar relatório de vendas para WhatsApp por período"
+              className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0"
+              onClick={abrirNovoPedido}
             >
-              <Copy className="size-4" />
-              <span className="hidden sm:inline">Copiar Vendas</span>
-              <span className="sm:hidden">Copiar</span>
+              <Plus className="size-4" /> Novo Pedido
             </Button>
+          </div>
+        </div>
+
+        {/* LINHA 2: FILTRO DE PERÍODO (HOJE, ONTEM, 7 DIAS, MÊS, PERSONALIZADO) */}
+        <div className="pt-2 border-t border-slate-100 dark:border-border/40 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 mr-1">
+              <Calendar className="size-3.5 text-[#084463]" /> Período:
+            </span>
+            <Button
+              size="sm"
+              variant={filtroPeriodo === "todos" ? "default" : "outline"}
+              className={filtroPeriodo === "todos" ? "bg-[#084463] text-white font-bold h-7 sm:h-8 text-xs px-2.5 rounded-lg" : "h-7 sm:h-8 text-xs px-2.5 rounded-lg text-slate-600"}
+              onClick={() => setFiltroPeriodo("todos")}
+            >
+              Todos
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroPeriodo === "hoje" ? "default" : "outline"}
+              className={filtroPeriodo === "hoje" ? "bg-[#084463] text-white font-bold h-7 sm:h-8 text-xs px-2.5 rounded-lg" : "h-7 sm:h-8 text-xs px-2.5 rounded-lg text-slate-600"}
+              onClick={() => setFiltroPeriodo("hoje")}
+            >
+              Hoje
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroPeriodo === "ontem" ? "default" : "outline"}
+              className={filtroPeriodo === "ontem" ? "bg-[#084463] text-white font-bold h-7 sm:h-8 text-xs px-2.5 rounded-lg" : "h-7 sm:h-8 text-xs px-2.5 rounded-lg text-slate-600"}
+              onClick={() => setFiltroPeriodo("ontem")}
+            >
+              Ontem
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroPeriodo === "7dias" ? "default" : "outline"}
+              className={filtroPeriodo === "7dias" ? "bg-[#084463] text-white font-bold h-7 sm:h-8 text-xs px-2.5 rounded-lg" : "h-7 sm:h-8 text-xs px-2.5 rounded-lg text-slate-600"}
+              onClick={() => setFiltroPeriodo("7dias")}
+            >
+              Últimos 7 dias
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroPeriodo === "mes" ? "default" : "outline"}
+              className={filtroPeriodo === "mes" ? "bg-[#084463] text-white font-bold h-7 sm:h-8 text-xs px-2.5 rounded-lg" : "h-7 sm:h-8 text-xs px-2.5 rounded-lg text-slate-600"}
+              onClick={() => setFiltroPeriodo("mes")}
+            >
+              Este Mês
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroPeriodo === "personalizado" ? "default" : "outline"}
+              className={filtroPeriodo === "personalizado" ? "bg-[#084463] text-white font-bold h-7 sm:h-8 text-xs px-2.5 rounded-lg" : "h-7 sm:h-8 text-xs px-2.5 rounded-lg text-slate-600"}
+              onClick={() => setFiltroPeriodo("personalizado")}
+            >
+              Personalizado...
+            </Button>
+          </div>
+
+          {/* CAMPOS DE DATA PARA O PERÍODO PERSONALIZADO */}
+          {filtroPeriodo === "personalizado" && (
+            <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-muted/40 p-1.5 px-2.5 rounded-xl border border-slate-200 dark:border-border/60 text-xs">
+              <span className="font-semibold text-slate-500">De:</span>
+              <Input
+                type="date"
+                value={dataInicioFiltro}
+                onChange={(e) => setDataInicioFiltro(e.target.value)}
+                className="h-7 text-xs w-32 px-2 rounded-lg bg-white"
+              />
+              <span className="font-semibold text-slate-500">Até:</span>
+              <Input
+                type="date"
+                value={dataFimFiltro}
+                onChange={(e) => setDataFimFiltro(e.target.value)}
+                className="h-7 text-xs w-32 px-2 rounded-lg bg-white"
+              />
+              {(dataInicioFiltro || dataFimFiltro) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDataInicioFiltro("");
+                    setDataFimFiltro("");
+                  }}
+                  className="text-xs text-rose-600 hover:underline font-bold ml-1"
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
           )}
-          <Button
-            className="rounded-xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm shrink-0"
-            onClick={abrirNovoPedido}
-          >
-            <Plus className="size-4" /> Novo Pedido
-          </Button>
+        </div>
+
+        {/* LINHA 3: FILTRO POR TIPO (TODOS, PRONTA-ENTREGA, SOB ENCOMENDA, SALDO A RECEBER) */}
+        <div className="pt-2 border-t border-slate-100 dark:border-border/40 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            <Button
+              size="sm"
+              variant={filtroTipo === "todos" ? "default" : "outline"}
+              className={filtroTipo === "todos" ? "bg-[#084463] text-white font-bold h-8 text-xs px-2.5 sm:px-3 rounded-xl" : "rounded-xl h-8 text-xs px-2.5 sm:px-3"}
+              onClick={() => setFiltroTipo("todos")}
+            >
+              Todos ({vendasNoPeriodo.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroTipo === "pronta_entrega" ? "default" : "outline"}
+              className={filtroTipo === "pronta_entrega" ? "bg-[#084463] text-white font-bold h-8 text-xs px-2.5 sm:px-3 rounded-xl" : "rounded-xl h-8 text-xs px-2.5 sm:px-3"}
+              onClick={() => setFiltroTipo("pronta_entrega")}
+            >
+              🛍️ Pronta-Entrega ({qtdProntaEntregaPeriodo})
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroTipo === "sob_encomenda" ? "default" : "outline"}
+              className={filtroTipo === "sob_encomenda" ? "bg-[#084463] text-white font-bold h-8 text-xs px-2.5 sm:px-3 rounded-xl" : "rounded-xl h-8 text-xs px-2.5 sm:px-3"}
+              onClick={() => setFiltroTipo("sob_encomenda")}
+            >
+              📅 Sob Encomenda ({qtdSobEncomendaPeriodo})
+            </Button>
+            <Button
+              size="sm"
+              variant={filtroTipo === "saldo_pendente" ? "default" : "outline"}
+              className={filtroTipo === "saldo_pendente" ? "bg-amber-600 text-white font-bold h-8 text-xs px-2.5 sm:px-3 rounded-xl" : "rounded-xl text-amber-700 border-amber-300 h-8 text-xs px-2.5 sm:px-3"}
+              onClick={() => setFiltroTipo("saldo_pendente")}
+            >
+              ⚠️ Saldo a Receber ({qtdSaldoPendentePeriodo})
+            </Button>
+          </div>
+
+          {/* RESUMO RÁPIDO DO TOTAL NO PERÍODO FILTRADO */}
+          <div className="text-xs text-slate-500 font-medium flex items-center gap-3">
+            <span>
+              Total: <strong className="text-slate-900 dark:text-white font-black">{brl(totalFiltradoValor)}</strong>
+            </span>
+            {saldoPendenteFiltradoValor > 0 && (
+              <span className="text-amber-700 dark:text-amber-400 font-bold">
+                (A receber: {brl(saldoPendenteFiltradoValor)})
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1377,8 +1615,26 @@ export function PaginaVendas() {
             <Package className="size-12 mx-auto text-slate-300 mb-3" />
             <h3 className="font-bold text-slate-700 text-lg">Nenhum pedido encontrado</h3>
             <p className="text-sm text-slate-500 mt-1 max-w-sm mx-auto">
-              {busca ? "Tente buscar com outro termo." : "Clique em 'Novo Pedido' para registrar sua primeira venda pronta-entrega ou encomenda personalizada."}
+              {busca || filtroPeriodo !== "todos" || filtroTipo !== "todos"
+                ? "Nenhum pedido encontrado com os filtros atuais. Tente alterar o período ou termo de busca."
+                : "Clique em 'Novo Pedido' para registrar sua primeira venda pronta-entrega ou encomenda personalizada."}
             </p>
+            {(busca || filtroPeriodo !== "todos" || filtroTipo !== "todos") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3.5 rounded-xl text-xs text-slate-600 hover:text-slate-900 border-slate-300"
+                onClick={() => {
+                  setBusca("");
+                  setFiltroPeriodo("todos");
+                  setFiltroTipo("todos");
+                  setDataInicioFiltro("");
+                  setDataFimFiltro("");
+                }}
+              >
+                Limpar todos os filtros
+              </Button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
