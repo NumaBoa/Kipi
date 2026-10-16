@@ -56,6 +56,7 @@ import {
   calcularComissaoRevendedora,
   calcularEstoqueConsignadoRevendedor,
   custoProduto,
+  obterPrecoEfetivoItem,
   useApagarPagamentoComissao,
   useApagarRevendedora,
   useApagarVenda,
@@ -382,7 +383,10 @@ export function PaginaVendas() {
 
   // Cálculos do Carrinho
   const totalPedido = useMemo(() => {
-    return carrinho.reduce((sum, item) => sum + item.produto.preco * item.quantidade, 0);
+    return carrinho.reduce(
+      (sum, item) => sum + obterPrecoEfetivoItem(item.produto, item.com_desconto) * item.quantidade,
+      0
+    );
   }, [carrinho]);
 
   const custoTotalEstimado = useMemo(() => {
@@ -540,13 +544,10 @@ export function PaginaVendas() {
     setSinalCustomizado(true);
 
     const itensCarrinho: ItemCarrinho[] = (v.venda_itens || []).map((it) => {
-      const prodExistente = produtos.find((p) => p.id === it.produto_id);
+      const prodExistente = produtos.find((p) => p.id === it.produto_id || p.nome.toLowerCase() === it.nome_produto.toLowerCase());
       if (prodExistente) {
         return {
-          produto: {
-            ...prodExistente,
-            preco: Number(it.preco_unitario) || prodExistente.preco,
-          },
+          produto: prodExistente,
           quantidade: Number(it.quantidade) || 1,
           com_desconto: Boolean(it.com_desconto),
         };
@@ -639,7 +640,7 @@ export function PaginaVendas() {
             produto_id: it.produto.id,
             nome_produto: it.produto.nome,
             quantidade: it.quantidade,
-            preco_unitario: it.produto.preco,
+            preco_unitario: obterPrecoEfetivoItem(it.produto, it.com_desconto),
             com_desconto: Boolean(it.com_desconto),
           })),
         });
@@ -2338,106 +2339,146 @@ export function PaginaVendas() {
               {/* ITENS NO CARRINHO / PEDIDO */}
               {carrinho.length > 0 && (
                 <div className="p-3.5 bg-purple-50/60 border border-purple-200/80 rounded-2xl space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-purple-950 pb-1 border-b border-purple-200/60">
+                  <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-bold text-purple-950 pb-1 border-b border-purple-200/60">
                     <span className="flex items-center gap-1.5">
                       <ShoppingCart className="size-4 text-purple-700" />
                       Itens do Pedido ({carrinho.reduce((s, i) => s + i.quantidade, 0)})
                     </span>
-                    <span className="text-sm font-black text-purple-950">
-                      Subtotal: {brl(totalPedido)}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {carrinho.some((it) => it.produto.tem_promocao && Number(it.produto.desconto_promocional || 0) > 0) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const todosJaTem = carrinho.every((it) => !it.produto.tem_promocao || it.com_desconto);
+                            setCarrinho((prev) =>
+                              prev.map((it) =>
+                                it.produto.tem_promocao && Number(it.produto.desconto_promocional || 0) > 0
+                                  ? { ...it, com_desconto: !todosJaTem }
+                                  : it
+                              )
+                            );
+                          }}
+                          className="text-[11px] font-bold text-amber-800 hover:text-amber-950 underline cursor-pointer"
+                        >
+                          {carrinho.every((it) => !it.produto.tem_promocao || it.com_desconto)
+                            ? "Remover promoções"
+                            : "⚡ Aplicar promoção em todos"}
+                        </button>
+                      )}
+                      <span className="text-sm font-black text-purple-950">
+                        Subtotal: {brl(totalPedido)}
+                      </span>
+                    </div>
                   </div>
                   <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                    {carrinho.map((item) => (
-                      <div
-                        key={item.produto.id}
-                        className={cn(
-                          "bg-white border rounded-xl p-2.5 text-xs shadow-2xs transition-all space-y-1.5",
-                          item.com_desconto
-                            ? "border-amber-300 bg-amber-50/30"
-                            : "border-purple-200/60"
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="min-w-0 flex-1 pr-2">
-                            <div className="flex items-center gap-1.5 truncate">
-                              <p className="font-bold text-slate-800 truncate">{item.produto.nome}</p>
-                              {item.com_desconto && (
-                                <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
-                                  promoção (-50% comissão)
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[11px] font-semibold text-[#6366F1]">
-                              {brl(item.produto.preco)} un
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200">
-                              <button
-                                type="button"
-                                onClick={() => alterarQtd(item.produto.id, -1)}
-                                className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
-                              >
-                                -
-                              </button>
-                              <span className="w-5 text-center font-bold text-xs">{item.quantidade}</span>
-                              <button
-                                type="button"
-                                onClick={() => alterarQtd(item.produto.id, 1)}
-                                className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
-                              >
-                                +
-                              </button>
-                            </div>
-                            <span className="font-extrabold text-xs text-slate-900 w-16 text-right">
-                              {brl(item.quantidade * item.produto.preco)}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => alterarQtd(item.produto.id, -item.quantidade)}
-                              className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
-                              title="Remover produto do pedido"
-                            >
-                              <Trash2 className="size-3.5" />
-                            </button>
-                          </div>
-                        </div>
+                    {carrinho.map((item) => {
+                      const precoEfetivo = obterPrecoEfetivoItem(item.produto, item.com_desconto);
+                      const temDescCadastrado = item.produto.tem_promocao && Number(item.produto.desconto_promocional || 0) > 0;
 
-                        {/* INDICADOR SE FOI VENDIDO NA PROMOÇÃO / COM DESCONTO */}
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-                          <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={!!item.com_desconto}
-                              onChange={(e) => alternarDescontoItem(item.produto.id, e.target.checked)}
-                              className="size-3.5 rounded text-amber-600 border-slate-300 focus:ring-amber-500 cursor-pointer"
-                            />
-                            <span
-                              className={cn(
-                                "text-[11px]",
-                                item.com_desconto ? "text-amber-900 font-bold" : "text-slate-600 font-medium"
-                              )}
-                            >
-                              {item.com_desconto
-                                ? "🏷️ Vendido na Promoção / com Desconto (comissão 50%)"
-                                : "🏷️ Marcar se vendido na promoção / com desconto"}
-                            </span>
-                          </label>
-
-                          {canal === "revendedora" && revendedorSelecionado && (
-                            <span className={cn(
-                              "text-[10px] font-bold px-1.5 py-0.5 rounded",
-                              item.com_desconto
-                                ? "bg-amber-100 text-amber-800"
-                                : "text-slate-400"
-                            )}>
-                              {item.com_desconto ? "Comissão: 50%" : "Comissão: 100%"}
-                            </span>
+                      return (
+                        <div
+                          key={item.produto.id}
+                          className={cn(
+                            "bg-white border rounded-xl p-2.5 text-xs shadow-2xs transition-all space-y-1.5",
+                            item.com_desconto
+                              ? "border-amber-300 bg-amber-50/30"
+                              : "border-purple-200/60"
                           )}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 flex-1 pr-2">
+                              <div className="flex items-center gap-1.5 truncate">
+                                <p className="font-bold text-slate-800 truncate">{item.produto.nome}</p>
+                                {item.com_desconto && (
+                                  <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
+                                    promoção
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                {item.com_desconto && temDescCadastrado ? (
+                                  <span className="text-[11px] font-semibold text-emerald-700">
+                                    <span className="line-through text-slate-400 mr-1">{brl(item.produto.preco)}</span>
+                                    <strong className="font-black text-amber-900">{brl(precoEfetivo)}</strong> un (-{brl(item.produto.desconto_promocional || 0)})
+                                  </span>
+                                ) : (
+                                  <span className="text-[11px] font-semibold text-[#6366F1]">
+                                    {brl(item.produto.preco)} un
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex items-center bg-slate-100 rounded-full p-0.5 border border-slate-200">
+                                <button
+                                  type="button"
+                                  onClick={() => alterarQtd(item.produto.id, -1)}
+                                  className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="w-5 text-center font-bold text-xs">{item.quantidade}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => alterarQtd(item.produto.id, 1)}
+                                  className="size-5 rounded-full flex items-center justify-center font-bold text-slate-600 hover:bg-white cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <span className="font-extrabold text-xs text-slate-900 w-16 text-right">
+                                {brl(item.quantidade * precoEfetivo)}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => alterarQtd(item.produto.id, -item.quantidade)}
+                                className="text-slate-400 hover:text-rose-600 p-1 cursor-pointer"
+                                title="Remover produto do pedido"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* INDICADOR SE FOI VENDIDO NA PROMOÇÃO / COM DESCONTO */}
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={!!item.com_desconto}
+                                onChange={(e) => alternarDescontoItem(item.produto.id, e.target.checked)}
+                                className="size-3.5 rounded text-amber-600 border-slate-300 focus:ring-amber-500 cursor-pointer"
+                              />
+                              <span
+                                className={cn(
+                                  "text-[11px]",
+                                  item.com_desconto ? "text-amber-900 font-bold" : "text-slate-600 font-medium"
+                                )}
+                              >
+                                {item.com_desconto
+                                  ? temDescCadastrado
+                                    ? `🏷️ Vendido na Promoção (-${brl(item.produto.desconto_promocional || 0)}/un · comissão 50%)`
+                                    : "🏷️ Vendido na Promoção / com Desconto (comissão 50%)"
+                                  : temDescCadastrado
+                                  ? `🏷️ Aplicar Desconto Promocional (-${brl(item.produto.desconto_promocional || 0)}/un)`
+                                  : "🏷️ Marcar se vendido na promoção / com desconto"}
+                              </span>
+                            </label>
+
+                            {canal === "revendedora" && revendedorSelecionado && (
+                              <span className={cn(
+                                "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                                item.com_desconto
+                                  ? "bg-amber-100 text-amber-800"
+                                  : "text-slate-400"
+                              )}>
+                                {item.com_desconto ? "Comissão: 50%" : "Comissão: 100%"}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

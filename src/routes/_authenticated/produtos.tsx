@@ -22,6 +22,7 @@ import {
   Tag,
   Trash2,
   TrendingUp,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Estrutura } from "@/components/app/estrutura";
@@ -65,6 +66,7 @@ import {
   useSalvarInsumo,
   useSalvarProduto,
   useSalvarReceitaItem,
+  useAjustarVendasPromocionaisRetroativas,
   type Insumo,
   type Produto,
 } from "@/lib/dados";
@@ -140,6 +142,7 @@ export function PaginaCatalogoEstoque() {
   // ESTADO PRODUTOS
   const [modalProduto, setModalProduto] = useState(false);
   const [precoProdutoTexto, setPrecoProdutoTexto] = useState<string>("0,00");
+  const [descontoPromocionalTexto, setDescontoPromocionalTexto] = useState<string>("");
   const [custoManualTexto, setCustoManualTexto] = useState<string>("");
   const [formProduto, setFormProduto] = useState<Partial<Produto>>({
     nome: "",
@@ -149,6 +152,8 @@ export function PaginaCatalogoEstoque() {
     ativo: true,
     disponibilidade: "hibrido",
     custo_manual: 0,
+    tem_promocao: false,
+    desconto_promocional: 0,
   });
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("todas");
   const [buscaProduto, setBuscaProduto] = useState("");
@@ -159,6 +164,29 @@ export function PaginaCatalogoEstoque() {
   const [modalAssar, setModalAssar] = useState(false);
   const [produtoAssando, setProdutoAssando] = useState<Produto | null>(null);
   const [qtdAssar, setQtdAssar] = useState(12);
+
+  // AJUSTE RETROATIVO DE VENDAS PROMOCIONAIS
+  const ajustarRetroativo = useAjustarVendasPromocionaisRetroativas();
+  const [recalculandoRetroativo, setRecalculandoRetroativo] = useState(false);
+
+  const handleRecalcularRetroativo = async () => {
+    try {
+      setRecalculandoRetroativo(true);
+      const res = await ajustarRetroativo.mutateAsync();
+      if (res.pedidosAtualizados > 0 || res.itensAtualizados > 0) {
+        toast.success(
+          `🎉 Recálculo concluído! ${res.itensAtualizados} itens promocionais em ${res.pedidosAtualizados} pedidos foram ajustados com os novos valores de desconto.`
+        );
+      } else {
+        toast.info("Todos os pedidos com itens promocionais já estão com os valores e descontos corretos!");
+      }
+    } catch (err: any) {
+      console.error("Erro ao recalcular retroativo:", err);
+      toast.error(err?.message || "Erro ao recalcular pedidos retroativos.");
+    } finally {
+      setRecalculandoRetroativo(false);
+    }
+  };
 
   const abrirModalAssar = (p: Produto) => {
     setProdutoAssando(p);
@@ -458,11 +486,22 @@ export function PaginaCatalogoEstoque() {
   // Abrir modal produto
   const abrirModalProduto = (p?: Produto) => {
     if (p) {
-      setFormProduto({ ...p, estoque_congelado: p.estoque_congelado ?? 0 });
+      setFormProduto({
+        ...p,
+        tem_promocao: Boolean(p.tem_promocao),
+        desconto_promocional: p.desconto_promocional != null ? Number(p.desconto_promocional) : 0,
+        preco_promocional: p.preco_promocional != null ? Number(p.preco_promocional) : (p.desconto_promocional ? Math.max(0, Number(p.preco) - Number(p.desconto_promocional)) : undefined),
+        estoque_congelado: p.estoque_congelado ?? 0,
+      });
       setPrecoProdutoTexto(
         p.preco != null
           ? Number(p.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
           : "0,00"
+      );
+      setDescontoPromocionalTexto(
+        p.desconto_promocional != null && Number(p.desconto_promocional) > 0
+          ? Number(p.desconto_promocional).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : ""
       );
       setCustoManualTexto(
         p.custo_manual != null && Number(p.custo_manual) > 0
@@ -480,8 +519,12 @@ export function PaginaCatalogoEstoque() {
         ativo: true,
         disponibilidade: "hibrido",
         custo_manual: 0,
+        tem_promocao: false,
+        desconto_promocional: 0,
+        preco_promocional: undefined,
       });
       setPrecoProdutoTexto("0,00");
+      setDescontoPromocionalTexto("");
       setCustoManualTexto("");
       setMostrarCustosAvancados(false);
     }
@@ -493,14 +536,22 @@ export function PaginaCatalogoEstoque() {
       toast.error("Informe o nome do produto.");
       return;
     }
+    const precoNum = Number(formProduto.preco) || 0;
+    const temPromo = Boolean(formProduto.tem_promocao);
+    const descontoNum = temPromo ? (Number(formProduto.desconto_promocional) || 0) : 0;
+    const precoPromoFinal = temPromo && descontoNum > 0 ? Math.max(0, precoNum - descontoNum) : undefined;
+
     try {
       await salvarProduto.mutateAsync({
         ...formProduto,
         nome: formProduto.nome.trim(),
-        preco: Number(formProduto.preco) || 0,
+        preco: precoNum,
         estoque: Number(formProduto.estoque) || 0,
         estoque_congelado: Number(formProduto.estoque_congelado) || 0,
         custo_manual: formProduto.custo_manual ? Number(formProduto.custo_manual) : 0,
+        tem_promocao: temPromo,
+        desconto_promocional: descontoNum,
+        preco_promocional: precoPromoFinal,
       });
       toast.success("Produto salvo com sucesso no catálogo!");
       setModalProduto(false);
@@ -658,12 +709,25 @@ export function PaginaCatalogoEstoque() {
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
           {abaAtiva === "produtos" ? (
-            <Button
-              className="rounded-xl sm:rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 sm:px-5 h-9 sm:h-10 text-xs sm:text-sm"
-              onClick={() => abrirModalProduto()}
-            >
-              <Plus className="size-4" /> Novo Produto
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="rounded-xl sm:rounded-2xl gap-1.5 font-bold border-amber-300 text-amber-900 bg-amber-50 hover:bg-amber-100 shadow-xs px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm cursor-pointer"
+                onClick={handleRecalcularRetroativo}
+                disabled={recalculandoRetroativo}
+                title="Aplica os descontos promocionais cadastrados nos produtos em todas as vendas retroativas marcadas com desconto"
+              >
+                {recalculandoRetroativo ? <Loader2 className="size-4 animate-spin" /> : <Tag className="size-4 text-amber-600" />}
+                <span className="hidden sm:inline">Ajustar Vendas Retroativas</span>
+                <span className="sm:hidden">Ajustar Vendas</span>
+              </Button>
+              <Button
+                className="rounded-xl sm:rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 sm:px-5 h-9 sm:h-10 text-xs sm:text-sm"
+                onClick={() => abrirModalProduto()}
+              >
+                <Plus className="size-4" /> Novo Produto
+              </Button>
+            </div>
           ) : abaAtiva === "materiais" ? (
             <>
               <Button
@@ -876,7 +940,14 @@ export function PaginaCatalogoEstoque() {
                           </div>
 
                           <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
-                            <span>Preço de venda: <strong className="text-slate-700">{brl(p.preco)}</strong></span>
+                            <span>
+                              Preço de venda: <strong className="text-slate-700">{brl(p.preco)}</strong>
+                              {p.tem_promocao && Number(p.desconto_promocional || 0) > 0 && (
+                                <span className="ml-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                                  🏷️ Promo: {brl(Math.max(0, p.preco - Number(p.desconto_promocional)))} (-{brl(Number(p.desconto_promocional))})
+                                </span>
+                              )}
+                            </span>
                             <span>•</span>
                             {custo > 0 && (
                               <>
@@ -1027,7 +1098,14 @@ export function PaginaCatalogoEstoque() {
 
                         <div className="flex items-baseline justify-between pt-1">
                           <div>
-                            <span className="text-2xl font-black text-slate-900">{brl(p.preco)}</span>
+                            <div className="flex flex-wrap items-baseline gap-2">
+                              <span className="text-2xl font-black text-slate-900">{brl(p.preco)}</span>
+                              {p.tem_promocao && Number(p.desconto_promocional || 0) > 0 && (
+                                <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
+                                  Promo: {brl(Math.max(0, p.preco - Number(p.desconto_promocional)))} (-{brl(Number(p.desconto_promocional))})
+                                </span>
+                              )}
+                            </div>
                             {custo > 0 && (
                               <span className="text-xs text-slate-500 block">
                                 Custo: {brl(custo)} ({margem}% margem)
@@ -1721,6 +1799,100 @@ export function PaginaCatalogoEstoque() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* SEÇÃO DE VALOR PROMOCIONAL / DESCONTO */}
+            <div className="p-3.5 bg-amber-50/70 border border-amber-200/90 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="size-4 text-amber-700" />
+                  <div>
+                    <Label className="text-xs font-bold text-amber-950 cursor-pointer block">
+                      Valor Promocional do Produto
+                    </Label>
+                    <span className="text-[11px] text-amber-800 block">
+                      Define se este produto participa de promoções com desconto em reais.
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={Boolean(formProduto.tem_promocao)}
+                  onChange={(e) => {
+                    const ativo = e.target.checked;
+                    setFormProduto({
+                      ...formProduto,
+                      tem_promocao: ativo,
+                      desconto_promocional: ativo ? (formProduto.desconto_promocional || 0) : 0,
+                      preco_promocional: ativo ? (formProduto.preco_promocional || formProduto.preco) : undefined,
+                    });
+                  }}
+                  className="size-5 accent-amber-600 rounded cursor-pointer"
+                />
+              </div>
+
+              {formProduto.tem_promocao && (
+                <div className="pt-2 border-t border-amber-200/60 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in">
+                  <div>
+                    <Label className="text-xs font-bold text-amber-950">Desconto em Reais (R$)</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-amber-700">
+                        - R$
+                      </span>
+                      <Input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0,00"
+                        value={descontoPromocionalTexto}
+                        onChange={(e) => {
+                          const digitos = e.target.value.replace(/\D/g, "");
+                          const numDesconto = digitos ? Number(digitos) / 100 : 0;
+                          const precoBase = Number(formProduto.preco || 0);
+                          const precoFinal = Math.max(0, precoBase - numDesconto);
+                          setFormProduto({
+                            ...formProduto,
+                            desconto_promocional: numDesconto,
+                            preco_promocional: precoFinal,
+                          });
+                          setDescontoPromocionalTexto(
+                            digitos
+                              ? numDesconto.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                              : ""
+                          );
+                        }}
+                        className="pl-12 rounded-xl font-black text-amber-900 border-amber-300 bg-white h-10"
+                      />
+                    </div>
+                    <span className="text-[10px] text-amber-700 mt-1 block">
+                      Quanto você vai abater do preço normal
+                    </span>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-bold text-amber-950">Preço Promocional Final</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-emerald-700">
+                        R$
+                      </span>
+                      <Input
+                        type="text"
+                        disabled
+                        value={
+                          formProduto.preco && formProduto.desconto_promocional
+                            ? Math.max(0, Number(formProduto.preco) - Number(formProduto.desconto_promocional)).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : (formProduto.preco ? Number(formProduto.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "0,00")
+                        }
+                        className="pl-9 rounded-xl font-black text-emerald-900 bg-emerald-50/60 border-emerald-300 h-10 opacity-100"
+                      />
+                    </div>
+                    <span className="text-[10px] text-emerald-700 mt-1 block font-semibold">
+                      {formProduto.desconto_promocional && Number(formProduto.desconto_promocional) > 0
+                        ? `Cliente paga ${brl(Math.max(0, Number(formProduto.preco || 0) - Number(formProduto.desconto_promocional)))} na promoção`
+                        : "Informe o desconto ao lado"}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

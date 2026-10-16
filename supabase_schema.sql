@@ -190,6 +190,9 @@ ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES 
 ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS estoque_congelado NUMERIC DEFAULT 0;
 ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS disponibilidade TEXT DEFAULT 'hibrido';
 ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS custo_manual NUMERIC;
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS tem_promocao BOOLEAN DEFAULT false;
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS desconto_promocional NUMERIC DEFAULT 0;
+ALTER TABLE public.produtos ADD COLUMN IF NOT EXISTS preco_promocional NUMERIC;
 
 -- Vendas
 ALTER TABLE public.vendas ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;

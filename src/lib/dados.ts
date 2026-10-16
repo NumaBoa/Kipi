@@ -26,6 +26,9 @@ export type Produto = {
   valor_hora_trabalho?: number;
   rendimento_unidades?: number;
   empresa_id?: string | undefined;
+  tem_promocao?: boolean | undefined;
+  desconto_promocional?: number | undefined;
+  preco_promocional?: number | undefined;
 };
 export type Cliente = {
   id: string;
@@ -280,6 +283,9 @@ export const useProdutos = () => useQuery({
             estoque_congelado: Number(sp.estoque_congelado ?? 0),
             rendimento_unidades: Number(sp.rendimento_unidades ?? 1),
             tempo_preparo_minutos: Number(sp.tempo_preparo_minutos ?? 0),
+            tem_promocao: Boolean(sp.tem_promocao),
+            desconto_promocional: sp.desconto_promocional != null ? Number(sp.desconto_promocional) : 0,
+            preco_promocional: sp.preco_promocional != null ? Number(sp.preco_promocional) : (sp.desconto_promocional ? Math.max(0, Number(sp.preco) - Number(sp.desconto_promocional)) : undefined),
           })) as Produto[];
 
         dadosLocais.produtos = produtosSupabase;
@@ -717,6 +723,18 @@ export function calcularComissaoRevendedora(venda: Venda, revendedora?: Revended
   return Number(venda.total) * perc;
 }
 
+export function obterPrecoEfetivoItem(produto: Produto, comDesconto?: boolean): number {
+  const precoBase = Number(produto.preco || 0);
+  if (!comDesconto) return precoBase;
+  if (produto.desconto_promocional && Number(produto.desconto_promocional) > 0) {
+    return Math.max(0, precoBase - Number(produto.desconto_promocional));
+  }
+  if (produto.preco_promocional && Number(produto.preco_promocional) > 0) {
+    return Number(produto.preco_promocional);
+  }
+  return precoBase;
+}
+
 export function calcularComissaoEstimadaCarrinho(
   carrinho: ItemCarrinho[],
   revendedora?: Revendedora | null
@@ -734,7 +752,8 @@ export function calcularComissaoEstimadaCarrinho(
   const perc = Number(revendedora.comissao_percentual ?? 0) / 100;
   return carrinho.reduce((s, i) => {
     const taxa = i.com_desconto ? perc / 2 : perc;
-    const valorItem = (Number(i.produto.preco) || 0) * (Number(i.quantidade) || 1);
+    const precoUnit = obterPrecoEfetivoItem(i.produto, i.com_desconto);
+    const valorItem = precoUnit * (Number(i.quantidade) || 1);
     return s + valorItem * taxa;
   }, 0);
 }
@@ -834,6 +853,9 @@ export const useSalvarProduto = () => {
         valor_hora_trabalho: Number(v.valor_hora_trabalho ?? existente?.valor_hora_trabalho ?? 0),
         rendimento_unidades: Number(v.rendimento_unidades ?? existente?.rendimento_unidades ?? 1),
         empresa_id: obterEmpresaAtivaId(),
+        tem_promocao: v.tem_promocao !== undefined ? Boolean(v.tem_promocao) : (existente?.tem_promocao ?? false),
+        desconto_promocional: v.desconto_promocional !== undefined ? Number(v.desconto_promocional) : (existente?.desconto_promocional ?? 0),
+        preco_promocional: v.preco_promocional !== undefined ? Number(v.preco_promocional) : (existente?.preco_promocional ?? undefined),
       };
 
       if (pos >= 0) {
@@ -849,7 +871,7 @@ export const useSalvarProduto = () => {
       if (isSupabaseConfigured) {
         try {
           const empId = obterEmpresaAtivaId();
-          const dadosSupabase = {
+          const dadosSupabase: any = {
             id: produtoAtualizado.id,
             nome: produtoAtualizado.nome,
             categoria: produtoAtualizado.categoria,
@@ -863,9 +885,18 @@ export const useSalvarProduto = () => {
             tempo_preparo_minutos: produtoAtualizado.tempo_preparo_minutos,
             valor_hora_trabalho: produtoAtualizado.valor_hora_trabalho,
             rendimento_unidades: produtoAtualizado.rendimento_unidades,
+            tem_promocao: produtoAtualizado.tem_promocao,
+            desconto_promocional: produtoAtualizado.desconto_promocional,
+            preco_promocional: produtoAtualizado.preco_promocional,
           };
-          const { error } = await supabase.from("produtos").upsert(dadosSupabase);
-          if (error) console.warn("Supabase upsert produto aviso:", error.message);
+          let { error } = await supabase.from("produtos").upsert(dadosSupabase);
+          if (error && (error.message?.includes("promoc") || error.code === "PGRST204" || error.code === "42703")) {
+            const { tem_promocao, desconto_promocional, preco_promocional, ...dadosSemPromo } = dadosSupabase;
+            const { error: errRetry } = await supabase.from("produtos").upsert(dadosSemPromo);
+            if (errRetry) console.warn("Supabase upsert produto retry aviso:", errRetry.message);
+          } else if (error) {
+            console.warn("Supabase upsert produto aviso:", error.message);
+          }
           if (catNome) {
             await supabase.from("categorias").upsert({ id: id(), nome: catNome, empresa_id: empId }, { onConflict: "nome" }).select();
           }
@@ -1448,7 +1479,7 @@ export const useRegistrarVenda = () => {
       insumos?: Insumo[];
     }) => {
       const vendaId = id();
-      const total = v.itens.reduce((s, i) => s + i.produto.preco * i.quantidade, 0);
+      const total = v.itens.reduce((s, i) => s + obterPrecoEfetivoItem(i.produto, i.com_desconto) * i.quantidade, 0);
       const receitasList = v.receitas || [];
       const insumosList = v.insumos || [];
       const custo = v.itens.reduce((s, i) => s + (i.produto.custo_manual || custoProduto(i.produto.id, receitasList, insumosList)) * i.quantidade, 0);
@@ -1489,7 +1520,7 @@ export const useRegistrarVenda = () => {
           produto_id: i.produto.id,
           nome_produto: i.produto.nome,
           quantidade: i.quantidade,
-          preco_unitario: i.produto.preco,
+          preco_unitario: obterPrecoEfetivoItem(i.produto, i.com_desconto),
           com_desconto: Boolean(i.com_desconto),
           empresa_id: empId,
         }));
@@ -1537,7 +1568,7 @@ export const useRegistrarVenda = () => {
             produto_id: i.produto.id,
             nome_produto: i.produto.nome,
             quantidade: i.quantidade,
-            preco_unitario: i.produto.preco,
+            preco_unitario: obterPrecoEfetivoItem(i.produto, i.com_desconto),
             com_desconto: Boolean(i.com_desconto),
           })),
         };
@@ -2334,4 +2365,144 @@ export function obterAlertasReposicaoRevendedores(
 
   return alertas;
 }
+
+/**
+ * Recalcula retroativamente todas as vendas com itens marcados com desconto (com_desconto = true)
+ * aplicando o desconto promocional cadastrado no produto.
+ */
+export const useAjustarVendasPromocionaisRetroativas = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const d = ler();
+      const produtos = d.produtos || [];
+      const mapaProdutos = new Map<string, Produto>();
+      produtos.forEach((p) => {
+        mapaProdutos.set(p.id, p);
+        mapaProdutos.set(p.nome.toLowerCase().trim(), p);
+      });
+
+      let itensAtualizados = 0;
+      let pedidosAtualizados = 0;
+
+      // 1. Atualizar no Supabase se configurado
+      if (isSupabaseConfigured) {
+        const { data: itens, error: errItens } = await supabase
+          .from("venda_itens")
+          .select("id, venda_id, produto_id, nome_produto, quantidade, preco_unitario, com_desconto")
+          .eq("com_desconto", true);
+
+        if (!errItens && itens && itens.length > 0) {
+          const vendasAfetadas = new Set<string>();
+
+          for (const item of itens) {
+            const prod = (item.produto_id ? mapaProdutos.get(item.produto_id) : null) ||
+              mapaProdutos.get(item.nome_produto.toLowerCase().trim());
+
+            if (prod && prod.desconto_promocional && Number(prod.desconto_promocional) > 0) {
+              const precoNormal = Number(prod.preco);
+              const precoComDesc = Math.max(0, precoNormal - Number(prod.desconto_promocional));
+
+              if (Math.abs(Number(item.preco_unitario) - precoComDesc) > 0.009) {
+                await supabase
+                  .from("venda_itens")
+                  .update({ preco_unitario: precoComDesc })
+                  .eq("id", item.id);
+                itensAtualizados++;
+                vendasAfetadas.add(item.venda_id);
+              }
+            }
+          }
+
+          // Recalcular totais das vendas afetadas
+          for (const vendaId of vendasAfetadas) {
+            const { data: todosItens } = await supabase
+              .from("venda_itens")
+              .select("quantidade, preco_unitario")
+              .eq("venda_id", vendaId);
+
+            if (todosItens && todosItens.length > 0) {
+              const novoTotal = todosItens.reduce(
+                (sum, it) => sum + (Number(it.quantidade) || 1) * (Number(it.preco_unitario) || 0),
+                0
+              );
+
+              const { data: vendaAtual } = await supabase
+                .from("vendas")
+                .select("id, total, status, valor_sinal_pago, saldo_na_entrega")
+                .eq("id", vendaId)
+                .single();
+
+              if (vendaAtual) {
+                let novoSinal = vendaAtual.valor_sinal_pago;
+                let novoSaldo = vendaAtual.saldo_na_entrega;
+
+                if (vendaAtual.status === "pago" || Number(vendaAtual.saldo_na_entrega || 0) <= 0) {
+                  novoSinal = novoTotal;
+                  novoSaldo = 0;
+                } else if (Number(vendaAtual.saldo_na_entrega || 0) > 0) {
+                  novoSaldo = Math.max(0, novoTotal - Number(vendaAtual.valor_sinal_pago || 0));
+                }
+
+                await supabase
+                  .from("vendas")
+                  .update({
+                    total: novoTotal,
+                    valor_sinal_pago: novoSinal,
+                    saldo_na_entrega: novoSaldo,
+                  })
+                  .eq("id", vendaId);
+
+                pedidosAtualizados++;
+              }
+            }
+          }
+        }
+      }
+
+      // 2. Atualizar no localStorage
+      if (d.vendas && d.vendas.length > 0) {
+        d.vendas.forEach((v) => {
+          let mudou = false;
+          if (v.venda_itens) {
+            v.venda_itens.forEach((it) => {
+              if (it.com_desconto) {
+                const prod = (it.produto_id ? mapaProdutos.get(it.produto_id) : null) ||
+                  mapaProdutos.get(it.nome_produto.toLowerCase().trim());
+                if (prod && prod.desconto_promocional && Number(prod.desconto_promocional) > 0) {
+                  const precoComDesc = Math.max(0, Number(prod.preco) - Number(prod.desconto_promocional));
+                  if (Math.abs(Number(it.preco_unitario) - precoComDesc) > 0.009) {
+                    it.preco_unitario = precoComDesc;
+                    mudou = true;
+                  }
+                }
+              }
+            });
+
+            if (mudou) {
+              const novoTotal = v.venda_itens.reduce(
+                (sum, it) => sum + (Number(it.quantidade) || 1) * (Number(it.preco_unitario) || 0),
+                0
+              );
+              v.total = novoTotal;
+              if (v.status === "pago" || Number(v.saldo_na_entrega || 0) <= 0) {
+                v.valor_sinal_pago = novoTotal;
+                v.saldo_na_entrega = 0;
+              } else {
+                v.saldo_na_entrega = Math.max(0, novoTotal - Number(v.valor_sinal_pago || 0));
+              }
+            }
+          }
+        });
+        gravar(d);
+      }
+
+      return { itensAtualizados, pedidosAtualizados };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: chaves.vendas });
+    },
+  });
+};
+
 
