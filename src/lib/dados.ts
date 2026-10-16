@@ -152,7 +152,7 @@ type Dados = {
   remessas_consignacao: RemessaConsignacao[];
 };
 
-const CHAVE = "meu-atelie-dados-v9";
+const CHAVE = "meu-atelie-dados-v10";
 const haDias = (dias: number, hora = 14) => { const d = new Date(); d.setDate(d.getDate() - dias); d.setHours(hora, 0, 0, 0); return d.toISOString(); };
 
 const iniciais: Dados = {
@@ -173,7 +173,16 @@ function ler(): Dados {
   if (typeof window === "undefined") return clone(iniciais);
   
   // Limpar chaves antigas de dados mockados se existirem
-  ["meu-atelie-dados-mocados-v2", "meu-atelie-dados-v3", "meu-atelie-dados-v4", "meu-atelie-dados-v5", "meu-atelie-dados-v6", "meu-atelie-dados-v7", "meu-atelie-dados-v8"].forEach((k) => {
+  [
+    "meu-atelie-dados-mocados-v2",
+    "meu-atelie-dados-v3",
+    "meu-atelie-dados-v4",
+    "meu-atelie-dados-v5",
+    "meu-atelie-dados-v6",
+    "meu-atelie-dados-v7",
+    "meu-atelie-dados-v8",
+    "meu-atelie-dados-v9",
+  ].forEach((k) => {
     localStorage.removeItem(k);
   });
 
@@ -188,6 +197,9 @@ function ler(): Dados {
     if (!d.pagamentos_comissao) d.pagamentos_comissao = [];
     if (!d.categorias) d.categorias = [];
     if (!d.remessas_consignacao) d.remessas_consignacao = [];
+    if (d.produtos) d.produtos = d.produtos.filter((p: any) => p?.id && !p.id.startsWith("cookie-"));
+    if (d.insumos) d.insumos = d.insumos.filter((i: any) => i?.id && !i.id.startsWith("ins-"));
+    if (d.receitas) d.receitas = d.receitas.filter((r: any) => r?.id && !r.id.startsWith("rec-"));
     return d;
   } catch {
     return clone(iniciais);
@@ -242,37 +254,34 @@ export const useProdutos = () => useQuery({
           .select("*")
           .or(`empresa_id.eq.${empId},empresa_id.is.null`);
         if (error) throw error;
-        const produtosSupabase = (data || []) as Produto[];
-        const map = new Map<string, Produto>();
-        dadosLocais.produtos.forEach((p) => map.set(p.id, p));
-        produtosSupabase.forEach((sp) => {
-          const local = map.get(sp.id);
-          map.set(sp.id, {
-            ...local,
+        
+        // Supabase é a ÚNICA fonte da verdade oficial para produtos
+        const produtosSupabase = (data || [])
+          .filter((p) => p?.id && !p.id.startsWith("cookie-"))
+          .map((sp) => ({
             ...sp,
-            preco: Number(sp.preco ?? local?.preco ?? 0),
-            estoque: Number(sp.estoque ?? local?.estoque ?? 0),
-            estoque_congelado: Number(sp.estoque_congelado ?? local?.estoque_congelado ?? 0),
-            rendimento_unidades: Number(sp.rendimento_unidades ?? local?.rendimento_unidades ?? 1),
-            tempo_preparo_minutos: Number(sp.tempo_preparo_minutos ?? local?.tempo_preparo_minutos ?? 0),
-          });
-        });
-        const listaMesclada = Array.from(map.values());
-        dadosLocais.produtos = listaMesclada;
+            preco: Number(sp.preco ?? 0),
+            estoque: Number(sp.estoque ?? 0),
+            estoque_congelado: Number(sp.estoque_congelado ?? 0),
+            rendimento_unidades: Number(sp.rendimento_unidades ?? 1),
+            tempo_preparo_minutos: Number(sp.tempo_preparo_minutos ?? 0),
+          })) as Produto[];
+
+        dadosLocais.produtos = produtosSupabase;
         gravar(dadosLocais);
-        return listaMesclada;
+        return produtosSupabase;
       } catch (err) {
         console.warn("Aviso ao carregar produtos do Supabase, usando locais:", err);
       }
     }
-    return dadosLocais.produtos;
+    return (dadosLocais.produtos || []).filter((p) => p?.id && !p.id.startsWith("cookie-"));
   }
 });
 
 export const useClientes = () => useQuery({
   queryKey: [...chaves.clientes, obterEmpresaAtivaId()],
   queryFn: async () => {
-    const dadosLocais = ler().clientes || [];
+    const dadosLocais = ler();
     if (isSupabaseConfigured) {
       try {
         const empId = obterEmpresaAtivaId();
@@ -281,17 +290,12 @@ export const useClientes = () => useQuery({
           .select("*")
           .or(`empresa_id.eq.${empId},empresa_id.is.null`);
         if (!error && data) {
-          const map = new Map<string, Cliente>();
-          dadosLocais.forEach((c) => map.set(c.id, c));
-          data.forEach((sc: any) => {
-            const local = map.get(sc.id);
+          const clientesSupabase = data.map((sc: any) => {
             let tagFinal = (sc.tag && typeof sc.tag === "string" && sc.tag.trim())
               ? sc.tag.trim()
-              : (local?.tag && typeof local.tag === "string" && local.tag.trim())
-              ? local.tag.trim()
               : null;
 
-            let obsFinal = sc.observacoes ?? local?.observacoes ?? null;
+            let obsFinal = sc.observacoes ?? null;
             if (obsFinal && typeof obsFinal === "string" && obsFinal.includes("[TAG:")) {
               const match = obsFinal.match(/\[TAG:\s*([^\]]+)\]/);
               if (match?.[1]) {
@@ -300,34 +304,33 @@ export const useClientes = () => useQuery({
               }
             }
 
-            map.set(sc.id, {
+            return {
               ...sc,
               tag: tagFinal,
               observacoes: obsFinal,
-              rua: sc.rua ?? local?.rua ?? null,
-              numero: sc.numero ?? local?.numero ?? null,
-              bairro: sc.bairro ?? local?.bairro ?? null,
-              complemento: sc.complemento ?? local?.complemento ?? null,
-              cidade: sc.cidade ?? local?.cidade ?? null,
-              estado: sc.estado ?? local?.estado ?? null,
-              cep: sc.cep ?? local?.cep ?? null,
-              email: sc.email ?? local?.email ?? null,
-              cpf_cnpj: sc.cpf_cnpj ?? local?.cpf_cnpj ?? null,
-              aniversario: sc.aniversario ?? local?.aniversario ?? null,
-              revendedora_id: sc.revendedora_id ?? local?.revendedora_id ?? null,
-            });
-          });
-          const lista = Array.from(map.values());
-          const d = ler();
-          d.clientes = lista;
-          gravar(d);
-          return lista;
+              rua: sc.rua ?? null,
+              numero: sc.numero ?? null,
+              bairro: sc.bairro ?? null,
+              complemento: sc.complemento ?? null,
+              cidade: sc.cidade ?? null,
+              estado: sc.estado ?? null,
+              cep: sc.cep ?? null,
+              email: sc.email ?? null,
+              cpf_cnpj: sc.cpf_cnpj ?? null,
+              aniversario: sc.aniversario ?? null,
+              revendedora_id: sc.revendedora_id ?? null,
+            };
+          }) as Cliente[];
+
+          dadosLocais.clientes = clientesSupabase;
+          gravar(dadosLocais);
+          return clientesSupabase;
         }
       } catch (err) {
         console.warn("Supabase clientes aviso:", err);
       }
     }
-    return dadosLocais;
+    return dadosLocais.clientes || [];
   }
 });
 
@@ -342,7 +345,9 @@ export const useReceitas = () => useQuery({
           .select("*")
           .or(`empresa_id.eq.${empId},empresa_id.is.null`);
         if (error) throw error;
-        const rec = (data || []) as ReceitaItem[];
+        const rec = ((data || []) as ReceitaItem[]).filter(
+          (r) => r?.id && !r.id.startsWith("rec-") && !r.produto_id?.startsWith("cookie-")
+        );
         const d = ler();
         d.receitas = rec;
         gravar(d);
@@ -351,14 +356,16 @@ export const useReceitas = () => useQuery({
         console.warn("Aviso ao carregar receitas do Supabase:", err);
       }
     }
-    return ler().receitas;
+    return (ler().receitas || []).filter(
+      (r) => r?.id && !r.id.startsWith("rec-") && !r.produto_id?.startsWith("cookie-")
+    );
   }
 });
 
 export const useVendas = () => useQuery({
   queryKey: [...chaves.vendas, obterEmpresaAtivaId()],
   queryFn: async () => {
-    const dadosLocais = ler().vendas || [];
+    const dadosLocais = ler();
     if (isSupabaseConfigured) {
       try {
         const empId = obterEmpresaAtivaId();
@@ -368,33 +375,29 @@ export const useVendas = () => useQuery({
           .or(`empresa_id.eq.${empId},empresa_id.is.null`)
           .order("data", { ascending: false });
         if (!error && data) {
-          const map = new Map<string, Venda>();
-          dadosLocais.forEach((v) => map.set(v.id, v));
-          data.forEach((sv: any) => {
-            const local = map.get(sv.id);
-            map.set(sv.id, {
-              ...sv,
-              tipo_pedido: local?.tipo_pedido ?? sv.tipo_pedido ?? "pronta_entrega",
-              status_producao: local?.status_producao ?? sv.status_producao,
-              tipo_destino_lote: local?.tipo_destino_lote ?? sv.tipo_destino_lote,
-              baixar_insumos_lote: local?.baixar_insumos_lote ?? sv.baixar_insumos_lote,
-              valor_sinal_pago: local?.valor_sinal_pago ?? sv.valor_sinal_pago,
-              saldo_na_entrega: local?.saldo_na_entrega ?? sv.saldo_na_entrega,
-              data_entrega_prometida: local?.data_entrega_prometida ?? sv.data_entrega_prometida,
-              clientes: sv.clientes || local?.clientes || null,
-              revendedoras: sv.revendedoras || local?.revendedoras || null,
-              venda_itens: (sv.venda_itens && sv.venda_itens.length > 0) ? sv.venda_itens : (local?.venda_itens || []),
-            });
-          });
-          return Array.from(map.values()).sort(
-            (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime()
-          );
+          const vendasSupabase = (data || []).map((sv: any) => ({
+            ...sv,
+            tipo_pedido: sv.tipo_pedido ?? "pronta_entrega",
+            status_producao: sv.status_producao,
+            tipo_destino_lote: sv.tipo_destino_lote,
+            baixar_insumos_lote: sv.baixar_insumos_lote,
+            valor_sinal_pago: sv.valor_sinal_pago,
+            saldo_na_entrega: sv.saldo_na_entrega,
+            data_entrega_prometida: sv.data_entrega_prometida,
+            clientes: sv.clientes || null,
+            revendedoras: sv.revendedoras || null,
+            venda_itens: sv.venda_itens || [],
+          })) as Venda[];
+
+          dadosLocais.vendas = vendasSupabase;
+          gravar(dadosLocais);
+          return vendasSupabase;
         }
       } catch (err) {
         console.warn("Supabase vendas aviso:", err);
       }
     }
-    return dadosLocais;
+    return dadosLocais.vendas || [];
   }
 });
 
