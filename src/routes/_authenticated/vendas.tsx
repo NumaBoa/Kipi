@@ -2015,8 +2015,8 @@ export function PaginaVendas() {
                               />
                               <span>
                                 {itemNoCarrinho?.com_desconto
-                                  ? "🏷️ Com Desconto (Comissão 50%)"
-                                  : "🏷️ Sem Desconto (Comissão Normal)"}
+                                  ? "🏷️ Promoção / Desconto (Comissão 50%)"
+                                  : "🏷️ Preço Normal (Comissão Cheia)"}
                               </span>
                             </button>
                           </div>
@@ -2056,7 +2056,7 @@ export function PaginaVendas() {
                               <p className="font-bold text-slate-800 truncate">{item.produto.nome}</p>
                               {item.com_desconto && (
                                 <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300 shrink-0">
-                                  -50% comissão
+                                  promoção (-50% comissão)
                                 </span>
                               )}
                             </div>
@@ -2096,7 +2096,7 @@ export function PaginaVendas() {
                           </div>
                         </div>
 
-                        {/* INDICADOR SE FOI VENDIDO COM DESCONTO OU NÃO */}
+                        {/* INDICADOR SE FOI VENDIDO NA PROMOÇÃO / COM DESCONTO */}
                         <div className="flex items-center justify-between pt-1 border-t border-slate-100">
                           <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
                             <input
@@ -2112,8 +2112,8 @@ export function PaginaVendas() {
                               )}
                             >
                               {item.com_desconto
-                                ? "Vendido com desconto (comissão pela metade)"
-                                : "Vendido com desconto?"}
+                                ? "🏷️ Vendido na Promoção / com Desconto (comissão 50%)"
+                                : "🏷️ Marcar se vendido na promoção / com desconto"}
                             </span>
                           </label>
 
