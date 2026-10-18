@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Image,
   useWindowDimensions,
   ActivityIndicator,
   Platform,
@@ -16,7 +15,6 @@ import { KipiPalette, Fonts } from '@/constants/theme';
 
 export default function LoginScreen() {
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 840;
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -34,11 +32,11 @@ export default function LoginScreen() {
     const loginSenha = (senhaParam || senha).trim();
 
     if (!loginEmail) {
-      setErro('Informe seu e-mail');
+      setErro('Informe seu e-mail para entrar');
       return;
     }
     if (!loginSenha) {
-      setErro('Informe sua senha');
+      setErro('Digite sua senha');
       return;
     }
 
@@ -55,13 +53,13 @@ export default function LoginScreen() {
       if (dbError) throw new Error(dbError.message);
 
       if (!data) {
-        setErro('E-mail não cadastrado no sistema');
+        setErro('E-mail não encontrado no sistema');
         setCarregando(false);
         return;
       }
 
       if (data.senha && data.senha !== loginSenha) {
-        setErro('Senha incorreta. Tente novamente');
+        setErro('Senha incorreta');
         setCarregando(false);
         return;
       }
@@ -83,35 +81,35 @@ export default function LoginScreen() {
 
   if (usuarioLogado) {
     return (
-      <View style={styles.fullScreenCenter}>
-        <View style={styles.authSuccessCard}>
+      <View style={styles.viewport}>
+        <View style={styles.loginCard}>
           <View style={styles.avatarCircle}>
             <Text style={styles.avatarLetter}>
               {usuarioLogado.nome?.[0]?.toUpperCase() || 'K'}
             </Text>
           </View>
-          <View style={styles.successPill}>
-            <Text style={styles.successPillText}>✨ CONECTADO • HOMOLOGAÇÃO</Text>
+          <View style={styles.hmlBadge}>
+            <Text style={styles.hmlBadgeText}>SESSÃO ATIVA • HOMOLOGAÇÃO</Text>
           </View>
-          <Text style={styles.successHeading}>{usuarioLogado.nome}</Text>
-          <Text style={styles.successEmail}>{usuarioLogado.email}</Text>
+          <Text style={styles.loggedName}>{usuarioLogado.nome}</Text>
+          <Text style={styles.loggedEmail}>{usuarioLogado.email}</Text>
 
-          <View style={styles.successDetails}>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Função</Text>
-              <Text style={styles.detailValue}>{usuarioLogado.papel}</Text>
+          <View style={styles.loggedInfoBox}>
+            <View style={styles.loggedInfoRow}>
+              <Text style={styles.loggedInfoLabel}>Perfil:</Text>
+              <Text style={styles.loggedInfoValue}>{usuarioLogado.papel}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Status</Text>
-              <Text style={styles.detailValue}>Ativo</Text>
+            <View style={styles.loggedInfoRow}>
+              <Text style={styles.loggedInfoLabel}>Ambiente:</Text>
+              <Text style={styles.loggedInfoValue}>Homologação Supabase</Text>
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.primaryPillBtn}
+            style={styles.primaryBtn}
             onPress={() => setUsuarioLogado(null)}
             activeOpacity={0.85}>
-            <Text style={styles.primaryPillBtnText}>Desconectar</Text>
+            <Text style={styles.primaryBtnText}>Sair da Conta</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -120,85 +118,54 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.viewport}>
-      <View style={styles.viewportCenter}>
-        {/* ========================================================= */}
-        {/* CONTAINER PRINCIPAL FLUTUANTE (INSPIRADO EM BLOOMLY)     */}
-        {/* ========================================================= */}
-        <View
-          style={[
-            styles.bloomlyCard,
-            isDesktop ? styles.bloomlyCardDesktop : styles.bloomlyCardMobile,
-          ]}>
+      <View style={styles.centeredContainer}>
+        {/* CARD CENTRAL SIMPLES E ELEGANTE (ID VISUAL ATELIERQ) */}
+        <View style={styles.loginCard}>
 
-          {/* ------------------------------------------------------- */}
-          {/* LADO ESQUERDO: APRESENTAÇÃO & ILUSTRAÇÃO 3D EMPREENDEDORA */}
-          {/* ------------------------------------------------------- */}
-          <View
-            style={[
-              styles.leftColumn,
-              isDesktop ? styles.leftColumnDesktop : styles.leftColumnMobile,
-            ]}>
-            {/* Logo no topo esquerdo */}
-            <View style={styles.logoRow}>
-              <View style={styles.flowerIconWrap}>
-                <Text style={styles.flowerIconEmoji}>🌸</Text>
+          {/* CABEÇALHO COM LOGO E BADGES NO PADRÃO DO SISTEMA */}
+          <View style={styles.headerArea}>
+            <View style={styles.brandRow}>
+              <View style={styles.brandIconBox}>
+                <Text style={styles.brandIconLetter}>K</Text>
               </View>
-              <Text style={styles.logoText}>Kipi</Text>
+              <View>
+                <View style={styles.nameBadgeRow}>
+                  <Text style={styles.brandName}>Kipi</Text>
+                  <View style={styles.systemBadge}>
+                    <Text style={styles.systemBadgeText}>SaaS GESTÃO</Text>
+                  </View>
+                </View>
+                <Text style={styles.brandSlogan}>
+                  Tecnologia e facilidade para seu negócio
+                </Text>
+              </View>
             </View>
 
-            {/* Texto de Boas-vindas (como na referência Bloomly) */}
-            <View style={styles.welcomeBlock}>
-              <Text style={styles.welcomeHeading}>Bem-vindo ao Kipi! 🌸</Text>
-              <Text style={styles.welcomeSubheading}>
-                O sistema inteligente para confeitarias, ateliês, pet shops e serviços.
+            <View style={styles.titleSpacing}>
+              <Text style={styles.cardTitle}>Acesse sua conta</Text>
+              <Text style={styles.cardSubtitle}>
+                Entre com seu e-mail e senha para gerenciar seu ateliê
               </Text>
-            </View>
-
-            {/* Ilustração 3D da Empreendedora em seu ateliê */}
-            <View style={styles.illustrationFrame}>
-              <Image
-                source={require('@/assets/images/kipi-entrepreneur.jpg')}
-                style={styles.illustrationImage}
-                resizeMode="cover"
-              />
             </View>
           </View>
 
-          {/* ------------------------------------------------------- */}
-          {/* LADO DIREITO: CARD ELEVADO DO FORMULÁRIO (ESTILO BLOOMLY) */}
-          {/* ------------------------------------------------------- */}
-          <View
-            style={[
-              styles.rightCard,
-              isDesktop ? styles.rightCardDesktop : styles.rightCardMobile,
-            ]}>
-
-            {/* Cabeçalho do Card */}
-            <View style={styles.formHeader}>
-              <Text style={styles.cardTitle}>Acesse sua conta</Text>
-              <Text style={styles.cardSubtitle}>
-                Que bom ter você aqui! Digite seus dados abaixo. 💜
-              </Text>
+          {/* ALERTA DE ERRO */}
+          {erro && (
+            <View style={styles.errorAlert}>
+              <Text style={styles.errorAlertText}>⚠️ {erro}</Text>
             </View>
+          )}
 
-            {/* Banner de Erro */}
-            {erro && (
-              <View style={styles.compactError}>
-                <Text style={styles.compactErrorText}>⚠️ {erro}</Text>
-              </View>
-            )}
-
-            {/* Campo E-mail com badge de ícone estilo Bloomly */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.inputLabel}>E-mail de acesso</Text>
+          {/* FORMULÁRIO */}
+          <View style={styles.formFields}>
+            {/* Campo E-mail */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>E-mail</Text>
               <View
                 style={[
-                  styles.bloomlyInput,
-                  emailFocado && styles.bloomlyInputFocused,
+                  styles.inputBox,
+                  emailFocado && styles.inputBoxFocused,
                 ]}>
-                <View style={styles.iconBadgeDenim}>
-                  <Text style={styles.iconBadgeText}>✉️</Text>
-                </View>
                 <TextInput
                   style={styles.textInput}
                   placeholder="seu.email@exemplo.com"
@@ -216,20 +183,17 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Campo Senha com badge de ícone e alternância de visibilidade */}
-            <View style={styles.fieldGroup}>
-              <Text style={styles.inputLabel}>Sua senha</Text>
+            {/* Campo Senha */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Senha</Text>
               <View
                 style={[
-                  styles.bloomlyInput,
-                  senhaFocada && styles.bloomlyInputFocused,
+                  styles.inputBox,
+                  senhaFocada && styles.inputBoxFocused,
                 ]}>
-                <View style={styles.iconBadgeDenim}>
-                  <Text style={styles.iconBadgeText}>🔒</Text>
-                </View>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Digite sua senha"
+                  placeholder="••••••••"
                   placeholderTextColor="#94A3B8"
                   value={senha}
                   onChangeText={(t) => {
@@ -243,33 +207,33 @@ export default function LoginScreen() {
                 <TouchableOpacity
                   onPress={() => setMostrarSenha(!mostrarSenha)}
                   style={styles.eyeBtn}>
-                  <Text style={styles.eyeBtnText}>{mostrarSenha ? '👁️' : '🙈'}</Text>
+                  <Text style={styles.eyeBtnText}>{mostrarSenha ? '👁️' : '🔒'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* Lembrar-me & Esqueci a senha */}
-            <View style={styles.rememberLine}>
+            {/* Lembrar-me e Esqueci a senha */}
+            <View style={styles.optionsLine}>
               <TouchableOpacity
-                style={styles.checkLine}
+                style={styles.rememberOption}
                 activeOpacity={0.8}
                 onPress={() => setLembrar(!lembrar)}>
-                <View style={[styles.bloomlyCheck, lembrar && styles.bloomlyCheckActive]}>
-                  {lembrar && <Text style={styles.checkTick}>✓</Text>}
+                <View style={[styles.checkSquare, lembrar && styles.checkSquareActive]}>
+                  {lembrar && <Text style={styles.checkCheck}>✓</Text>}
                 </View>
-                <Text style={styles.rememberText}>Lembrar de mim</Text>
+                <Text style={styles.rememberLabel}>Lembrar de mim</Text>
               </TouchableOpacity>
 
               <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.forgotPassText}>Esqueceu a senha?</Text>
+                <Text style={styles.forgotLink}>Esqueceu a senha?</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Botão Primário (Iced Denim no padrão Bloomly) */}
+            {/* Botão Primário Iced Denim */}
             <TouchableOpacity
               style={[
-                styles.primaryPillBtn,
-                carregando && styles.primaryPillBtnDisabled,
+                styles.primaryBtn,
+                carregando && styles.primaryBtnDisabled,
               ]}
               onPress={() => handleLogin()}
               disabled={carregando}
@@ -277,53 +241,58 @@ export default function LoginScreen() {
               {carregando ? (
                 <View style={styles.loadingRow}>
                   <ActivityIndicator size="small" color="#FFFFFF" />
-                  <Text style={styles.primaryPillBtnText}>Entrando...</Text>
+                  <Text style={styles.primaryBtnText}>Acessando...</Text>
                 </View>
               ) : (
-                <Text style={styles.primaryPillBtnText}>Entrar</Text>
+                <Text style={styles.primaryBtnText}>Entrar no Kipi</Text>
               )}
             </TouchableOpacity>
 
-            {/* Divisor "ou" */}
-            <View style={styles.orDivider}>
+            {/* Divisor */}
+            <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
-              <Text style={styles.orText}>ou</Text>
+              <Text style={styles.dividerText}>ou</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            {/* Botão Google (EXATAMENTE COMO NA REFERÊNCIA BLOOMLY) */}
-            <TouchableOpacity style={styles.googleBloomlyBtn} activeOpacity={0.85}>
-              <View style={styles.googleGContainer}>
-                <Text style={styles.googleGLetter}>G</Text>
+            {/* Botão Google Clean */}
+            <TouchableOpacity style={styles.googleBtn} activeOpacity={0.85}>
+              <View style={styles.googleCircle}>
+                <Text style={styles.googleLetter}>G</Text>
               </View>
-              <Text style={styles.googleBloomlyText}>Continue with Google</Text>
+              <Text style={styles.googleBtnText}>Entrar com o Google</Text>
             </TouchableOpacity>
-
-            {/* Rodapé: Cadastro */}
-            <View style={styles.footerRow}>
-              <Text style={styles.footerMuted}>Não tem uma conta? </Text>
-              <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.footerAccent}>Cadastre-se</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Atalhos Rápidos de Homologação (1 linha compacta) */}
-            <View style={styles.quickHmlRow}>
-              <Text style={styles.quickHmlLabel}>TESTE RÁPIDO:</Text>
-              <TouchableOpacity
-                style={styles.quickHmlChip}
-                onPress={() => preencherRapido('camila.c.lima08@gmail.com', 'P&ix1nh0!')}>
-                <Text style={styles.quickHmlChipText}>👑 Camila Lima</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickHmlChip}
-                onPress={() => preencherRapido('jun.dossantos85@gmail.com', '123')}>
-                <Text style={styles.quickHmlChipText}>🧁 Juliana</Text>
-              </TouchableOpacity>
-            </View>
-
           </View>
+
+          {/* RODAPÉ DO CARD */}
+          <View style={styles.footerLine}>
+            <Text style={styles.footerMuted}>Não tem uma conta? </Text>
+            <TouchableOpacity activeOpacity={0.7}>
+              <Text style={styles.footerLink}>Cadastre seu negócio</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ATALHOS RÁPIDOS DE HOMOLOGAÇÃO */}
+          <View style={styles.hmlRow}>
+            <Text style={styles.hmlRowTitle}>TESTE RÁPIDO:</Text>
+            <TouchableOpacity
+              style={styles.hmlChip}
+              onPress={() => preencherRapido('camila.c.lima08@gmail.com', 'P&ix1nh0!')}>
+              <Text style={styles.hmlChipText}>👑 Camila Lima</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.hmlChip}
+              onPress={() => preencherRapido('jun.dossantos85@gmail.com', '123')}>
+              <Text style={styles.hmlChipText}>🧁 Juliana Carvalho</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
+
+        {/* RODAPÉ EXTERNO DO SISTEMA */}
+        <Text style={styles.outerFooterText}>
+          Kipi • Gestão inteligente para confeitarias, ateliês, pet shops e serviços
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -335,199 +304,139 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     backgroundColor: '#E6F1FA', // Frost
-    overflow: 'hidden',
-  },
-  viewportCenter: {
-    flex: 1,
-    height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
     overflow: 'hidden',
   },
-
-  // CARD CENTRAL (ESTILO BLOOMLY)
-  bloomlyCard: {
-    backgroundColor: '#F5F9FD', // Fundo frost suave do card
-    borderRadius: 36,
-    borderWidth: 1.5,
-    borderColor: '#D8E8F5',
-    overflow: 'hidden',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 24px 48px -12px rgba(87, 152, 215, 0.22), 0 4px 12px rgba(0, 0, 0, 0.04)',
-      },
-      default: {
-        shadowColor: '#5798D7',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.16,
-        shadowRadius: 24,
-        elevation: 8,
-      },
-    }),
-  },
-  bloomlyCardDesktop: {
-    width: '100%',
-    maxWidth: 960,
-    height: 590,
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    padding: 16,
-    gap: 20,
-  },
-  bloomlyCardMobile: {
+  centeredContainer: {
     width: '100%',
     maxWidth: 440,
-    height: '100%',
-    maxHeight: 690,
-    flexDirection: 'column',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    gap: 16,
   },
 
-  // LADO ESQUERDO: ILUSTRAÇÃO & TEXTO
-  leftColumn: {
-    justifyContent: 'space-between',
-  },
-  leftColumnDesktop: {
-    flex: 1,
-    padding: 20,
-    paddingRight: 10,
-    gap: 12,
-  },
-  leftColumnMobile: {
+  // CARD CENTRAL (ESTILO DASHBOARD ATELIERQ)
+  loginCard: {
     width: '100%',
-    height: 190,
-    padding: 12,
-  },
-
-  // LOGO (FLOWER + KIPI)
-  logoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  flowerIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#F1F5DC', // Pistachio Light
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#B9C255',
-  },
-  flowerIconEmoji: {
-    fontSize: 16,
-  },
-  logoText: {
-    fontFamily: Fonts.display,
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1E293B',
-    letterSpacing: -0.3,
-  },
-
-  // TEXTO DE BOAS-VINDAS
-  welcomeBlock: {
-    gap: 4,
-  },
-  welcomeHeading: {
-    fontFamily: Fonts.display,
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-  },
-  welcomeSubheading: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-    maxWidth: 320,
-  },
-
-  // FRAME DA ILUSTRAÇÃO 3D
-  illustrationFrame: {
-    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-    marginTop: 8,
-  },
-  illustrationImage: {
-    width: '100%',
-    height: '100%',
-  },
-
-  // LADO DIREITO: CARD DO FORMULÁRIO (ELEVADO & BRANCO)
-  rightCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: '#E8F1F8',
+    borderWidth: 1.5,
+    borderColor: '#D4E6F6', // Frost border
+    padding: 28,
+    gap: 16,
     ...Platform.select({
       web: {
-        boxShadow: '0 20px 40px -10px rgba(87, 152, 215, 0.12)',
+        boxShadow: '0 20px 40px -15px rgba(87, 152, 215, 0.16), 0 4px 12px rgba(0, 0, 0, 0.03)',
       },
       default: {
         shadowColor: '#5798D7',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.1,
-        shadowRadius: 16,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.12,
+        shadowRadius: 20,
         elevation: 6,
       },
     }),
   },
-  rightCardDesktop: {
-    width: 410,
-    height: '100%',
-    padding: 28,
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  rightCardMobile: {
-    flex: 1,
-    padding: 18,
-    gap: 10,
-    justifyContent: 'space-between',
-  },
 
   // CABEÇALHO DO CARD
-  formHeader: {
-    gap: 2,
+  headerArea: {
+    gap: 14,
   },
-  cardTitle: {
-    fontFamily: Fonts.display,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  brandIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#EAF3FA', // Iced Denim Light
+    borderWidth: 1.5,
+    borderColor: '#5798D7', // Iced Denim
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  brandIconLetter: {
+    fontFamily: Fonts.sans,
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#5798D7', // Iced Denim
+  },
+  nameBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  brandName: {
+    fontFamily: Fonts.sans,
     fontSize: 22,
     fontWeight: '800',
     color: '#0F172A',
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
   },
-  cardSubtitle: {
+  systemBadge: {
+    backgroundColor: '#F1F6D8', // Pistachio Light
+    borderColor: '#B9C255', // Pistachio
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  systemBadgeText: {
+    fontFamily: Fonts.sans,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#708018',
+    letterSpacing: 0.5,
+  },
+  brandSlogan: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#64748B',
-    lineHeight: 16,
+    marginTop: 2,
+  },
+
+  titleSpacing: {
+    gap: 3,
+  },
+  cardTitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  cardSubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
   },
 
   // ERRO
-  compactError: {
+  errorAlert: {
     backgroundColor: '#FEF2F2',
-    borderWidth: 1,
     borderColor: '#FECACA',
+    borderWidth: 1,
     borderRadius: 10,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
   },
-  compactErrorText: {
+  errorAlertText: {
     fontFamily: Fonts.sans,
-    fontSize: 11,
+    fontSize: 12,
     color: '#DC2626',
     fontWeight: '600',
   },
 
-  // CAMPOS DE ENTRADA (ESTILO BLOOMLY COM BADGE COLORIDO)
-  fieldGroup: {
-    gap: 4,
+  // FORMULÁRIO
+  formFields: {
+    gap: 12,
+  },
+  inputGroup: {
+    gap: 5,
   },
   inputLabel: {
     fontFamily: Fonts.sans,
@@ -535,36 +444,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#334155',
   },
-  bloomlyInput: {
+  inputBox: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 10,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     height: 44,
   },
-  bloomlyInputFocused: {
-    borderColor: '#5798D7', // Iced Denim
+  inputBoxFocused: {
     backgroundColor: '#FFFFFF',
+    borderColor: '#5798D7', // Iced Denim
     ...Platform.select({
       web: {
         boxShadow: '0 0 0 3px rgba(87, 152, 215, 0.16)',
       },
     }),
-  },
-  iconBadgeDenim: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: '#EAF3FA', // Frost tint
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  iconBadgeText: {
-    fontSize: 13,
   },
   textInput: {
     flex: 1,
@@ -581,18 +478,19 @@ const styles = StyleSheet.create({
   },
 
   // OPÇÕES
-  rememberLine: {
+  optionsLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginVertical: 2,
+    marginTop: 2,
+    marginBottom: 4,
   },
-  checkLine: {
+  rememberOption: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  bloomlyCheck: {
+  checkSquare: {
     width: 17,
     height: 17,
     borderRadius: 5,
@@ -602,56 +500,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bloomlyCheckActive: {
+  checkSquareActive: {
     backgroundColor: '#5798D7', // Iced Denim
     borderColor: '#5798D7',
   },
-  checkTick: {
+  checkCheck: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
   },
-  rememberText: {
+  rememberLabel: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#64748B',
   },
-  forgotPassText: {
+  forgotLink: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#5798D7', // Iced Denim
     fontWeight: '600',
   },
 
-  // BOTÃO PRIMÁRIO (ICED DENIM NO FORMATO PILL BLOOMLY)
-  primaryPillBtn: {
+  // BOTÃO PRIMÁRIO (ICED DENIM)
+  primaryBtn: {
     backgroundColor: '#5798D7', // Iced Denim
-    borderRadius: 14,
+    borderRadius: 12,
     height: 44,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 4,
     ...Platform.select({
       web: {
-        boxShadow: '0 8px 18px -4px rgba(87, 152, 215, 0.4)',
+        boxShadow: '0 6px 16px -2px rgba(87, 152, 215, 0.35)',
       },
       default: {
-        elevation: 4,
+        elevation: 3,
         shadowColor: '#5798D7',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.25,
         shadowRadius: 8,
       },
     }),
   },
-  primaryPillBtnDisabled: {
+  primaryBtnDisabled: {
     opacity: 0.7,
   },
-  primaryPillBtnText: {
-    fontFamily: Fonts.display,
-    color: '#FFFFFF',
+  primaryBtnText: {
+    fontFamily: Fonts.sans,
     fontSize: 14,
     fontWeight: '700',
+    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   loadingRow: {
@@ -661,10 +559,10 @@ const styles = StyleSheet.create({
   },
 
   // DIVISOR
-  orDivider: {
+  dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 4,
+    marginVertical: 2,
     gap: 10,
   },
   dividerLine: {
@@ -672,26 +570,31 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E2E8F0',
   },
-  orText: {
+  dividerText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     color: '#94A3B8',
     fontWeight: '500',
   },
 
-  // BOTÃO GOOGLE (IDÊNTICO À REFERÊNCIA BLOOMLY)
-  googleBloomlyBtn: {
+  // BOTÃO GOOGLE
+  googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderRadius: 14,
+    borderRadius: 12,
     height: 42,
-    gap: 8,
+    gap: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
+      },
+    }),
   },
-  googleGContainer: {
+  googleCircle: {
     width: 20,
     height: 20,
     borderRadius: 10,
@@ -699,20 +602,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  googleGLetter: {
+  googleLetter: {
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '900',
   },
-  googleBloomlyText: {
+  googleBtnText: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '600',
     color: '#334155',
   },
 
-  // RODAPÉ CADASTRO
-  footerRow: {
+  // RODAPÉ DO CARD
+  footerLine: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
@@ -723,126 +626,119 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748B',
   },
-  footerAccent: {
+  footerLink: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#7D8722', // Pistachio
+    color: '#5798D7', // Iced Denim
   },
 
   // HOMOLOGAÇÃO
-  quickHmlRow: {
+  hmlRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
-  quickHmlLabel: {
+  hmlRowTitle: {
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
     color: '#94A3B8',
     letterSpacing: 0.5,
   },
-  quickHmlChip: {
+  hmlChip: {
     backgroundColor: '#E6F1FA',
     borderColor: '#D4E6F6',
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 6,
   },
-  quickHmlChipText: {
+  hmlChipText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '600',
     color: '#5798D7',
   },
 
+  // RODAPÉ EXTERNO
+  outerFooterText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'center',
+    maxWidth: 360,
+  },
+
   // SUCESSO
-  fullScreenCenter: {
-    flex: 1,
-    backgroundColor: '#E6F1FA',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  authSuccessCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 32,
-    padding: 32,
-    width: '100%',
-    maxWidth: 420,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#D4E6F6',
-  },
   avatarCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#B9C255',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#B9C255', // Pistachio
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    alignSelf: 'center',
   },
   avatarLetter: {
-    fontFamily: Fonts.display,
-    fontSize: 28,
-    fontWeight: '900',
+    fontFamily: Fonts.sans,
+    fontSize: 26,
+    fontWeight: '800',
     color: '#FFFFFF',
   },
-  successPill: {
-    backgroundColor: '#F3F6DD',
+  hmlBadge: {
+    backgroundColor: '#F1F6D8',
     borderColor: '#B9C255',
     borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 20,
-    marginBottom: 8,
+    alignSelf: 'center',
   },
-  successPillText: {
+  hmlBadgeText: {
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#7D8722',
+    color: '#708018',
   },
-  successHeading: {
-    fontFamily: Fonts.display,
-    fontSize: 22,
-    fontWeight: '800',
+  loggedName: {
+    fontFamily: Fonts.sans,
+    fontSize: 20,
+    fontWeight: '700',
     color: '#0F172A',
+    textAlign: 'center',
   },
-  successEmail: {
+  loggedEmail: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     color: '#64748B',
-    marginBottom: 16,
+    textAlign: 'center',
   },
-  successDetails: {
+  loggedInfoBox: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 14,
-    padding: 14,
-    width: '100%',
-    gap: 8,
-    marginBottom: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 6,
   },
-  detailRow: {
+  loggedInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  detailLabel: {
+  loggedInfoLabel: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#64748B',
   },
-  detailValue: {
+  loggedInfoValue: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#0F172A',
   },
 });
