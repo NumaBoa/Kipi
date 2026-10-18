@@ -900,6 +900,47 @@ export const useSalvarProduto = () => {
           if (catNome) {
             await supabase.from("categorias").upsert({ id: id(), nome: catNome, empresa_id: empId }, { onConflict: "nome" }).select();
           }
+
+          // Se o produto tiver desconto promocional, sincroniza automaticamente vendas passadas com desconto
+          if (produtoAtualizado.desconto_promocional && Number(produtoAtualizado.desconto_promocional) > 0) {
+            const precoEf = Math.max(0, Number(produtoAtualizado.preco) - Number(produtoAtualizado.desconto_promocional));
+            const precoEfArredondado = Math.round(precoEf * 100) / 100;
+            const { data: itensPromo } = await supabase
+              .from("venda_itens")
+              .select("id, venda_id")
+              .or(`produto_id.eq.${produtoAtualizado.id},nome_produto.ilike.${produtoAtualizado.nome.trim()}`)
+              .eq("com_desconto", true);
+
+            if (itensPromo && itensPromo.length > 0) {
+              const vIds = [...new Set(itensPromo.map((x) => x.venda_id))];
+              await supabase
+                .from("venda_itens")
+                .update({ preco_unitario: precoEfArredondado })
+                .in("id", itensPromo.map((x) => x.id));
+
+              for (const vId of vIds) {
+                const { data: tItens } = await supabase.from("venda_itens").select("quantidade, preco_unitario").eq("venda_id", vId);
+                const nTotal = (tItens || []).reduce((s, it) => s + (Number(it.quantidade) || 1) * (Number(it.preco_unitario) || 0), 0);
+                const nTotalArr = Math.round(nTotal * 100) / 100;
+                const { data: vAtual } = await supabase.from("vendas").select("*").eq("id", vId).single();
+                if (vAtual) {
+                  let nSinal = vAtual.valor_sinal_pago;
+                  let nSaldo = vAtual.saldo_na_entrega;
+                  if (vAtual.status === "pago" || Number(vAtual.saldo_na_entrega || 0) <= 0) {
+                    nSinal = nTotalArr;
+                    nSaldo = 0;
+                  } else if (Number(vAtual.saldo_na_entrega || 0) > 0) {
+                    nSaldo = Math.max(0, nTotalArr - Number(vAtual.valor_sinal_pago || 0));
+                  }
+                  await supabase.from("vendas").update({
+                    total: nTotalArr,
+                    valor_sinal_pago: nSinal,
+                    saldo_na_entrega: nSaldo,
+                  }).eq("id", vId);
+                }
+              }
+            }
+          }
         } catch (err) {
           console.warn("Erro ao sincronizar produto no Supabase:", err);
         }
@@ -908,6 +949,7 @@ export const useSalvarProduto = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: chaves.produtos });
       qc.invalidateQueries({ queryKey: chaves.categorias });
+      qc.invalidateQueries({ queryKey: chaves.vendas });
     },
   });
 };

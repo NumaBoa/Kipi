@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Eye,
   Flame,
   FolderPlus,
   Layers,
@@ -66,7 +67,6 @@ import {
   useSalvarInsumo,
   useSalvarProduto,
   useSalvarReceitaItem,
-  useAjustarVendasPromocionaisRetroativas,
   type Insumo,
   type Produto,
 } from "@/lib/dados";
@@ -165,28 +165,8 @@ export function PaginaCatalogoEstoque() {
   const [produtoAssando, setProdutoAssando] = useState<Produto | null>(null);
   const [qtdAssar, setQtdAssar] = useState(12);
 
-  // AJUSTE RETROATIVO DE VENDAS PROMOCIONAIS
-  const ajustarRetroativo = useAjustarVendasPromocionaisRetroativas();
-  const [recalculandoRetroativo, setRecalculandoRetroativo] = useState(false);
-
-  const handleRecalcularRetroativo = async () => {
-    try {
-      setRecalculandoRetroativo(true);
-      const res = await ajustarRetroativo.mutateAsync();
-      if (res.pedidosAtualizados > 0 || res.itensAtualizados > 0) {
-        toast.success(
-          `🎉 Recálculo concluído! ${res.itensAtualizados} itens promocionais em ${res.pedidosAtualizados} pedidos foram ajustados com os novos valores de desconto.`
-        );
-      } else {
-        toast.info("Todos os pedidos com itens promocionais já estão com os valores e descontos corretos!");
-      }
-    } catch (err: any) {
-      console.error("Erro ao recalcular retroativo:", err);
-      toast.error(err?.message || "Erro ao recalcular pedidos retroativos.");
-    } finally {
-      setRecalculandoRetroativo(false);
-    }
-  };
+  // ESTADO MODAL DETALHES DO PRODUTO
+  const [produtoDetalhes, setProdutoDetalhes] = useState<Produto | null>(null);
 
   const abrirModalAssar = (p: Produto) => {
     setProdutoAssando(p);
@@ -709,25 +689,12 @@ export function PaginaCatalogoEstoque() {
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
           {abaAtiva === "produtos" ? (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                className="rounded-xl sm:rounded-2xl gap-1.5 font-bold border-amber-300 text-amber-900 bg-amber-50 hover:bg-amber-100 shadow-xs px-3 sm:px-4 h-9 sm:h-10 text-xs sm:text-sm cursor-pointer"
-                onClick={handleRecalcularRetroativo}
-                disabled={recalculandoRetroativo}
-                title="Aplica os descontos promocionais cadastrados nos produtos em todas as vendas retroativas marcadas com desconto"
-              >
-                {recalculandoRetroativo ? <Loader2 className="size-4 animate-spin" /> : <Tag className="size-4 text-amber-600" />}
-                <span className="hidden sm:inline">Ajustar Vendas Retroativas</span>
-                <span className="sm:hidden">Ajustar Vendas</span>
-              </Button>
-              <Button
-                className="rounded-xl sm:rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 sm:px-5 h-9 sm:h-10 text-xs sm:text-sm"
-                onClick={() => abrirModalProduto()}
-              >
-                <Plus className="size-4" /> Novo Produto
-              </Button>
-            </div>
+            <Button
+              className="rounded-xl sm:rounded-2xl gap-1.5 font-bold bg-[#084463] text-white hover:bg-[#06344C] shadow-md shadow-[#084463]/25 px-4 sm:px-5 h-9 sm:h-10 text-xs sm:text-sm"
+              onClick={() => abrirModalProduto()}
+            >
+              <Plus className="size-4" /> Novo Produto
+            </Button>
           ) : abaAtiva === "materiais" ? (
             <>
               <Button
@@ -942,11 +909,6 @@ export function PaginaCatalogoEstoque() {
                           <div className="text-xs text-slate-500 flex flex-wrap items-center gap-x-3 gap-y-1">
                             <span>
                               Preço de venda: <strong className="text-slate-700">{brl(p.preco)}</strong>
-                              {p.tem_promocao && Number(p.desconto_promocional || 0) > 0 && (
-                                <span className="ml-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                                  🏷️ Promo: {brl(Math.max(0, p.preco - Number(p.desconto_promocional)))} (-{brl(Number(p.desconto_promocional))})
-                                </span>
-                              )}
                             </span>
                             <span>•</span>
                             {custo > 0 && (
@@ -1017,6 +979,16 @@ export function PaginaCatalogoEstoque() {
                               }
                             >
                               <Flame className="size-3.5 text-amber-600" /> Assar
+                            </Button>
+                            {/* Botão de Ver Detalhes */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs font-bold rounded-lg border-slate-200 text-slate-700 hover:bg-slate-100 gap-1.5 px-2.5"
+                              onClick={() => setProdutoDetalhes(p)}
+                              title="Ver detalhes do produto"
+                            >
+                              <Eye className="size-3.5 text-slate-500" /> Detalhes
                             </Button>
 
                             <Button
@@ -1098,14 +1070,7 @@ export function PaginaCatalogoEstoque() {
 
                         <div className="flex items-baseline justify-between pt-1">
                           <div>
-                            <div className="flex flex-wrap items-baseline gap-2">
-                              <span className="text-2xl font-black text-slate-900">{brl(p.preco)}</span>
-                              {p.tem_promocao && Number(p.desconto_promocional || 0) > 0 && (
-                                <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2 py-0.5 rounded-md border border-amber-300">
-                                  Promo: {brl(Math.max(0, p.preco - Number(p.desconto_promocional)))} (-{brl(Number(p.desconto_promocional))})
-                                </span>
-                              )}
-                            </div>
+                            <span className="text-2xl font-black text-slate-900">{brl(p.preco)}</span>
                             {custo > 0 && (
                               <span className="text-xs text-slate-500 block">
                                 Custo: {brl(custo)} ({margem}% margem)
@@ -1179,6 +1144,15 @@ export function PaginaCatalogoEstoque() {
                         </div>
 
                         <div className="flex items-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 gap-1.5 rounded-xl font-bold border-slate-200 text-slate-700 hover:bg-slate-50 text-xs px-2.5 shadow-xs"
+                            onClick={() => setProdutoDetalhes(p)}
+                            title="Ver detalhes do produto"
+                          >
+                            <Eye className="size-3.5 text-slate-500" /> Detalhes
+                          </Button>
                           <Button
                             size="sm"
                             variant="ghost"
@@ -1712,6 +1686,127 @@ export function PaginaCatalogoEstoque() {
           </div>
         </div>
       )}
+
+      {/* MODAL: VER DETALHES DO PRODUTO */}
+      <Dialog open={Boolean(produtoDetalhes)} onOpenChange={(open) => !open && setProdutoDetalhes(null)}>
+        <DialogContent className="w-[95vw] sm:max-w-lg max-h-[85vh] overflow-y-auto rounded-2xl sm:rounded-3xl p-5 sm:p-6">
+          {produtoDetalhes && (
+            <>
+              <DialogHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                      {produtoDetalhes.categoria || "Geral"}
+                    </span>
+                    <DialogTitle className="text-xl font-black text-slate-900 mt-0.5">
+                      {produtoDetalhes.nome}
+                    </DialogTitle>
+                  </div>
+                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full shrink-0 ${
+                    produtoDetalhes.disponibilidade === "pronta_entrega"
+                      ? "bg-blue-100 text-blue-800"
+                      : produtoDetalhes.disponibilidade === "sob_encomenda"
+                      ? "bg-purple-100 text-purple-800"
+                      : "bg-emerald-100 text-emerald-800"
+                  }`}>
+                    {produtoDetalhes.disponibilidade === "pronta_entrega"
+                      ? "🛍️ Pronta-Entrega"
+                      : produtoDetalhes.disponibilidade === "sob_encomenda"
+                      ? "📅 Sob Encomenda"
+                      : "✨ Híbrido"}
+                  </span>
+                </div>
+                <DialogDescription className="sr-only">
+                  Detalhes e informações financeiras do produto
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4 pt-3 text-sm">
+                {/* PREÇOS & PROMOÇÃO */}
+                <div className="p-4 bg-slate-50 border border-slate-200/80 rounded-2xl space-y-3">
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-xs font-bold text-slate-500 uppercase">Preço Normal de Venda</span>
+                    <span className="text-xl font-black text-slate-900">{brl(produtoDetalhes.preco)}</span>
+                  </div>
+
+                  {produtoDetalhes.tem_promocao && Number(produtoDetalhes.desconto_promocional || 0) > 0 ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1.5 animate-in fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                          <Tag className="size-3.5 text-amber-600" /> Valor Promocional Ativo
+                        </span>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-md bg-amber-200/70 text-amber-950">
+                          - {brl(Number(produtoDetalhes.desconto_promocional))} / un
+                        </span>
+                      </div>
+                      <div className="flex items-baseline justify-between pt-0.5">
+                        <span className="text-xs text-amber-800 font-medium">Preço com Desconto:</span>
+                        <span className="text-lg font-black text-amber-950">
+                          {brl(Math.max(0, produtoDetalhes.preco - Number(produtoDetalhes.desconto_promocional)))}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-400 italic">
+                      Nenhuma promoção ou desconto cadastrado para este produto.
+                    </div>
+                  )}
+
+                  {(() => {
+                    const custo = produtoDetalhes.custo_manual || custoProduto(produtoDetalhes.id, receitas, insumos);
+                    const margem = produtoDetalhes.preco > 0 ? Math.round(((produtoDetalhes.preco - custo) / produtoDetalhes.preco) * 100) : 0;
+                    if (custo <= 0) return null;
+                    return (
+                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-xs text-slate-600">
+                        <span>Custo Estimado: <strong>{brl(custo)}</strong></span>
+                        <span>Margem: <strong className="text-emerald-700">{margem}%</strong></span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* ESTOQUE & DISPONIBILIDADE */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-amber-50/60 border border-amber-200/70 rounded-xl">
+                    <span className="text-[11px] font-bold text-amber-800 block">🍪 Prontos em Vitrine</span>
+                    <span className="text-lg font-black text-amber-950 mt-0.5 block">
+                      {num(produtoDetalhes.estoque)} un
+                    </span>
+                  </div>
+                  <div className="p-3 bg-sky-50/60 border border-sky-200/70 rounded-xl">
+                    <span className="text-[11px] font-bold text-sky-800 block flex items-center gap-1">
+                      <Snowflake className="size-3 text-sky-600" /> Congelados / Freezer
+                    </span>
+                    <span className="text-lg font-black text-sky-950 mt-0.5 block">
+                      {num(produtoDetalhes.estoque_congelado || 0)} un
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-2 border-t border-slate-100 mt-2">
+                <Button
+                  variant="outline"
+                  className="rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-100"
+                  onClick={() => setProdutoDetalhes(null)}
+                >
+                  Fechar
+                </Button>
+                <Button
+                  className="rounded-xl font-bold bg-[#084463] text-white hover:bg-[#06344C] gap-1.5 shadow-md shadow-[#084463]/25 px-4 h-10 text-sm cursor-pointer"
+                  onClick={() => {
+                    const prod = produtoDetalhes;
+                    setProdutoDetalhes(null);
+                    abrirModalProduto(prod);
+                  }}
+                >
+                  <Pencil className="size-4" /> Editar Produto
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* MODAL: NOVO PRODUTO */}
       <Dialog open={modalProduto} onOpenChange={setModalProduto}>

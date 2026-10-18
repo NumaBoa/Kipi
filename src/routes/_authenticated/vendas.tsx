@@ -2324,8 +2324,14 @@ export function PaginaVendas() {
                               />
                               <span>
                                 {itemNoCarrinho?.com_desconto
-                                  ? "🏷️ Promoção / Desconto (Comissão 50%)"
-                                  : "🏷️ Preço Normal (Comissão Cheia)"}
+                                  ? (ehRevendedor || (canal === "revendedora" && revendedorSelecionado))
+                                    ? "🏷️ Promoção / Desconto (Comissão 50%)"
+                                    : p.tem_promocao && Number(p.desconto_promocional || 0) > 0
+                                    ? `🏷️ Promoção (-${brl(p.desconto_promocional)})`
+                                    : "🏷️ Promoção / com Desconto"
+                                  : (ehRevendedor || (canal === "revendedora" && revendedorSelecionado))
+                                  ? "🏷️ Preço Normal (Comissão Cheia)"
+                                  : "🏷️ Preço Normal"}
                               </span>
                             </button>
                           </div>
@@ -2457,15 +2463,19 @@ export function PaginaVendas() {
                               >
                                 {item.com_desconto
                                   ? temDescCadastrado
-                                    ? `🏷️ Vendido na Promoção (-${brl(item.produto.desconto_promocional || 0)}/un · comissão 50%)`
-                                    : "🏷️ Vendido na Promoção / com Desconto (comissão 50%)"
+                                    ? (ehRevendedor || (canal === "revendedora" && revendedorSelecionado))
+                                      ? `🏷️ Vendido na Promoção (-${brl(item.produto.desconto_promocional || 0)}/un · comissão 50%)`
+                                      : `🏷️ Vendido na Promoção (-${brl(item.produto.desconto_promocional || 0)}/un)`
+                                    : (ehRevendedor || (canal === "revendedora" && revendedorSelecionado))
+                                    ? "🏷️ Vendido na Promoção / com Desconto (comissão 50%)"
+                                    : "🏷️ Vendido na Promoção / com Desconto"
                                   : temDescCadastrado
                                   ? `🏷️ Aplicar Desconto Promocional (-${brl(item.produto.desconto_promocional || 0)}/un)`
                                   : "🏷️ Marcar se vendido na promoção / com desconto"}
                               </span>
                             </label>
 
-                            {canal === "revendedora" && revendedorSelecionado && (
+                            {(ehRevendedor || (canal === "revendedora" && revendedorSelecionado)) && (
                               <span className={cn(
                                 "text-[10px] font-bold px-1.5 py-0.5 rounded",
                                 item.com_desconto
