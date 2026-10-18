@@ -15,8 +15,8 @@ import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
 
 export default function LoginScreen() {
-  const { width, height } = useWindowDimensions();
-  const isDesktop = width >= 800;
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= 820;
 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
@@ -34,11 +34,11 @@ export default function LoginScreen() {
     const loginSenha = (senhaParam || senha).trim();
 
     if (!loginEmail) {
-      setErro('Informe seu e-mail');
+      setErro('Digite seu e-mail para continuar');
       return;
     }
     if (!loginSenha) {
-      setErro('Informe sua senha');
+      setErro('Digite sua senha para entrar');
       return;
     }
 
@@ -55,13 +55,13 @@ export default function LoginScreen() {
       if (dbError) throw new Error(dbError.message);
 
       if (!data) {
-        setErro('Usuário não cadastrado');
+        setErro('E-mail não cadastrado no sistema');
         setCarregando(false);
         return;
       }
 
       if (data.senha && data.senha !== loginSenha) {
-        setErro('Senha incorreta');
+        setErro('Senha incorreta. Tente novamente');
         setCarregando(false);
         return;
       }
@@ -85,33 +85,43 @@ export default function LoginScreen() {
     return (
       <View style={styles.fullScreenCenter}>
         <View style={styles.authSuccessCard}>
-          <View style={styles.authSuccessAvatar}>
-            <Text style={styles.authSuccessAvatarText}>
+          <View style={styles.avatarGlow}>
+            <Text style={styles.avatarGlowLetter}>
               {usuarioLogado.nome?.[0]?.toUpperCase() || 'K'}
             </Text>
           </View>
-          <View style={styles.statusPill}>
-            <Text style={styles.statusPillText}>SESSÃO ATIVA • HOMOLOGAÇÃO</Text>
+          <View style={styles.successPistachioBadge}>
+            <Text style={styles.successPistachioBadgeText}>✨ ATELIÊ CONECTADO</Text>
           </View>
-          <Text style={styles.authSuccessTitle}>{usuarioLogado.nome}</Text>
-          <Text style={styles.authSuccessEmail}>{usuarioLogado.email}</Text>
+          <Text style={styles.successWelcomeHeading}>
+            Bem-vinda, {usuarioLogado.nome}!
+          </Text>
+          <Text style={styles.successWelcomeSub}>
+            Tudo pronto para gerenciar suas receitas e encomendas hoje.
+          </Text>
 
-          <View style={styles.authDetailsBox}>
-            <View style={styles.authDetailRow}>
-              <Text style={styles.authDetailLabel}>Perfil</Text>
-              <Text style={styles.authDetailValue}>{usuarioLogado.papel}</Text>
+          <View style={styles.successMetaBox}>
+            <View style={styles.successMetaRow}>
+              <Text style={styles.metaLabelText}>Conta:</Text>
+              <Text style={styles.metaValueText}>{usuarioLogado.email}</Text>
             </View>
-            <View style={styles.authDetailRow}>
-              <Text style={styles.authDetailLabel}>Status</Text>
-              <Text style={styles.authDetailValue}>Ativo</Text>
+            <View style={styles.successMetaRow}>
+              <Text style={styles.metaLabelText}>Função:</Text>
+              <View style={styles.roleTag}>
+                <Text style={styles.roleTagText}>{usuarioLogado.papel}</Text>
+              </View>
+            </View>
+            <View style={styles.successMetaRow}>
+              <Text style={styles.metaLabelText}>Ambiente:</Text>
+              <Text style={styles.metaValueText}>Homologação Supabase</Text>
             </View>
           </View>
 
           <TouchableOpacity
-            style={styles.actionPillButton}
+            style={styles.primaryActionButton}
             onPress={() => setUsuarioLogado(null)}
             activeOpacity={0.85}>
-            <Text style={styles.actionPillButtonText}>Desconectar</Text>
+            <Text style={styles.primaryActionButtonText}>Sair da Conta</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -121,7 +131,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.viewport}>
       <View style={styles.viewportInner}>
-        {/* CONTAINER FLUTUANTE (INSPIRADO NA REFERÊNCIA KREATIVE & SPROUT) */}
+        {/* CARD CENTRAL FLUTUANTE (ZERO SCROLL) */}
         <View
           style={[
             styles.splitCard,
@@ -129,12 +139,12 @@ export default function LoginScreen() {
           ]}>
 
           {/* ========================================================= */}
-          {/* COLUNA ESQUERDA: ARTE 3D ABSTRATA KIPI */}
+          {/* LADO ESQUERDO: ARTE 3D ABSTRATA KIPI */}
           {/* ========================================================= */}
           <View
             style={[
-              styles.artColumn,
-              isDesktop ? styles.artColumnDesktop : styles.artColumnMobile,
+              styles.artBox,
+              isDesktop ? styles.artBoxDesktop : styles.artBoxMobile,
             ]}>
             <Image
               source={require('@/assets/images/kipi-abstract.jpg')}
@@ -144,51 +154,58 @@ export default function LoginScreen() {
           </View>
 
           {/* ========================================================= */}
-          {/* COLUNA DIREITA: FORMULÁRIO DE LOGIN LIMPO E EDITORIAL */}
+          {/* LADO DIREITO: FORMULÁRIO COM MUITA PERSONALIDADE */}
           {/* ========================================================= */}
           <View
             style={[
-              styles.formColumn,
-              isDesktop ? styles.formColumnDesktop : styles.formColumnMobile,
+              styles.formBox,
+              isDesktop ? styles.formBoxDesktop : styles.formBoxMobile,
             ]}>
 
-            {/* Badge de Marca no topo do form (estilo Kreative) */}
-            <View style={styles.brandBadge}>
-              <View style={styles.badgeEyes}>
-                <View style={styles.tinyEye}>
-                  <View style={styles.tinyPupil} />
+            {/* Topo: Badge charmosa da marca com olhinhos da paleta */}
+            <View style={styles.topBrandLine}>
+              <View style={styles.pistachioBadge}>
+                <View style={styles.cuteEyes}>
+                  <View style={styles.miniEye}>
+                    <View style={styles.miniPupil} />
+                  </View>
+                  <View style={styles.miniEye}>
+                    <View style={styles.miniPupil} />
+                  </View>
                 </View>
-                <View style={styles.tinyEye}>
-                  <View style={styles.tinyPupil} />
-                </View>
+                <Text style={styles.pistachioBadgeText}>ateliê kipi</Text>
               </View>
-              <Text style={styles.brandBadgeText}>kipi</Text>
             </View>
 
-            {/* Título e Subtítulo */}
-            <View style={styles.headingBlock}>
-              <Text style={styles.headingTitle}>Welcome Back!</Text>
-              <Text style={styles.headingSubtitle}>Enter Your Details Below</Text>
+            {/* Título com Tipografia Editorial e Quente */}
+            <View style={styles.titleSection}>
+              <Text style={styles.mainTitle}>
+                Que bom ter você de volta!
+              </Text>
+              <Text style={styles.mainSubtitle}>
+                Acesse seu ateliê para gerenciar encomendas e receitas
+              </Text>
             </View>
 
-            {/* Banner de erro compacto */}
+            {/* Alerta de Erro Compacto */}
             {erro && (
-              <View style={styles.compactError}>
-                <Text style={styles.compactErrorText}>⚠️ {erro}</Text>
+              <View style={styles.friendlyErrorBanner}>
+                <Text style={styles.friendlyErrorText}>⚠️ {erro}</Text>
               </View>
             )}
 
             {/* Campo E-mail */}
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Email</Text>
+            <View style={styles.inputBlock}>
+              <Text style={styles.inputLabel}>E-mail de acesso</Text>
               <View
                 style={[
-                  styles.fieldInputWrap,
-                  emailFocado && styles.fieldInputWrapFocused,
+                  styles.inputWrap,
+                  emailFocado && styles.inputWrapFocused,
                 ]}>
+                <Text style={styles.inputPrefixIcon}>✉️</Text>
                 <TextInput
                   style={styles.textInput}
-                  placeholder="hello@kipi.com"
+                  placeholder="seu.email@atelie.com"
                   placeholderTextColor="#94A3B8"
                   value={email}
                   onChangeText={(t) => {
@@ -204,13 +221,14 @@ export default function LoginScreen() {
             </View>
 
             {/* Campo Senha */}
-            <View style={styles.fieldBlock}>
-              <Text style={styles.fieldLabel}>Password</Text>
+            <View style={styles.inputBlock}>
+              <Text style={styles.inputLabel}>Sua senha</Text>
               <View
                 style={[
-                  styles.fieldInputWrap,
-                  senhaFocada && styles.fieldInputWrapFocused,
+                  styles.inputWrap,
+                  senhaFocada && styles.inputWrapFocused,
                 ]}>
+                <Text style={styles.inputPrefixIcon}>🔑</Text>
                 <TextInput
                   style={styles.textInput}
                   placeholder="••••••••"
@@ -226,75 +244,81 @@ export default function LoginScreen() {
                 />
                 <TouchableOpacity
                   onPress={() => setMostrarSenha(!mostrarSenha)}
-                  style={styles.eyeToggle}>
-                  <Text style={styles.eyeToggleIcon}>
-                    {mostrarSenha ? '👁️' : '🔒'}
+                  style={styles.eyeBtn}>
+                  <Text style={styles.eyeBtnIcon}>
+                    {mostrarSenha ? '👁️' : '🙈'}
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Lembrar-me & Esqueci a senha */}
-            <View style={styles.optionsLine}>
+            <View style={styles.actionRow}>
               <TouchableOpacity
-                style={styles.checkLine}
+                style={styles.rememberBtn}
                 activeOpacity={0.8}
                 onPress={() => setLembrar(!lembrar)}>
-                <View style={[styles.boxCheck, lembrar && styles.boxCheckActive]}>
-                  {lembrar && <Text style={styles.checkIcon}>✓</Text>}
+                <View style={[styles.customCheck, lembrar && styles.customCheckActive]}>
+                  {lembrar && <Text style={styles.customCheckMark}>✓</Text>}
                 </View>
-                <Text style={styles.checkLabel}>Remember me</Text>
+                <Text style={styles.rememberBtnText}>Lembrar de mim</Text>
               </TouchableOpacity>
 
               <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.linkForgot}>Forgot password?</Text>
+                <Text style={styles.forgotPassLink}>Esqueceu a senha?</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Botão Primário (Pill arredondado como no Kreative) */}
+            {/* Botão Primário em Iced Denim com Destaque e Charme */}
             <TouchableOpacity
               style={[
-                styles.actionPillButton,
-                carregando && styles.actionPillButtonDisabled,
+                styles.primaryActionButton,
+                carregando && styles.primaryActionButtonDisabled,
               ]}
               onPress={() => handleLogin()}
               disabled={carregando}
               activeOpacity={0.85}>
               {carregando ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <View style={styles.loadingRow}>
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <Text style={styles.primaryActionButtonText}>Entrando...</Text>
+                </View>
               ) : (
-                <Text style={styles.actionPillButtonText}>Log in</Text>
+                <View style={styles.buttonLabelWithSparkle}>
+                  <Text style={styles.primaryActionButtonText}>Entrar no Ateliê</Text>
+                  <Text style={styles.buttonSparkle}>✨</Text>
+                </View>
               )}
             </TouchableOpacity>
 
-            {/* Botão Google (estilo Kreative & Sprout) */}
-            <TouchableOpacity style={styles.googlePillButton} activeOpacity={0.85}>
-              <View style={styles.googleGContainer}>
-                <Text style={styles.googleGLetter}>G</Text>
+            {/* Botão Google com Paleta Frost e Borda Suave */}
+            <TouchableOpacity style={styles.googleActionButton} activeOpacity={0.85}>
+              <View style={styles.googleCircleIcon}>
+                <Text style={styles.googleGText}>G</Text>
               </View>
-              <Text style={styles.googlePillText}>Log in with Google</Text>
+              <Text style={styles.googleActionButtonText}>Continuar com o Google</Text>
             </TouchableOpacity>
 
-            {/* Footer: Sign up */}
-            <View style={styles.footerLinkRow}>
-              <Text style={styles.footerMutedText}>Don't have an account? </Text>
+            {/* Rodapé: Cadastro */}
+            <View style={styles.signupFooter}>
+              <Text style={styles.signupMuted}>Ainda não tem conta? </Text>
               <TouchableOpacity activeOpacity={0.7}>
-                <Text style={styles.footerAccentLink}>Sign Up</Text>
+                <Text style={styles.signupHighlight}>Cadastre seu ateliê grátis</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Atalhos discretos de Homologação (1 linha sem rolar) */}
-            <View style={styles.hmlQuickBar}>
-              <Text style={styles.hmlQuickLabel}>TESTAR:</Text>
+            {/* Atalhos de Homologação (1 Linha Compacta) */}
+            <View style={styles.homologationRow}>
+              <Text style={styles.homologationTag}>TESTAR:</Text>
               <TouchableOpacity
-                style={styles.hmlChip}
+                style={styles.homologationPill}
                 onPress={() => preencherRapido('camila.c.lima08@gmail.com', 'P&ix1nh0!')}>
-                <Text style={styles.hmlChipText}>👑 Camila</Text>
+                <Text style={styles.homologationPillText}>👑 Camila Lima</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.hmlChip}
+                style={styles.homologationPill}
                 onPress={() => preencherRapido('jun.dossantos85@gmail.com', '123')}>
-                <Text style={styles.hmlChipText}>🧁 Juliana</Text>
+                <Text style={styles.homologationPillText}>🧁 Juliana (Loja)</Text>
               </TouchableOpacity>
             </View>
 
@@ -306,7 +330,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  // LAYOUT BASE SEM SCROLL
+  // VIEWPORT FIXO 100% (SEM SCROLL)
   viewport: {
     flex: 1,
     height: '100%',
@@ -322,16 +346,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // CARD CENTRAL FLUTUANTE (ESTILO KREATIVE)
+  // CARD CENTRAL FLUTUANTE
   splitCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 32,
-    borderWidth: 1,
-    borderColor: '#D8E8F5',
+    borderWidth: 1.5,
+    borderColor: '#D4E6F6',
     overflow: 'hidden',
     ...Platform.select({
       web: {
-        boxShadow: '0 25px 50px -12px rgba(87, 152, 215, 0.22)',
+        boxShadow: '0 24px 48px -12px rgba(87, 152, 215, 0.22), 0 4px 12px rgba(185, 194, 85, 0.08)',
       },
       default: {
         shadowColor: '#5798D7',
@@ -344,7 +368,7 @@ const styles = StyleSheet.create({
   },
   splitCardDesktop: {
     width: '100%',
-    maxWidth: 920,
+    maxWidth: 940,
     height: 560,
     flexDirection: 'row',
     alignItems: 'center',
@@ -355,139 +379,161 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 440,
     height: '100%',
-    maxHeight: 680,
+    maxHeight: 690,
     flexDirection: 'column',
   },
 
-  // COLUNA DA ARTE 3D
-  artColumn: {
+  // BOX DA ARTE 3D ABSTRATA
+  artBox: {
     borderRadius: 24,
     overflow: 'hidden',
     backgroundColor: '#F0F6FA',
   },
-  artColumnDesktop: {
+  artBoxDesktop: {
     width: 420,
     height: '100%',
   },
-  artColumnMobile: {
+  artBoxMobile: {
     width: '100%',
-    height: 200,
+    height: 190,
   },
   artImage: {
     width: '100%',
     height: '100%',
   },
 
-  // COLUNA DO FORMULÁRIO
-  formColumn: {
+  // BOX DO FORMULÁRIO
+  formBox: {
     justifyContent: 'center',
   },
-  formColumnDesktop: {
+  formBoxDesktop: {
     flex: 1,
     paddingRight: 16,
     paddingVertical: 10,
-    gap: 12,
+    gap: 11,
   },
-  formColumnMobile: {
+  formBoxMobile: {
     flex: 1,
     padding: 20,
     gap: 10,
     justifyContent: 'space-between',
   },
 
-  // MARCA NO TOPO DO FORM (ESTILO KREATIVE)
-  brandBadge: {
+  // BADGE PISTACHIO COM OLHINHOS
+  topBrandLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     marginBottom: 2,
   },
-  badgeEyes: {
+  pistachioBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F6DD', // Pistachio Light
+    borderColor: '#B9C255',
+    borderWidth: 1.5,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    gap: 8,
+  },
+  cuteEyes: {
     flexDirection: 'row',
     gap: 3,
   },
-  tinyEye: {
-    width: 14,
-    height: 18,
-    borderRadius: 7,
+  miniEye: {
+    width: 13,
+    height: 16,
+    borderRadius: 6.5,
     borderWidth: 1.5,
     borderColor: '#5798D7',
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  tinyPupil: {
-    width: 6,
-    height: 7,
-    borderRadius: 3.5,
+  miniPupil: {
+    width: 5,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#0F172A',
   },
-  brandBadgeText: {
+  pistachioBadgeText: {
     fontFamily: Fonts.display,
-    fontSize: 20,
-    fontWeight: '900',
-    color: '#0F172A',
-    letterSpacing: -0.5,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#7D8722',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
 
-  // CABEÇALHO DO FORMULÁRIO
-  headingBlock: {
+  // TÍTULO COM PERSONALIDADE
+  titleSection: {
     gap: 2,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  headingTitle: {
-    fontFamily: Fonts.display,
+  mainTitle: {
+    fontFamily: Fonts.editorial || Fonts.display,
     fontSize: 26,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.6,
+    lineHeight: 32,
   },
-  headingSubtitle: {
+  mainSubtitle: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     color: '#64748B',
     fontWeight: '500',
+    lineHeight: 18,
   },
 
   // ERRO
-  compactError: {
+  friendlyErrorBanner: {
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECACA',
-    borderRadius: 8,
+    borderRadius: 10,
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
-  compactErrorText: {
+  friendlyErrorText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#DC2626',
     fontWeight: '600',
   },
 
-  // CAMPOS
-  fieldBlock: {
+  // CAMPOS DE ENTRADA
+  inputBlock: {
     gap: 4,
   },
-  fieldLabel: {
+  inputLabel: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '600',
-    color: '#334155',
+    color: '#1E293B',
   },
-  fieldInputWrap: {
+  inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: '#F8FAFC',
     paddingHorizontal: 12,
-    height: 42,
+    height: 44,
   },
-  fieldInputWrapFocused: {
-    borderColor: '#5798D7',
+  inputWrapFocused: {
+    borderColor: '#5798D7', // Iced Denim
     backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 0 0 3px rgba(87, 152, 215, 0.18)',
+      },
+    }),
+  },
+  inputPrefixIcon: {
+    fontSize: 14,
+    marginRight: 8,
   },
   textInput: {
     flex: 1,
@@ -496,163 +542,190 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     paddingVertical: 4,
   },
-  eyeToggle: {
-    padding: 4,
+  eyeBtn: {
+    padding: 6,
   },
-  eyeToggleIcon: {
+  eyeBtnIcon: {
     fontSize: 14,
   },
 
-  // LINHA DE OPÇÕES
-  optionsLine: {
+  // OPÇÕES
+  actionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: 2,
   },
-  checkLine: {
+  rememberBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  boxCheck: {
-    width: 16,
-    height: 16,
-    borderRadius: 4,
+  customCheck: {
+    width: 17,
+    height: 17,
+    borderRadius: 5,
     borderWidth: 1.5,
     borderColor: '#CBD5E1',
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  boxCheckActive: {
-    backgroundColor: '#0F172A',
-    borderColor: '#0F172A',
+  customCheckActive: {
+    backgroundColor: '#5798D7', // Iced Denim
+    borderColor: '#5798D7',
   },
-  checkIcon: {
+  customCheckMark: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
   },
-  checkLabel: {
+  rememberBtnText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#64748B',
   },
-  linkForgot: {
+  forgotPassLink: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
+    color: '#5798D7', // Iced Denim
+    fontWeight: '600',
   },
 
-  // BOTÃO PRINCIPAL (PILL MODERNO)
-  actionPillButton: {
-    backgroundColor: '#0F172A', // Sleek dark slate da referência Kreative
-    borderRadius: 999,
-    height: 44,
+  // BOTÃO PRINCIPAL (ICED DENIM COM PERSONALIDADE)
+  primaryActionButton: {
+    backgroundColor: '#5798D7', // Iced Denim
+    borderRadius: 16,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)',
+        boxShadow: '0 8px 20px -4px rgba(87, 152, 215, 0.45)',
+      },
+      default: {
+        elevation: 4,
+        shadowColor: '#5798D7',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
       },
     }),
   },
-  actionPillButtonDisabled: {
+  primaryActionButtonDisabled: {
     opacity: 0.7,
   },
-  actionPillButtonText: {
+  buttonLabelWithSparkle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  primaryActionButtonText: {
     fontFamily: Fonts.display,
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     letterSpacing: 0.2,
+  },
+  buttonSparkle: {
+    fontSize: 14,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 
   // BOTÃO GOOGLE
-  googlePillButton: {
+  googleActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 999,
-    height: 42,
-    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#D4E6F6', // Frost border
+    borderRadius: 16,
+    height: 44,
+    gap: 10,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(87, 152, 215, 0.08)',
+      },
+    }),
   },
-  googleGContainer: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+  googleCircleIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#EA4335',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  googleGLetter: {
+  googleGText: {
     color: '#FFFFFF',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
   },
-  googlePillText: {
+  googleActionButtonText: {
     fontFamily: Fonts.sans,
     fontSize: 13,
-    fontWeight: '600',
-    color: '#334155',
+    fontWeight: '700',
+    color: '#1E293B',
   },
 
-  // FOOTER
-  footerLinkRow: {
+  // RODAPÉ CADASTRO
+  signupFooter: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
   },
-  footerMutedText: {
+  signupMuted: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#64748B',
   },
-  footerAccentLink: {
+  signupHighlight: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontWeight: '800',
+    color: '#7D8722', // Pistachio tom marcante
   },
 
   // HOMOLOGAÇÃO
-  hmlQuickBar: {
+  homologationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 8,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#F1F5F9',
   },
-  hmlQuickLabel: {
+  homologationTag: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#94A3B8',
     letterSpacing: 0.5,
   },
-  hmlChip: {
-    backgroundColor: '#E6F1FA',
-    paddingHorizontal: 8,
+  homologationPill: {
+    backgroundColor: '#E6F1FA', // Frost
+    borderColor: '#D4E6F6',
+    borderWidth: 1,
+    paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 10,
   },
-  hmlChipText: {
+  homologationPillText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    fontWeight: '600',
-    color: '#5798D7',
+    fontWeight: '700',
+    color: '#5798D7', // Iced Denim
   },
 
-  // SUCESSO
+  // TELA DE SUCESSO / BOAS-VINDAS
   fullScreenCenter: {
     flex: 1,
     backgroundColor: '#E6F1FA',
@@ -662,78 +735,103 @@ const styles = StyleSheet.create({
   },
   authSuccessCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 28,
+    borderRadius: 32,
     padding: 32,
     width: '100%',
     maxWidth: 420,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D8E8F5',
+    borderWidth: 1.5,
+    borderColor: '#D4E6F6',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 24px 48px -12px rgba(87, 152, 215, 0.25)',
+      },
+    }),
   },
-  authSuccessAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#B9C255',
+  avatarGlow: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#B9C255', // Pistachio
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 8px 24px rgba(185, 194, 85, 0.35)',
+      },
+    }),
   },
-  authSuccessAvatarText: {
+  avatarGlowLetter: {
     fontFamily: Fonts.display,
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '900',
     color: '#FFFFFF',
   },
-  statusPill: {
+  successPistachioBadge: {
     backgroundColor: '#F3F6DD',
     borderColor: '#B9C255',
     borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderRadius: 20,
-    marginBottom: 10,
+    marginBottom: 8,
   },
-  statusPillText: {
+  successPistachioBadgeText: {
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#949D39',
+    color: '#7D8722',
     letterSpacing: 0.5,
   },
-  authSuccessTitle: {
-    fontFamily: Fonts.display,
+  successWelcomeHeading: {
+    fontFamily: Fonts.editorial || Fonts.display,
     fontSize: 22,
     fontWeight: '800',
     color: '#0F172A',
+    marginBottom: 4,
   },
-  authSuccessEmail: {
+  successWelcomeSub: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     color: '#64748B',
-    marginBottom: 18,
+    textAlign: 'center',
+    marginBottom: 20,
   },
-  authDetailsBox: {
+  successMetaBox: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 14,
+    padding: 16,
     width: '100%',
     gap: 8,
     marginBottom: 20,
   },
-  authDetailRow: {
+  successMetaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  authDetailLabel: {
+  metaLabelText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     color: '#64748B',
   },
-  authDetailValue: {
+  metaValueText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
     color: '#0F172A',
+  },
+  roleTag: {
+    backgroundColor: '#E6F1FA',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  roleTagText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#5798D7',
   },
 });

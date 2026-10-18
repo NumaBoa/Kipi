@@ -51,6 +51,7 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
+    editorial: 'ui-serif',
     display: 'System',
     sans: 'System',
     mono: 'ui-monospace',
@@ -58,6 +59,7 @@ export const Fonts = Platform.select({
     rounded: 'ui-rounded',
   },
   android: {
+    editorial: 'serif',
     display: 'sans-serif-medium',
     sans: 'sans-serif',
     mono: 'monospace',
@@ -65,13 +67,15 @@ export const Fonts = Platform.select({
     rounded: 'sans-serif',
   },
   web: {
+    editorial: 'Fraunces, Georgia, serif',
     display: 'Outfit, "Plus Jakarta Sans", sans-serif',
     sans: '"Plus Jakarta Sans", Outfit, sans-serif',
     mono: 'monospace',
-    serif: 'serif',
+    serif: 'Fraunces, serif',
     rounded: 'Outfit, sans-serif',
   },
   default: {
+    editorial: 'serif',
     display: 'normal',
     sans: 'normal',
     mono: 'monospace',
