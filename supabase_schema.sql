@@ -1,6 +1,11 @@
 -- ==============================================================================
--- SCRIPT DE BANCO DE DADOS MULTI-TENANT & CONTROLE DE ACESSO (SUPABASE)
--- Execute este script no SQL Editor do Supabase (SQL Editor -> New Query -> Run)
+-- SCRIPT MESTRE DE BANCO DE DADOS (SUPABASE COMPLETO & ATUALIZADO)
+-- Este arquivo contém 100% da estrutura oficial do sistema:
+-- Todas as 14 tabelas, colunas de promoções, histórico de produção,
+-- remessas, consignação, comissões, multi-empresa e políticas de RLS.
+--
+-- Pode ser executado em um banco NOVO (Homologação) ou EXISTENTE (Produção).
+-- No Supabase: SQL Editor -> New Query -> Colar tudo -> Run
 -- ==============================================================================
 
 -- 1. TABELA DE EMPRESAS (TENANTS)
@@ -60,7 +65,7 @@ CREATE TABLE IF NOT EXISTS public.insumos (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 5. TABELA DE PRODUTOS
+-- 5. TABELA DE PRODUTOS (COM ESTOQUE CONGELADO E VALOR PROMOCIONAL)
 CREATE TABLE IF NOT EXISTS public.produtos (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
@@ -75,6 +80,9 @@ CREATE TABLE IF NOT EXISTS public.produtos (
   tempo_preparo_minutos NUMERIC DEFAULT 0,
   valor_hora_trabalho NUMERIC DEFAULT 0,
   rendimento_unidades NUMERIC DEFAULT 1,
+  tem_promocao BOOLEAN DEFAULT false,
+  desconto_promocional NUMERIC DEFAULT 0,
+  preco_promocional NUMERIC,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -102,12 +110,18 @@ CREATE TABLE IF NOT EXISTS public.clientes (
   empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
   nome TEXT NOT NULL,
   telefone TEXT,
-  tag TEXT,
+  email TEXT,
+  cpf_cnpj TEXT,
+  aniversario TEXT,
+  cep TEXT,
   rua TEXT,
   numero TEXT,
   bairro TEXT,
+  cidade TEXT,
+  estado TEXT,
   complemento TEXT,
   observacoes TEXT,
+  tag TEXT,
   tipo_contato TEXT DEFAULT 'cliente',
   revendedora_id TEXT REFERENCES public.revendedoras(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -155,7 +169,7 @@ CREATE TABLE IF NOT EXISTS public.vendas (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 11. TABELA DE ITENS DA VENDA
+-- 11. TABELA DE ITENS DA VENDA (COM DESCONTO PROMOCIONAL)
 CREATE TABLE IF NOT EXISTS public.venda_itens (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
@@ -181,8 +195,20 @@ CREATE TABLE IF NOT EXISTS public.remessas_consignacao (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 13. TABELA DE HISTÓRICO DE PRODUÇÃO & FORNADAS
+CREATE TABLE IF NOT EXISTS public.historico_producao (
+  id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL CHECK (tipo IN ('bater_massa', 'assar_fornada', 'descarte_perda')),
+  produto_id TEXT REFERENCES public.produtos(id) ON DELETE SET NULL,
+  nome_produto TEXT NOT NULL,
+  quantidade NUMERIC NOT NULL,
+  observacoes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- ==============================================================================
--- GARANTIR COLUNAS NOVAS CASO AS TABELAS JÁ EXISTAM NO SUPABASE
+-- GARANTIR COLUNAS NOVAS CASO AS TABELAS JÁ EXISTAM NO SUPABASE (MIGRAÇÕES)
 -- ==============================================================================
 
 -- Produtos
@@ -204,10 +230,21 @@ ALTER TABLE public.vendas ADD COLUMN IF NOT EXISTS status_producao TEXT DEFAULT 
 ALTER TABLE public.vendas ADD COLUMN IF NOT EXISTS tipo_destino_lote TEXT;
 ALTER TABLE public.vendas ADD COLUMN IF NOT EXISTS baixar_insumos_lote BOOLEAN;
 
+-- Venda Itens
+ALTER TABLE public.venda_itens ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
+ALTER TABLE public.venda_itens ADD COLUMN IF NOT EXISTS com_desconto BOOLEAN DEFAULT false;
+
 -- Clientes
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS tipo_contato TEXT DEFAULT 'cliente';
 ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS revendedora_id TEXT REFERENCES public.revendedoras(id) ON DELETE SET NULL;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS tag TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS cpf_cnpj TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS aniversario TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS cep TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS cidade TEXT;
+ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS estado TEXT;
 
 -- Revendedoras
 ALTER TABLE public.revendedoras ADD COLUMN IF NOT EXISTS empresa_id TEXT REFERENCES public.empresas(id) ON DELETE CASCADE;
@@ -217,9 +254,22 @@ ALTER TABLE public.revendedoras ADD COLUMN IF NOT EXISTS categoria_parceria TEXT
 ALTER TABLE public.revendedoras ADD COLUMN IF NOT EXISTS subtipo_parceria TEXT;
 ALTER TABLE public.revendedoras ADD COLUMN IF NOT EXISTS cliente_ids TEXT[] DEFAULT '{}';
 
+-- Remessas Consignação
+ALTER TABLE public.remessas_consignacao ADD COLUMN IF NOT EXISTS baixar_estoque_atelie BOOLEAN DEFAULT false;
+
 -- Atualizar CHECK constraint em perfis para permitir papel revendedor se existir
 ALTER TABLE public.perfis DROP CONSTRAINT IF EXISTS perfis_papel_check;
 ALTER TABLE public.perfis ADD CONSTRAINT perfis_papel_check CHECK (papel IN ('super_admin', 'admin', 'operador', 'revendedor'));
+
+-- Ajuste de constraints de comissão
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_percentual DROP NOT NULL;
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_percentual DROP DEFAULT;
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_fixa DROP NOT NULL;
+ALTER TABLE public.revendedoras ALTER COLUMN comissao_fixa DROP DEFAULT;
+
+-- Permitir forma de pagamento 'pendente' na tabela vendas
+ALTER TABLE public.vendas DROP CONSTRAINT IF EXISTS vendas_pagamento_check;
+ALTER TABLE public.vendas ADD CONSTRAINT vendas_pagamento_check CHECK (pagamento IN ('pix', 'dinheiro', 'cartao', 'transferencia', 'pendente'));
 
 -- ==============================================================================
 -- HABILITAR RLS PERMISSIVO PARA TODAS AS TABELAS
@@ -237,6 +287,7 @@ ALTER TABLE public.receitas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.venda_itens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.remessas_consignacao ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.historico_producao ENABLE ROW LEVEL SECURITY;
 
 -- REMOVER POLÍTICAS ANTIGAS SE EXISTIREM (EVITA ERRO 42710)
 DROP POLICY IF EXISTS "Acesso total empresas" ON public.empresas;
@@ -252,6 +303,7 @@ DROP POLICY IF EXISTS "Acesso total receitas" ON public.receitas;
 DROP POLICY IF EXISTS "Acesso total vendas" ON public.vendas;
 DROP POLICY IF EXISTS "Acesso total venda_itens" ON public.venda_itens;
 DROP POLICY IF EXISTS "Acesso total remessas_consignacao" ON public.remessas_consignacao;
+DROP POLICY IF EXISTS "Acesso total historico_producao" ON public.historico_producao;
 
 -- RECRIAR POLÍTICAS DE ACESSO TOTAL PARA O APP
 CREATE POLICY "Acesso total empresas" ON public.empresas FOR ALL USING (true) WITH CHECK (true);
@@ -267,30 +319,14 @@ CREATE POLICY "Acesso total receitas" ON public.receitas FOR ALL USING (true) WI
 CREATE POLICY "Acesso total vendas" ON public.vendas FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total venda_itens" ON public.venda_itens FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acesso total remessas_consignacao" ON public.remessas_consignacao FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Acesso total historico_producao" ON public.historico_producao FOR ALL USING (true) WITH CHECK (true);
+
+-- ÍNDICES DE PERFORMANCE
+CREATE INDEX IF NOT EXISTS idx_historico_producao_empresa_data ON public.historico_producao (empresa_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vendas_data ON public.vendas (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_venda_itens_venda ON public.venda_itens (venda_id);
 
 -- EMPRESA MATRIZ PADRÃO
 INSERT INTO public.empresas (id, nome, documento, plano, status) VALUES
   ('emp_matriz', 'Meu Ateliê', '12.345.678/0001-90', 'Enterprise', 'ativa')
 ON CONFLICT (id) DO NOTHING;
-
--- AJUSTE DE COLUNAS DE COMISSÃO (PERMITIR NULL CONFORME O TIPO_COMISSAO)
-ALTER TABLE public.revendedoras ALTER COLUMN comissao_percentual DROP NOT NULL;
-ALTER TABLE public.revendedoras ALTER COLUMN comissao_percentual DROP DEFAULT;
-ALTER TABLE public.revendedoras ALTER COLUMN comissao_fixa DROP NOT NULL;
-ALTER TABLE public.revendedoras ALTER COLUMN comissao_fixa DROP DEFAULT;
-
--- LIMPEZA DE DADOS EXISTENTES (ZERA / ANULA O CAMPO NÃO UTILIZADO)
-UPDATE public.revendedoras SET comissao_percentual = NULL WHERE tipo_comissao = 'valor_fixo';
-UPDATE public.revendedoras SET comissao_fixa = NULL WHERE tipo_comissao = 'porcentagem';
-
--- ADIÇÃO DO CAMPO TAG EM CLIENTES
-ALTER TABLE public.clientes ADD COLUMN IF NOT EXISTS tag TEXT;
-
--- PERMITIR FORMA DE PAGAMENTO 'pendente' NA TABELA VENDAS
-ALTER TABLE public.vendas DROP CONSTRAINT IF EXISTS vendas_pagamento_check;
-ALTER TABLE public.vendas ADD CONSTRAINT vendas_pagamento_check CHECK (pagamento IN ('pix', 'dinheiro', 'cartao', 'transferencia', 'pendente'));
-
--- ADIÇÃO DO CAMPO COM_DESCONTO EM VENDA_ITENS (COMISSÃO PELA METADE)
-ALTER TABLE public.venda_itens ADD COLUMN IF NOT EXISTS com_desconto BOOLEAN DEFAULT false;
-
-
