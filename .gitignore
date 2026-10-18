@@ -11,8 +11,8 @@ build/
 
 # Environment files (contain sensitive keys)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # IDE & OS files
 .DS_Store
