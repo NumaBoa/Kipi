@@ -51,26 +51,32 @@ export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
+    display: 'System',
+    sans: 'System',
     mono: 'ui-monospace',
+    serif: 'ui-serif',
+    rounded: 'ui-rounded',
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
+  android: {
+    display: 'sans-serif-medium',
+    sans: 'sans-serif',
     mono: 'monospace',
+    serif: 'serif',
+    rounded: 'sans-serif',
   },
   web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
+    display: 'Outfit, "Plus Jakarta Sans", sans-serif',
+    sans: '"Plus Jakarta Sans", Outfit, sans-serif',
+    mono: 'monospace',
+    serif: 'serif',
+    rounded: 'Outfit, sans-serif',
+  },
+  default: {
+    display: 'normal',
+    sans: 'normal',
+    mono: 'monospace',
+    serif: 'serif',
+    rounded: 'normal',
   },
 });
 
