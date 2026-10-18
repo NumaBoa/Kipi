@@ -152,6 +152,9 @@ export function PaginaVendas() {
   const [filtroTipo, setFiltroTipo] = useState<"todos" | "pronta_entrega" | "sob_encomenda" | "saldo_pendente">("todos");
   const [busca, setBusca] = useState("");
 
+  // Filtro exclusivo do Dono da Loja: por padrão já vem marcado para ver apenas suas próprias vendas
+  const [apenasMinhasVendas, setApenasMinhasVendas] = useState(!ehRevendedor);
+
   // Filtro por Período de Pedidos (solicitado pelo usuário)
   type PeriodoFiltro = "todos" | "hoje" | "ontem" | "7dias" | "mes" | "personalizado";
   const [filtroPeriodo, setFiltroPeriodo] = useState<PeriodoFiltro>("todos");
@@ -302,6 +305,20 @@ export function PaginaVendas() {
     return list;
   }, [vendas, ehRevendedor, revendedorLogado]);
 
+  // Vendas base consideradas para visualização (respeita o filtro de apenas vendas próprias do dono da loja)
+  const vendasBase = useMemo(() => {
+    if (!ehRevendedor && apenasMinhasVendas) {
+      return validas.filter((v) => v.canal === "propria" || !v.revendedora_id);
+    }
+    return validas;
+  }, [validas, ehRevendedor, apenasMinhasVendas]);
+
+  const qtdMinhasVendas = useMemo(() => {
+    return validas.filter((v) => v.canal === "propria" || !v.revendedora_id).length;
+  }, [validas]);
+
+  const qtdTodasVendas = validas.length;
+
   // Indicadores e estoque específicos do revendedor logado
   const comissaoTotalRevendedor = useMemo(() => {
     if (!ehRevendedor || !revendedorLogado) return 0;
@@ -360,8 +377,8 @@ export function PaginaVendas() {
   }, [estoqueConsignadoRevendedor]);
 
   const pedidosComSaldoPendente = useMemo(() => {
-    return validas.filter((v) => Number(v.saldo_na_entrega || 0) > 0 || v.pagamento === "pendente" || v.status === "pendente");
-  }, [validas]);
+    return vendasBase.filter((v) => Number(v.saldo_na_entrega || 0) > 0 || v.pagamento === "pendente" || v.status === "pendente");
+  }, [vendasBase]);
 
   const pedidosComSaldoFiltrados = useMemo(() => {
     if (!buscaSaldosModal.trim()) return pedidosComSaldoPendente;
@@ -752,8 +769,8 @@ export function PaginaVendas() {
 
   // Vendas filtradas pelo período selecionado
   const vendasNoPeriodo = useMemo(() => {
-    return validas.filter((v) => vendaNoPeriodo(v, filtroPeriodo, dataInicioFiltro, dataFimFiltro));
-  }, [validas, filtroPeriodo, dataInicioFiltro, dataFimFiltro]);
+    return vendasBase.filter((v) => vendaNoPeriodo(v, filtroPeriodo, dataInicioFiltro, dataFimFiltro));
+  }, [vendasBase, filtroPeriodo, dataInicioFiltro, dataFimFiltro]);
 
   const rotuloPeriodo = useMemo(() => {
     if (filtroPeriodo === "hoje") return "Hoje";
@@ -817,17 +834,17 @@ export function PaginaVendas() {
   );
 
   // Indicadores
-  const totalFaturado = validas.reduce((s, v) => s + Number(v.total || 0), 0);
-  const totalAReceber = validas.reduce((s, v) => s + Number(v.saldo_na_entrega || 0), 0);
-  const qtdProntaEntrega = validas.filter((v) => v.tipo_pedido === "pronta_entrega").length;
-  const qtdEncomendasAtivas = validas.filter(
+  const totalFaturado = vendasBase.reduce((s, v) => s + Number(v.total || 0), 0);
+  const totalAReceber = vendasBase.reduce((s, v) => s + Number(v.saldo_na_entrega || 0), 0);
+  const qtdProntaEntrega = vendasBase.filter((v) => v.tipo_pedido === "pronta_entrega").length;
+  const qtdEncomendasAtivas = vendasBase.filter(
     (v) => v.tipo_pedido === "sob_encomenda" && v.status_producao !== "entregue"
   ).length;
 
   // Top 3 Produtos mais vendidos (por quantidade)
   const top3Produtos = useMemo(() => {
     const mapa = new Map<string, { nome: string; quantidade: number; valorTotal: number }>();
-    for (const v of validas) {
+    for (const v of vendasBase) {
       for (const item of v.venda_itens || []) {
         const nome = item.nome_produto?.trim() || "Produto";
         const atual = mapa.get(nome) ?? { nome, quantidade: 0, valorTotal: 0 };
@@ -840,7 +857,7 @@ export function PaginaVendas() {
     return Array.from(mapa.values())
       .sort((a, b) => b.quantidade - a.quantidade || b.valorTotal - a.valorTotal)
       .slice(0, 3);
-  }, [validas]);
+  }, [vendasBase]);
 
   // Top 3 Clientes que mais compram (por quantidade de itens/produtos)
   const top3Clientes = useMemo(() => {
@@ -853,7 +870,7 @@ export function PaginaVendas() {
       valorTotal: number;
     }>();
 
-    for (const v of validas) {
+    for (const v of vendasBase) {
       const cli = v.cliente_id ? clientes.find((c) => c.id === v.cliente_id) : null;
       const nome = v.clientes?.nome || cli?.nome || (v.cliente_id ? "Cliente" : "Venda Balcão / Avulsa");
       const tag = (cli as any)?.tag || null;
@@ -1200,7 +1217,7 @@ export function PaginaVendas() {
           }
           detalhe={
             filtroPeriodo === "todos"
-              ? `${validas.length} pedidos ${ehRevendedor ? "no meu ponto de venda" : "no total"}`
+              ? `${vendasBase.length} pedidos ${ehRevendedor ? "no meu ponto de venda" : apenasMinhasVendas ? "da loja" : "no total"}`
               : `${vendasNoPeriodo.length} pedidos no período selecionado`
           }
           etiqueta="faturamento"
@@ -1469,9 +1486,40 @@ export function PaginaVendas() {
           </div>
         </div>
 
-        {/* LINHA 2: FILTRO DE PERÍODO (HOJE, ONTEM, 7 DIAS, MÊS, PERSONALIZADO) */}
+        {/* LINHA 2: FILTRO DE ORIGEM (DONO DA LOJA) & FILTRO DE PERÍODO */}
         <div className="pt-2 border-t border-slate-100 dark:border-border/40 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            {!ehRevendedor && (
+              <label
+                className={cn(
+                  "inline-flex items-center gap-2 px-3 py-1 sm:py-1.5 rounded-xl text-xs font-bold transition-all border cursor-pointer select-none shadow-2xs mr-1",
+                  apenasMinhasVendas
+                    ? "bg-[#084463] text-white border-[#084463]"
+                    : "bg-white dark:bg-card text-slate-700 dark:text-slate-300 border-slate-300 dark:border-border hover:bg-slate-50"
+                )}
+                title="Quando ativado, exibe somente suas próprias vendas da loja. Desmarque para exibir todas as vendas de revendedoras."
+              >
+                <input
+                  type="checkbox"
+                  checked={apenasMinhasVendas}
+                  onChange={(e) => setApenasMinhasVendas(e.target.checked)}
+                  className="size-4 accent-amber-500 rounded cursor-pointer"
+                />
+                <span className="flex items-center gap-1">
+                  <Store className="size-3.5" />
+                  <span>Apenas Minhas Vendas</span>
+                </span>
+                <span className={cn(
+                  "text-[10px] font-semibold px-1.5 py-0.5 rounded-md",
+                  apenasMinhasVendas
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-100 dark:bg-muted text-slate-500"
+                )}>
+                  {apenasMinhasVendas ? `${qtdMinhasVendas}` : `Todas (${qtdTodasVendas})`}
+                </span>
+              </label>
+            )}
+
             <span className="text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 mr-1">
               <Calendar className="size-3.5 text-[#084463]" /> Período:
             </span>
