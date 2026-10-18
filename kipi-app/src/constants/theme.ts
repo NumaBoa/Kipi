@@ -7,20 +7,43 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+export const KipiPalette = {
+  pistachio: '#B9C255',
+  pistachioDark: '#949D39',
+  pistachioLight: '#F3F6DD',
+  frost: '#E6F1FA',
+  frostDeep: '#D4E6F6',
+  icedDenim: '#5798D7',
+  icedDenimDark: '#3E7BB8',
+  icedDenimLight: '#EAF3FA',
+  white: '#FFFFFF',
+  slateDark: '#0F172A',
+  slate: '#1E293B',
+  slateMedium: '#475569',
+  slateLight: '#64748B',
+  border: '#E2E8F0',
+  inputBg: '#F8FAFC',
+  googleBorder: '#E2E8F0',
+} as const;
+
 export const Colors = {
   light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
-    textSecondary: '#60646C',
+    text: KipiPalette.slate,
+    background: KipiPalette.frost,
+    backgroundElement: '#FFFFFF',
+    backgroundSelected: KipiPalette.frostDeep,
+    textSecondary: KipiPalette.slateLight,
+    primary: KipiPalette.icedDenim,
+    accent: KipiPalette.pistachio,
   },
   dark: {
     text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
-    textSecondary: '#B0B4BA',
+    background: '#0F172A',
+    backgroundElement: '#1E293B',
+    backgroundSelected: '#334155',
+    textSecondary: '#94A3B8',
+    primary: KipiPalette.icedDenim,
+    accent: KipiPalette.pistachio,
   },
 } as const;
 
