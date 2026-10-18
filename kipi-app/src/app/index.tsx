@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
 
@@ -38,6 +39,7 @@ function GoogleIcon({ size = 18 }: { size?: number }) {
 }
 
 export default function LoginScreen() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -86,6 +88,7 @@ export default function LoginScreen() {
       }
 
       setUsuarioLogado(data);
+      router.push('/visao-geral');
     } catch (e: any) {
       setErro(e.message || 'Erro ao realizar login');
     } finally {
@@ -119,9 +122,16 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={styles.primaryBtn}
+            onPress={() => router.push('/visao-geral')}
+            activeOpacity={0.85}>
+            <Text style={styles.primaryBtnText}>Acessar Visão Geral →</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: '#F1F5F9', marginTop: 10 }]}
             onPress={() => setUsuarioLogado(null)}
             activeOpacity={0.85}>
-            <Text style={styles.primaryBtnText}>Sair da Conta</Text>
+            <Text style={[styles.primaryBtnText, { color: '#64748B' }]}>Sair da Conta</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -267,16 +277,16 @@ export default function LoginScreen() {
 
         {/* ATALHO DISCRETO DE TESTE (HOMOLOGAÇÃO) */}
         <View style={styles.devBar}>
-          <Text style={styles.devBarTitle}>Teste rápido:</Text>
+          <Text style={styles.devBarTitle}>Atalhos:</Text>
           <TouchableOpacity
             style={styles.devChip}
             onPress={() => preencherRapido('camila.c.lima08@gmail.com', 'P&ix1nh0!')}>
-            <Text style={styles.devChipText}>Camila</Text>
+            <Text style={styles.devChipText}>Camila (Proprietária)</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.devChip}
-            onPress={() => preencherRapido('jun.dossantos85@gmail.com', '123')}>
-            <Text style={styles.devChipText}>Juliana</Text>
+            style={[styles.devChip, { backgroundColor: '#EAF3FA' }]}
+            onPress={() => router.push('/visao-geral')}>
+            <Text style={[styles.devChipText, { color: KipiPalette.icedDenim }]}>Visão Geral →</Text>
           </TouchableOpacity>
         </View>
       </View>
