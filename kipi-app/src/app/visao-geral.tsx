@@ -12,32 +12,134 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import Svg, { Rect, Path } from 'react-native-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
 
 type Periodo = 'hoje' | 'semana' | 'mes' | 'personalizar';
 
+type CardId =
+  | 'grafico_vendas'
+  | 'funil_encomendas'
+  | 'fluxo_caixa'
+  | 'revendedoras'
+  | 'insumos_alerta'
+  | 'top_produtos'
+  | 'clientes_fidelidade';
+
+interface LayoutConfig {
+  mainCards: CardId[];
+  sideCards: CardId[];
+}
+
+const DEFAULT_LAYOUT: LayoutConfig = {
+  mainCards: ['grafico_vendas', 'funil_encomendas', 'fluxo_caixa', 'revendedoras'],
+  sideCards: ['insumos_alerta', 'top_produtos', 'clientes_fidelidade'],
+};
+
+const STORAGE_KEY = '@kipi_dashboard_layout_v2';
+
 export default function VisaoGeralScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
-  const isTablet = width >= 768 && width < 1024;
 
   // ESTADO DO MENU LATERAL (HOVER + FIXAÇÃO)
   const [menuHovered, setMenuHovered] = useState(false);
-  const [menuPinned, setMenuPinned] = useState(true); // default fixado em telas grandes
+  const [menuPinned, setMenuPinned] = useState(true);
   const menuExpanded = isDesktop ? (menuPinned || menuHovered) : false;
 
   // FILTRO DE PERÍODO
   const [periodo, setPeriodo] = useState<Periodo>('semana');
 
+  // MODO DE PERSONALIZAÇÃO / REORDENAÇÃO DE CARDS
+  const [editMode, setEditMode] = useState(false);
+  const [layout, setLayout] = useState<LayoutConfig>(DEFAULT_LAYOUT);
+  const [mensagemSalvo, setMensagemSalvo] = useState(false);
+
   // USUÁRIO LOGADO (PADRÃO: CAMILA LIMA)
-  const [usuario, setUsuario] = useState({
+  const [usuario] = useState({
     nome: 'Camila Lima',
     papel: 'Proprietária',
     email: 'camila.c.lima08@gmail.com',
   });
+
+  // CARREGAR LAYOUT SALVO DO ASYNCSTORAGE
+  useEffect(() => {
+    async function carregarLayout() {
+      try {
+        const salvo = await AsyncStorage.getItem(STORAGE_KEY);
+        if (salvo) {
+          const parsed = JSON.parse(salvo);
+          if (Array.isArray(parsed.mainCards) && Array.isArray(parsed.sideCards)) {
+            setLayout(parsed);
+          }
+        }
+      } catch {
+        // Fallback para o layout padrão se houver erro
+      }
+    }
+    carregarLayout();
+  }, []);
+
+  // FUNÇÕES DE REORDENAÇÃO DOS CARDS
+  const moverCard = (id: CardId, direcao: 'up' | 'down') => {
+    setLayout((prev) => {
+      const inMain = prev.mainCards.includes(id);
+      const list = inMain ? [...prev.mainCards] : [...prev.sideCards];
+      const index = list.indexOf(id);
+      if (index === -1) return prev;
+
+      const targetIndex = direcao === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= list.length) return prev;
+
+      // Troca os elementos de posição
+      const temp = list[index];
+      list[index] = list[targetIndex];
+      list[targetIndex] = temp;
+
+      return inMain
+        ? { ...prev, mainCards: list }
+        : { ...prev, sideCards: list };
+    });
+  };
+
+  const alternarColuna = (id: CardId) => {
+    setLayout((prev) => {
+      const inMain = prev.mainCards.includes(id);
+      if (inMain) {
+        return {
+          mainCards: prev.mainCards.filter((c) => c !== id),
+          sideCards: [id, ...prev.sideCards],
+        };
+      } else {
+        return {
+          sideCards: prev.sideCards.filter((c) => c !== id),
+          mainCards: [...prev.mainCards, id],
+        };
+      }
+    });
+  };
+
+  const salvarLayout = async () => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+      setMensagemSalvo(true);
+      setTimeout(() => {
+        setMensagemSalvo(false);
+        setEditMode(false);
+      }, 1200);
+    } catch {
+      setEditMode(false);
+    }
+  };
+
+  const restaurarPadrao = async () => {
+    setLayout(DEFAULT_LAYOUT);
+    try {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    } catch {}
+  };
 
   // SAUDAÇÃO DINÂMICA BASEADA NO HORÁRIO LOCAL
   const saudacao = useMemo(() => {
@@ -51,13 +153,13 @@ export default function VisaoGeralScreen() {
   const dataExtenso = useMemo(() => {
     const meses = [
       'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
     ];
     const d = new Date();
     return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
   }, []);
 
-  // DADOS REATIVOS POR PERÍODO (CALCULADOS)
+  // DADOS REATIVOS POR PERÍODO (KPIS)
   const kpis = useMemo(() => {
     switch (periodo) {
       case 'hoje':
@@ -73,6 +175,8 @@ export default function VisaoGeralScreen() {
           encomendasAtivas: '8 pedidos',
           encomendasNovas: '+2 novas',
           metaPct: 84,
+          revendaTotal: 'R$ 820,00',
+          revendaQtd: '48 un. vendidas',
         };
       case 'mes':
         return {
@@ -87,6 +191,8 @@ export default function VisaoGeralScreen() {
           encomendasAtivas: '24 pedidos',
           encomendasNovas: '+9 novas',
           metaPct: 92,
+          revendaTotal: 'R$ 18.940,00',
+          revendaQtd: '1.120 un. vendidas',
         };
       case 'personalizar':
         return {
@@ -101,6 +207,8 @@ export default function VisaoGeralScreen() {
           encomendasAtivas: '14 pedidos',
           encomendasNovas: '+4 novas',
           metaPct: 88,
+          revendaTotal: 'R$ 8.650,00',
+          revendaQtd: '510 un. vendidas',
         };
       case 'semana':
       default:
@@ -116,6 +224,8 @@ export default function VisaoGeralScreen() {
           encomendasAtivas: '12 pedidos',
           encomendasNovas: '+5 novas',
           metaPct: 86,
+          revendaTotal: 'R$ 4.820,00',
+          revendaQtd: '286 un. vendidas',
         };
     }
   }, [periodo]);
@@ -164,17 +274,590 @@ export default function VisaoGeralScreen() {
     { id: 'encomendas', label: 'Encomendas & Cozinha', icon: 'coffee', active: false },
     { id: 'estoque', label: 'Estoque & Insumos', icon: 'package', active: false },
     { id: 'fichas', label: 'Fichas Técnicas', icon: 'book-open', active: false },
+    { id: 'revendedoras', label: 'Revendedoras & Pontos', icon: 'shopping-bag', active: false },
     { id: 'clientes', label: 'Clientes & Vendas', icon: 'users', active: false },
     { id: 'financeiro', label: 'Fluxo de Caixa', icon: 'dollar-sign', active: false },
     { id: 'config', label: 'Configurações', icon: 'settings', active: false },
   ];
+
+  // COMPONENTES DOS CARDS RENDERIZADOS
+  const renderCard = (cardId: CardId) => {
+    const editControls = editMode && (
+      <View style={styles.reorderBar}>
+        <TouchableOpacity
+          style={styles.reorderBtn}
+          onPress={() => moverCard(cardId, 'up')}
+          activeOpacity={0.7}>
+          <Text style={styles.reorderBtnText}>▲ Subir</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.reorderBtn}
+          onPress={() => moverCard(cardId, 'down')}
+          activeOpacity={0.7}>
+          <Text style={styles.reorderBtnText}>▼ Descer</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.reorderBtn, styles.reorderBtnCol]}
+          onPress={() => alternarColuna(cardId)}
+          activeOpacity={0.7}>
+          <Text style={styles.reorderBtnColText}>⇄ Mudar Coluna</Text>
+        </TouchableOpacity>
+      </View>
+    );
+
+    switch (cardId) {
+      // 1. GRÁFICO DE VENDAS
+      case 'grafico_vendas':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View>
+                <View style={styles.panelTitleRow}>
+                  <View style={styles.sectionDot} />
+                  <Text style={styles.panelTitle}>Vendas no Período</Text>
+                  <View style={styles.panelChip}>
+                    <Text style={styles.panelChipText}>{periodo.toUpperCase()}</Text>
+                  </View>
+                </View>
+                <Text style={styles.panelSubtitle}>
+                  Acompanhamento de volume financeiro e picos de demanda
+                </Text>
+              </View>
+              <View style={styles.chartLegend}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendBox, { backgroundColor: KipiPalette.icedDenim }]} />
+                  <Text style={styles.legendLabel}>Vendas Concluídas</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendBox, { backgroundColor: KipiPalette.pistachio }]} />
+                  <Text style={styles.legendLabel}>Meta Diária</Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.chartBarsContainer}>
+              {dadosGrafico.map((item, idx) => (
+                <View key={idx} style={styles.chartBarCol}>
+                  <Text style={styles.chartValueLabel}>{item.pct}%</Text>
+                  <View style={styles.chartBarTrack}>
+                    <View
+                      style={[
+                        styles.chartBarFill,
+                        {
+                          height: `${Math.max(15, item.pct)}%`,
+                          backgroundColor: item.pico
+                            ? KipiPalette.pistachio
+                            : item.atual
+                            ? KipiPalette.icedDenim
+                            : '#7BAEE0',
+                        },
+                      ]}
+                    />
+                  </View>
+                  <View
+                    style={[
+                      styles.chartXTag,
+                      item.atual && styles.chartXTagCurrent,
+                      item.pico && styles.chartXTagPeak,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.chartXText,
+                        (item.atual || item.pico) && styles.chartXTextHighlight,
+                      ]}>
+                      {item.label}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        );
+
+      // 2. FUNIL DE ENCOMENDAS
+      case 'funil_encomendas':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View>
+                <View style={styles.panelTitleRow}>
+                  <View style={styles.sectionDot} />
+                  <Text style={styles.panelTitle}>Funil de Encomendas</Text>
+                </View>
+                <Text style={styles.panelSubtitle}>
+                  Status em tempo real das encomendas em fluxo na cozinha
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.panelActionBtn} activeOpacity={0.7}>
+                <Text style={styles.panelActionBtnText}>Ver Cozinha →</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.funnelRow}>
+              {/* Confirmadas */}
+              <View style={styles.funnelCard}>
+                <View style={styles.funnelCardTop}>
+                  <View style={[styles.funnelBadge, { backgroundColor: '#EAF3FA' }]}>
+                    <Feather name="check-circle" size={14} color="#5798D7" />
+                    <Text style={[styles.funnelBadgeText, { color: '#5798D7' }]}>CONFIRMADAS</Text>
+                  </View>
+                  <Text style={styles.funnelCount}>4 pedidos</Text>
+                </View>
+                <Text style={styles.funnelTotal}>R$ 1.480,00</Text>
+                <View style={styles.funnelOrderSnippet}>
+                  <Text style={styles.funnelCustomerName}>Mariana Albuquerque</Text>
+                  <Text style={styles.funnelItemTitle}>Bolo Floral 3 andares (Entrega 14h)</Text>
+                </View>
+              </View>
+
+              {/* Em Produção */}
+              <View style={styles.funnelCard}>
+                <View style={styles.funnelCardTop}>
+                  <View style={[styles.funnelBadge, { backgroundColor: '#F1F6D8' }]}>
+                    <Feather name="loader" size={14} color="#708018" />
+                    <Text style={[styles.funnelBadgeText, { color: '#708018' }]}>EM PRODUÇÃO</Text>
+                  </View>
+                  <Text style={styles.funnelCount}>3 pedidos</Text>
+                </View>
+                <Text style={styles.funnelTotal}>R$ 960,00</Text>
+                <View style={styles.funnelOrderSnippet}>
+                  <Text style={styles.funnelCustomerName}>Ateliê do Chocolate</Text>
+                  <Text style={styles.funnelItemTitle}>100 Brigadeiros Pistache (Montagem)</Text>
+                </View>
+              </View>
+
+              {/* Prontas */}
+              <View style={styles.funnelCard}>
+                <View style={styles.funnelCardTop}>
+                  <View style={[styles.funnelBadge, { backgroundColor: '#DCFCE7' }]}>
+                    <Feather name="box" size={14} color="#16A34A" />
+                    <Text style={[styles.funnelBadgeText, { color: '#16A34A' }]}>PRONTAS</Text>
+                  </View>
+                  <Text style={styles.funnelCount}>2 pedidos</Text>
+                </View>
+                <Text style={styles.funnelTotal}>R$ 400,00</Text>
+                <View style={styles.funnelOrderSnippet}>
+                  <Text style={styles.funnelCustomerName}>Lucas Silveira</Text>
+                  <Text style={styles.funnelItemTitle}>Bento Cake Minimalista (Balcão)</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+
+      // 3. FLUXO DE CAIXA
+      case 'fluxo_caixa':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View>
+                <View style={styles.panelTitleRow}>
+                  <View style={styles.sectionDot} />
+                  <Text style={styles.panelTitle}>Fluxo de Caixa</Text>
+                </View>
+                <Text style={styles.panelSubtitle}>
+                  Saúde financeira, disponibilidades e lançamentos futuros
+                </Text>
+              </View>
+              <View style={styles.cashStatusBadge}>
+                <Text style={styles.cashStatusBadgeText}>Saldo Positivo</Text>
+              </View>
+            </View>
+
+            <View style={styles.cashSummaryRow}>
+              <View style={styles.cashBox}>
+                <Text style={styles.cashBoxLabel}>SALDO PREVISTO</Text>
+                <Text style={styles.cashBoxValuePrimary}>R$ 18.450,00</Text>
+                <Text style={styles.cashBoxSub}>Fim do período</Text>
+              </View>
+              <View style={styles.cashBox}>
+                <Text style={styles.cashBoxLabel}>HOJE EM CAIXA</Text>
+                <Text style={styles.cashBoxValue}>R$ 4.280,00</Text>
+                <Text style={styles.cashBoxSub}>Disponível agora</Text>
+              </View>
+              <View style={styles.cashBox}>
+                <Text style={styles.cashBoxLabel}>A RECEBER</Text>
+                <Text style={[styles.cashBoxValue, { color: '#16A34A' }]}>+ R$ 3.820,00</Text>
+                <Text style={styles.cashBoxSub}>Entregas agendadas</Text>
+              </View>
+              <View style={styles.cashBox}>
+                <Text style={styles.cashBoxLabel}>A PAGAR</Text>
+                <Text style={[styles.cashBoxValue, { color: '#DC2626' }]}>- R$ 1.950,00</Text>
+                <Text style={styles.cashBoxSub}>Fornecedores e contas</Text>
+              </View>
+            </View>
+
+            <View style={styles.cashLaunchesArea}>
+              <Text style={styles.cashLaunchesTitle}>PRÓXIMOS LANÇAMENTOS (PRÓXIMOS 7 DIAS)</Text>
+              <View style={styles.launchesList}>
+                <View style={styles.launchItem}>
+                  <View style={styles.launchLeft}>
+                    <View style={[styles.launchIconBox, { backgroundColor: '#FEE2E2' }]}>
+                      <Feather name="arrow-up-right" size={15} color="#DC2626" />
+                    </View>
+                    <View>
+                      <Text style={styles.launchDesc}>Fornecedor Embalagens Kraft & Fitas</Text>
+                      <Text style={styles.launchDate}>Vence amanhã • Pagamento via Boleto</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.launchValueExpense}>- R$ 480,00</Text>
+                </View>
+
+                <View style={styles.launchItem}>
+                  <View style={styles.launchLeft}>
+                    <View style={[styles.launchIconBox, { backgroundColor: '#DCFCE7' }]}>
+                      <Feather name="arrow-down-left" size={15} color="#16A34A" />
+                    </View>
+                    <View>
+                      <Text style={styles.launchDesc}>Casamento Mariana (Saldo Restante 50%)</Text>
+                      <Text style={styles.launchDate}>Quinta-feira • Pix na Entrega</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.launchValueIncome}>+ R$ 1.200,00</Text>
+                </View>
+
+                <View style={styles.launchItem}>
+                  <View style={styles.launchLeft}>
+                    <View style={[styles.launchIconBox, { backgroundColor: '#FEE2E2' }]}>
+                      <Feather name="arrow-up-right" size={15} color="#DC2626" />
+                    </View>
+                    <View>
+                      <Text style={styles.launchDesc}>Morangos e Frutas Vermelhas Orgânicas</Text>
+                      <Text style={styles.launchDate}>Sexta-feira • Fornecedor Sítio da Serra</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.launchValueExpense}>- R$ 180,00</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+
+      // 4. VENDAS DOS REVENDEDORES & PONTOS DE VENDA (NOVO!)
+      case 'revendedoras':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View>
+                <View style={styles.panelTitleRow}>
+                  <View style={[styles.miniAlertIcon, { backgroundColor: '#F1F6D8' }]}>
+                    <Feather name="shopping-bag" size={14} color="#708018" />
+                  </View>
+                  <Text style={styles.panelTitle}>Rede de Revendedoras & Consignação</Text>
+                  <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
+                    <Text style={[styles.panelChipText, { color: '#708018' }]}>8 Parceiras Ativas</Text>
+                  </View>
+                </View>
+                <Text style={styles.panelSubtitle}>
+                  Desempenho de vendas parceiras e monitoramento de estoque externo
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.panelActionBtn} activeOpacity={0.7}>
+                <Text style={styles.panelActionBtnText}>Gerenciar Revenda →</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 3 PILARES DE VENDAS DOS REVENDEDORES */}
+            <View style={styles.resellerMetricsRow}>
+              <View style={styles.resellerMetricBox}>
+                <Text style={styles.resellerMetricLabel}>PARCEIRAS ATIVAS</Text>
+                <Text style={styles.resellerMetricNumber}>8 pontos</Text>
+                <Text style={styles.resellerMetricSub}>+2 cadastradas no mês</Text>
+              </View>
+              <View style={styles.resellerMetricBox}>
+                <Text style={styles.resellerMetricLabel}>PRODUTOS VENDIDOS</Text>
+                <Text style={[styles.resellerMetricNumber, { color: KipiPalette.icedDenim }]}>
+                  {kpis.revendaQtd}
+                </Text>
+                <Text style={styles.resellerMetricSub}>Consignação ativa</Text>
+              </View>
+              <View style={styles.resellerMetricBox}>
+                <Text style={styles.resellerMetricLabel}>FATURAMENTO REPASSE</Text>
+                <Text style={[styles.resellerMetricNumber, { color: '#16A34A' }]}>
+                  {kpis.revendaTotal}
+                </Text>
+                <Text style={styles.resellerMetricSub}>Comissão média 20%</Text>
+              </View>
+            </View>
+
+            {/* ALERTA DE ESTOQUE DAS REVENDEDORAS */}
+            <View style={styles.resellerStockAlertArea}>
+              <View style={styles.resellerAlertHeader}>
+                <Feather name="alert-circle" size={15} color="#DC2626" />
+                <Text style={styles.resellerAlertTitle}>
+                  STATUS DO ESTOQUE NAS REVENDEDORAS (2 EM ALERTA DE REPOSIÇÃO)
+                </Text>
+              </View>
+
+              <View style={styles.resellerAlertList}>
+                {/* Revendedora 1 */}
+                <View style={styles.resellerAlertItem}>
+                  <View style={styles.resellerAlertLeft}>
+                    <View style={[styles.resellerStatusDot, { backgroundColor: '#DC2626' }]} />
+                    <View>
+                      <Text style={styles.resellerName}>Café & Flor Bistrô (Bancada Central)</Text>
+                      <Text style={styles.resellerAlertDesc}>
+                        Restam apenas 3 Cookies Duo • <Text style={{ color: '#DC2626', fontWeight: '700' }}>Crítico (12% restante)</Text>
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.resellerActionBtn} activeOpacity={0.8}>
+                    <Text style={styles.resellerActionBtnText}>+ Enviar Remessa</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Revendedora 2 */}
+                <View style={styles.resellerAlertItem}>
+                  <View style={styles.resellerAlertLeft}>
+                    <View style={[styles.resellerStatusDot, { backgroundColor: '#DC2626' }]} />
+                    <View>
+                      <Text style={styles.resellerName}>Boutique Doce Charme</Text>
+                      <Text style={styles.resellerAlertDesc}>
+                        Estoque zerado de Bento Cakes • <Text style={{ color: '#DC2626', fontWeight: '700' }}>Sem reposição há 5 dias</Text>
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.resellerActionBtn} activeOpacity={0.8}>
+                    <Text style={styles.resellerActionBtnText}>+ Enviar Remessa</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Revendedora 3 */}
+                <View style={styles.resellerAlertItem}>
+                  <View style={styles.resellerAlertLeft}>
+                    <View style={[styles.resellerStatusDot, { backgroundColor: '#16A34A' }]} />
+                    <View>
+                      <Text style={styles.resellerName}>Empório dos Sabores Artesanais</Text>
+                      <Text style={styles.resellerAlertDesc}>
+                        Estoque regular (32 unidades disponíveis) • Vendeu 18 ontem
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.resellerOkBadge}>
+                    <Text style={styles.resellerOkBadgeText}>Estoque em dia</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+
+      // 5. INSUMOS EM ALERTA (COLUNA LATERAL)
+      case 'insumos_alerta':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View style={styles.panelTitleRow}>
+                <View style={[styles.miniAlertIcon, { backgroundColor: '#FEE2E2' }]}>
+                  <Feather name="alert-triangle" size={14} color="#DC2626" />
+                </View>
+                <Text style={styles.panelTitle}>Insumos em Alerta</Text>
+              </View>
+              <Text style={styles.criticalCountBadge}>3 críticos</Text>
+            </View>
+
+            <View style={styles.insumosList}>
+              <View style={styles.insumoItem}>
+                <View style={styles.insumoTopRow}>
+                  <Text style={styles.insumoName}>Farinha de Amêndoa Pura (França)</Text>
+                  <View style={styles.insumoPctBadge}>
+                    <Text style={styles.insumoPctText}>15% restante</Text>
+                  </View>
+                </View>
+                <View style={styles.insumoProgressTrack}>
+                  <View style={[styles.insumoProgressFill, { width: '15%', backgroundColor: '#DC2626' }]} />
+                </View>
+                <View style={styles.insumoBottomRow}>
+                  <Text style={styles.insumoStockText}>Restam 1.2 kg (Mín: 5.0 kg)</Text>
+                  <TouchableOpacity style={styles.orderInsumoBtn}>
+                    <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.insumoItem}>
+                <View style={styles.insumoTopRow}>
+                  <Text style={styles.insumoName}>Morangos Orgânicos Selecionados</Text>
+                  <View style={styles.insumoPctBadge}>
+                    <Text style={styles.insumoPctText}>22% restante</Text>
+                  </View>
+                </View>
+                <View style={styles.insumoProgressTrack}>
+                  <View style={[styles.insumoProgressFill, { width: '22%', backgroundColor: '#F59E0B' }]} />
+                </View>
+                <View style={styles.insumoBottomRow}>
+                  <Text style={styles.insumoStockText}>Restam 4 caixas (Mín: 10 cx)</Text>
+                  <TouchableOpacity style={styles.orderInsumoBtn}>
+                    <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.insumoItem}>
+                <View style={styles.insumoTopRow}>
+                  <Text style={styles.insumoName}>Fitas de Cetim Dusty Rose (22mm)</Text>
+                  <View style={styles.insumoPctBadge}>
+                    <Text style={styles.insumoPctText}>10% restante</Text>
+                  </View>
+                </View>
+                <View style={styles.insumoProgressTrack}>
+                  <View style={[styles.insumoProgressFill, { width: '10%', backgroundColor: '#DC2626' }]} />
+                </View>
+                <View style={styles.insumoBottomRow}>
+                  <Text style={styles.insumoStockText}>Restam 1 rolo (Mín: 4 rolos)</Text>
+                  <TouchableOpacity style={styles.orderInsumoBtn}>
+                    <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.buyOrderBtn} activeOpacity={0.85}>
+              <Feather name="shopping-cart" size={15} color="#5798D7" />
+              <Text style={styles.buyOrderBtnText}>Gerar Ordem de Compra Imediata</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      // 6. TOP 3 PRODUTOS
+      case 'top_produtos':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View style={styles.panelTitleRow}>
+                <View style={styles.sectionDot} />
+                <Text style={styles.panelTitle}>Top 3 Mais Vendidos</Text>
+              </View>
+              <Text style={styles.panelActionLink}>Ranking</Text>
+            </View>
+
+            <View style={styles.rankingList}>
+              <View style={styles.rankingItem}>
+                <View style={styles.rankingMedalBox}>
+                  <Text style={styles.rankingMedal}>🥇</Text>
+                </View>
+                <View style={styles.rankingInfo}>
+                  <Text style={styles.rankingProdName}>Cookie Duo Tradicional</Text>
+                  <Text style={styles.rankingProdMeta}>142 vendidos • R$ 2.400,00</Text>
+                  <View style={styles.rankingBarTrack}>
+                    <View style={[styles.rankingBarFill, { width: '95%', backgroundColor: KipiPalette.icedDenim }]} />
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.rankingItem}>
+                <View style={styles.rankingMedalBox}>
+                  <Text style={styles.rankingMedal}>🥈</Text>
+                </View>
+                <View style={styles.rankingInfo}>
+                  <Text style={styles.rankingProdName}>Bolo Red Velvet Floral</Text>
+                  <Text style={styles.rankingProdMeta}>38 vendidos • R$ 4.560,00</Text>
+                  <View style={styles.rankingBarTrack}>
+                    <View style={[styles.rankingBarFill, { width: '75%', backgroundColor: KipiPalette.pistachio }]} />
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.rankingItem}>
+                <View style={styles.rankingMedalBox}>
+                  <Text style={styles.rankingMedal}>🥉</Text>
+                </View>
+                <View style={styles.rankingInfo}>
+                  <Text style={styles.rankingProdName}>Cento de Brigadeiros Pistache</Text>
+                  <Text style={styles.rankingProdMeta}>26 centos • R$ 3.120,00</Text>
+                  <View style={styles.rankingBarTrack}>
+                    <View style={[styles.rankingBarFill, { width: '58%', backgroundColor: '#7BAEE0' }]} />
+                  </View>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+
+      // 7. CLIENTES & ANIVERSARIANTES
+      case 'clientes_fidelidade':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View style={styles.panelTitleRow}>
+                <View style={styles.sectionDot} />
+                <Text style={styles.panelTitle}>Clientes & Fidelidade</Text>
+              </View>
+              <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
+                <Text style={[styles.panelChipText, { color: '#708018' }]}>68% Recompra</Text>
+              </View>
+            </View>
+
+            <View style={styles.clientsMetricsRow}>
+              <View style={styles.clientMetricCard}>
+                <Text style={styles.clientMetricNum}>148</Text>
+                <Text style={styles.clientMetricLabel}>Ativos</Text>
+              </View>
+              <View style={styles.clientMetricCard}>
+                <Text style={[styles.clientMetricNum, { color: '#16A34A' }]}>+14</Text>
+                <Text style={styles.clientMetricLabel}>Na Semana</Text>
+              </View>
+              <View style={styles.clientMetricCard}>
+                <Text style={[styles.clientMetricNum, { color: KipiPalette.icedDenim }]}>68%</Text>
+                <Text style={styles.clientMetricLabel}>Recompra</Text>
+              </View>
+            </View>
+
+            <View style={styles.bdayArea}>
+              <Text style={styles.bdayTitle}>🎂 ANIVERSARIANTES DE OUTUBRO</Text>
+              <View style={styles.bdayList}>
+                <View style={styles.bdayItem}>
+                  <View style={styles.bdayLeft}>
+                    <View style={styles.bdayAvatar}>
+                      <Text style={styles.bdayAvatarText}>CM</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.bdayName}>Dra. Camila Morales</Text>
+                      <Text style={styles.bdayDate}>24 de Outubro • VIP</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.bdayGiftBtn}>
+                    <Text style={styles.bdayGiftBtnText}>Cupom 🎁</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.bdayItem}>
+                  <View style={styles.bdayLeft}>
+                    <View style={styles.bdayAvatar}>
+                      <Text style={styles.bdayAvatarText}>MA</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.bdayName}>Mariana Albuquerque</Text>
+                      <Text style={styles.bdayDate}>28 de Outubro • Noiva</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity style={styles.bdayGiftBtn}>
+                    <Text style={styles.bdayGiftBtnText}>Cupom 🎁</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <SafeAreaView style={styles.viewport}>
       <View style={styles.mainLayout}>
 
         {/* =========================================================================
-            MENU LATERAL (EXPANSÍVEL NO HOVER + FIXAÇÃO COM PIN)
+            MENU LATERAL (EXPANSÍVEL NO HOVER + FIXAÇÃO COM PIN + ÍCONE COMPACTO REDONDO/QUADRADINHO)
         ========================================================================== */}
         <View
           style={[
@@ -184,7 +867,7 @@ export default function VisaoGeralScreen() {
           // @ts-ignore (propriedades web para hover)
           onMouseEnter={() => !menuPinned && setMenuHovered(true)}
           onMouseLeave={() => !menuPinned && setMenuHovered(false)}>
-          
+
           {/* TOPO DO MENU COM LOGO KIPI */}
           <View style={styles.sidebarHeader}>
             <View style={styles.logoBadge}>
@@ -213,8 +896,9 @@ export default function VisaoGeralScreen() {
                 key={item.id}
                 style={[
                   styles.navItem,
-                  item.active && styles.navItemActive,
                   !menuExpanded && styles.navItemCollapsed,
+                  item.active && styles.navItemActive,
+                  item.active && !menuExpanded && styles.navItemActiveCollapsed,
                 ]}
                 activeOpacity={0.75}>
                 <Feather
@@ -235,9 +919,8 @@ export default function VisaoGeralScreen() {
             ))}
           </ScrollView>
 
-          {/* RODAPÉ DO MENU (PIN DE FIXAÇÃO + PERFIL) */}
+          {/* RODAPÉ DO MENU */}
           <View style={styles.sidebarFooter}>
-            {/* BOTÃO PARA FIXAR / DESAFIXAR MENU */}
             {isDesktop && (
               <TouchableOpacity
                 style={[
@@ -260,7 +943,6 @@ export default function VisaoGeralScreen() {
               </TouchableOpacity>
             )}
 
-            {/* CARD DO USUÁRIO LOGADO */}
             <View style={[styles.userMiniCard, !menuExpanded && styles.userMiniCardCollapsed]}>
               <View style={styles.userMiniAvatar}>
                 <Text style={styles.userMiniAvatarLetter}>C</Text>
@@ -283,7 +965,7 @@ export default function VisaoGeralScreen() {
         </View>
 
         {/* =========================================================================
-            ÁREA DE CONTEÚDO PRINCIPAL (DASHBOARD SCROLLÁVEL)
+            ÁREA DE CONTEÚDO PRINCIPAL (DASHBOARD)
         ========================================================================== */}
         <View style={styles.contentArea}>
           {/* BARRA SUPERIOR DE AÇÕES E STATUS */}
@@ -301,6 +983,25 @@ export default function VisaoGeralScreen() {
             </View>
 
             <View style={styles.topBarRight}>
+              {/* BOTÃO PARA PERSONALIZAR / REORDENAR CARDS */}
+              <TouchableOpacity
+                style={[styles.customizeLayoutBtn, editMode && styles.customizeLayoutBtnActive]}
+                onPress={() => setEditMode(!editMode)}
+                activeOpacity={0.8}>
+                <Feather
+                  name={editMode ? 'check' : 'layout'}
+                  size={14}
+                  color={editMode ? '#FFFFFF' : KipiPalette.icedDenim}
+                />
+                <Text
+                  style={[
+                    styles.customizeLayoutBtnText,
+                    editMode && styles.customizeLayoutBtnTextActive,
+                  ]}>
+                  {editMode ? 'Concluir Edição' : 'Personalizar Layout'}
+                </Text>
+              </TouchableOpacity>
+
               <View style={styles.kitchenBadge}>
                 <View style={styles.kitchenDot} />
                 <Text style={styles.kitchenBadgeText}>Cozinha Aberta • 8 entregas hoje</Text>
@@ -326,17 +1027,40 @@ export default function VisaoGeralScreen() {
             </View>
           </View>
 
-          {/* CONTEÚDO SCROLLÁVEL DO DASHBOARD */}
+          {/* CONTEÚDO SCROLLÁVEL */}
           <ScrollView
             style={styles.scrollContainer}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}>
 
-            {/* =====================================================================
-                1. BANNER DE SAUDAÇÃO IDÊNTICO À REFERÊNCIA ATELIERQ
-            ====================================================================== */}
+            {/* BANNER DO MODO DE EDIÇÃO SE ATIVO */}
+            {editMode && (
+              <View style={styles.editModeNoticeBar}>
+                <View style={styles.editModeNoticeLeft}>
+                  <Feather name="info" size={16} color="#708018" />
+                  <Text style={styles.editModeNoticeText}>
+                    Modo de Customização: Use os botões ▲ e ▼ para reordenar, ou ⇄ para trocar entre as colunas.
+                  </Text>
+                </View>
+                <View style={styles.editModeNoticeActions}>
+                  <TouchableOpacity
+                    style={styles.restoreDefaultBtn}
+                    onPress={restaurarPadrao}>
+                    <Text style={styles.restoreDefaultBtnText}>↺ Restaurar Padrão</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.saveLayoutBtn}
+                    onPress={salvarLayout}>
+                    <Text style={styles.saveLayoutBtnText}>
+                      {mensagemSalvo ? '✓ Salvo!' : '💾 Salvar Layout'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* 1. BANNER DE SAUDAÇÃO IDÊNTICO À REFERÊNCIA ATELIERQ */}
             <View style={styles.greetingBanner}>
-              {/* LADO ESQUERDO DO BANNER */}
               <View style={styles.greetingLeft}>
                 <View style={styles.chefAvatarBox}>
                   <View style={styles.chefAvatarInner}>
@@ -368,7 +1092,6 @@ export default function VisaoGeralScreen() {
                 </View>
               </View>
 
-              {/* LADO DIREITO DO BANNER: KPI EM DESTAQUE NO PRÓPRIO BANNER */}
               <View style={styles.greetingKpiCard}>
                 <View style={styles.greetingKpiIconBox}>
                   <Feather name="trending-up" size={18} color="#FFFFFF" />
@@ -388,9 +1111,7 @@ export default function VisaoGeralScreen() {
               </View>
             </View>
 
-            {/* =====================================================================
-                2. LINHA DE FILTROS DE PERÍODO + BOTÃO DE NOVA ENCOMENDA
-            ====================================================================== */}
+            {/* 2. LINHA DE FILTROS DE PERÍODO */}
             <View style={styles.filtersBar}>
               <View style={styles.periodTabs}>
                 {(['hoje', 'semana', 'mes', 'personalizar'] as Periodo[]).map((p) => {
@@ -427,11 +1148,9 @@ export default function VisaoGeralScreen() {
               </View>
             </View>
 
-            {/* =====================================================================
-                3. CARDS DE KPIS EM LINHA (ESTILO ATELIERQ)
-            ====================================================================== */}
+            {/* 3. CARDS DE KPIS EM LINHA */}
             <View style={styles.kpiRow}>
-              {/* Card 1: Faturamento Geral */}
+              {/* Faturamento Geral */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>FATURAMENTO GERAL</Text>
@@ -448,7 +1167,7 @@ export default function VisaoGeralScreen() {
                 </View>
               </View>
 
-              {/* Card 2: Lucro Líquido */}
+              {/* Lucro Líquido */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>LUCRO LÍQUIDO</Text>
@@ -465,7 +1184,7 @@ export default function VisaoGeralScreen() {
                 </View>
               </View>
 
-              {/* Card 3: Ticket Médio */}
+              {/* Ticket Médio */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>TICKET MÉDIO</Text>
@@ -480,7 +1199,7 @@ export default function VisaoGeralScreen() {
                 </View>
               </View>
 
-              {/* Card 4: A Receber */}
+              {/* A Receber */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>A RECEBER</Text>
@@ -497,7 +1216,7 @@ export default function VisaoGeralScreen() {
                 </View>
               </View>
 
-              {/* Card 5: Encomendas Ativas */}
+              {/* Encomendas Ativas */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>ENCOMENDAS ATIVAS</Text>
@@ -516,448 +1235,21 @@ export default function VisaoGeralScreen() {
             </View>
 
             {/* =====================================================================
-                4. CORPO PRINCIPAL COM GRID DE 2 COLUNAS
+                4. GRID PRINCIPAL (REORDENÁVEL PELO USUÁRIO)
             ====================================================================== */}
             <View style={styles.dashboardGrid}>
-
-              {/* ======================== COLUNA PRINCIPAL (ESQUERDA) ======================== */}
+              {/* COLUNA PRINCIPAL */}
               <View style={styles.gridMainCol}>
-
-                {/* GRÁFICO DE VENDAS DE ACORDO COM O PERÍODO */}
-                <View style={styles.panelCard}>
-                  <View style={styles.panelHeader}>
-                    <View>
-                      <View style={styles.panelTitleRow}>
-                        <View style={styles.sectionDot} />
-                        <Text style={styles.panelTitle}>Vendas no Período</Text>
-                        <View style={styles.panelChip}>
-                          <Text style={styles.panelChipText}>
-                            {periodo.toUpperCase()}
-                          </Text>
-                        </View>
-                      </View>
-                      <Text style={styles.panelSubtitle}>
-                        Acompanhamento de volume financeiro e picos de demanda
-                      </Text>
-                    </View>
-                    <View style={styles.chartLegend}>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendBox, { backgroundColor: KipiPalette.icedDenim }]} />
-                        <Text style={styles.legendLabel}>Vendas Concluídas</Text>
-                      </View>
-                      <View style={styles.legendItem}>
-                        <View style={[styles.legendBox, { backgroundColor: KipiPalette.pistachio }]} />
-                        <Text style={styles.legendLabel}>Meta Diária</Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* BARRAS DO GRÁFICO */}
-                  <View style={styles.chartBarsContainer}>
-                    {dadosGrafico.map((item, idx) => (
-                      <View key={idx} style={styles.chartBarCol}>
-                        <Text style={styles.chartValueLabel}>
-                          {item.pct}%
-                        </Text>
-                        <View style={styles.chartBarTrack}>
-                          <View
-                            style={[
-                              styles.chartBarFill,
-                              {
-                                height: `${Math.max(15, item.pct)}%`,
-                                backgroundColor: item.pico
-                                  ? KipiPalette.pistachio
-                                  : item.atual
-                                  ? KipiPalette.icedDenim
-                                  : '#7BAEE0',
-                              },
-                            ]}
-                          />
-                        </View>
-                        <View
-                          style={[
-                            styles.chartXTag,
-                            item.atual && styles.chartXTagCurrent,
-                            item.pico && styles.chartXTagPeak,
-                          ]}>
-                          <Text
-                            style={[
-                              styles.chartXText,
-                              (item.atual || item.pico) && styles.chartXTextHighlight,
-                            ]}>
-                            {item.label}
-                          </Text>
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                {/* FUNIL DE ENCOMENDAS (CONFIRMADAS, EM PRODUÇÃO E PRONTA) */}
-                <View style={styles.panelCard}>
-                  <View style={styles.panelHeader}>
-                    <View>
-                      <View style={styles.panelTitleRow}>
-                        <View style={styles.sectionDot} />
-                        <Text style={styles.panelTitle}>Funil de Encomendas</Text>
-                      </View>
-                      <Text style={styles.panelSubtitle}>
-                        Status em tempo real das encomendas em fluxo na cozinha
-                      </Text>
-                    </View>
-                    <TouchableOpacity style={styles.panelActionBtn} activeOpacity={0.7}>
-                      <Text style={styles.panelActionBtnText}>Ver Cozinha →</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* ETAPAS DO FUNIL */}
-                  <View style={styles.funnelRow}>
-                    {/* Etapa 1: Confirmadas */}
-                    <View style={styles.funnelCard}>
-                      <View style={styles.funnelCardTop}>
-                        <View style={[styles.funnelBadge, { backgroundColor: '#EAF3FA' }]}>
-                          <Feather name="check-circle" size={14} color="#5798D7" />
-                          <Text style={[styles.funnelBadgeText, { color: '#5798D7' }]}>CONFIRMADAS</Text>
-                        </View>
-                        <Text style={styles.funnelCount}>4 pedidos</Text>
-                      </View>
-                      <Text style={styles.funnelTotal}>R$ 1.480,00</Text>
-                      <View style={styles.funnelOrderSnippet}>
-                        <Text style={styles.funnelCustomerName}>Mariana Albuquerque</Text>
-                        <Text style={styles.funnelItemTitle}>Bolo Floral 3 andares (Entrega 14h)</Text>
-                      </View>
-                    </View>
-
-                    {/* Etapa 2: Em Produção */}
-                    <View style={styles.funnelCard}>
-                      <View style={styles.funnelCardTop}>
-                        <View style={[styles.funnelBadge, { backgroundColor: '#F1F6D8' }]}>
-                          <Feather name="loader" size={14} color="#708018" />
-                          <Text style={[styles.funnelBadgeText, { color: '#708018' }]}>EM PRODUÇÃO</Text>
-                        </View>
-                        <Text style={styles.funnelCount}>3 pedidos</Text>
-                      </View>
-                      <Text style={styles.funnelTotal}>R$ 960,00</Text>
-                      <View style={styles.funnelOrderSnippet}>
-                        <Text style={styles.funnelCustomerName}>Ateliê do Chocolate</Text>
-                        <Text style={styles.funnelItemTitle}>100 Brigadeiros Pistache (Montagem)</Text>
-                      </View>
-                    </View>
-
-                    {/* Etapa 3: Pronta para Retirada */}
-                    <View style={styles.funnelCard}>
-                      <View style={styles.funnelCardTop}>
-                        <View style={[styles.funnelBadge, { backgroundColor: '#DCFCE7' }]}>
-                          <Feather name="box" size={14} color="#16A34A" />
-                          <Text style={[styles.funnelBadgeText, { color: '#16A34A' }]}>PRONTAS</Text>
-                        </View>
-                        <Text style={styles.funnelCount}>2 pedidos</Text>
-                      </View>
-                      <Text style={styles.funnelTotal}>R$ 400,00</Text>
-                      <View style={styles.funnelOrderSnippet}>
-                        <Text style={styles.funnelCustomerName}>Lucas Silveira</Text>
-                        <Text style={styles.funnelItemTitle}>Bento Cake Minimalista (Balcão)</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                {/* FLUXO DE CAIXA: SALDO PREVISTO, HOJE EM CAIXA, A RECEBER, A PAGAR E PRÓXIMOS LANÇAMENTOS */}
-                <View style={styles.panelCard}>
-                  <View style={styles.panelHeader}>
-                    <View>
-                      <View style={styles.panelTitleRow}>
-                        <View style={styles.sectionDot} />
-                        <Text style={styles.panelTitle}>Fluxo de Caixa</Text>
-                      </View>
-                      <Text style={styles.panelSubtitle}>
-                        Saúde financeira, disponibilidades e lançamentos futuros
-                      </Text>
-                    </View>
-                    <View style={styles.cashStatusBadge}>
-                      <Text style={styles.cashStatusBadgeText}>Saldo Positivo</Text>
-                    </View>
-                  </View>
-
-                  {/* 4 PILARES DO FLUXO */}
-                  <View style={styles.cashSummaryRow}>
-                    <View style={styles.cashBox}>
-                      <Text style={styles.cashBoxLabel}>SALDO PREVISTO</Text>
-                      <Text style={styles.cashBoxValuePrimary}>R$ 18.450,00</Text>
-                      <Text style={styles.cashBoxSub}>Fim do período</Text>
-                    </View>
-                    <View style={styles.cashBox}>
-                      <Text style={styles.cashBoxLabel}>HOJE EM CAIXA</Text>
-                      <Text style={styles.cashBoxValue}>R$ 4.280,00</Text>
-                      <Text style={styles.cashBoxSub}>Disponível agora</Text>
-                    </View>
-                    <View style={styles.cashBox}>
-                      <Text style={styles.cashBoxLabel}>A RECEBER</Text>
-                      <Text style={[styles.cashBoxValue, { color: '#16A34A' }]}>+ R$ 3.820,00</Text>
-                      <Text style={styles.cashBoxSub}>Entregas agendadas</Text>
-                    </View>
-                    <View style={styles.cashBox}>
-                      <Text style={styles.cashBoxLabel}>A PAGAR</Text>
-                      <Text style={[styles.cashBoxValue, { color: '#DC2626' }]}>- R$ 1.950,00</Text>
-                      <Text style={styles.cashBoxSub}>Fornecedores e contas</Text>
-                    </View>
-                  </View>
-
-                  {/* PRÓXIMOS LANÇAMENTOS (MÁXIMO 3) */}
-                  <View style={styles.cashLaunchesArea}>
-                    <Text style={styles.cashLaunchesTitle}>PRÓXIMOS LANÇAMENTOS (PRÓXIMOS 7 DIAS)</Text>
-                    <View style={styles.launchesList}>
-                      {/* Lançamento 1 */}
-                      <View style={styles.launchItem}>
-                        <View style={styles.launchLeft}>
-                          <View style={[styles.launchIconBox, { backgroundColor: '#FEE2E2' }]}>
-                            <Feather name="arrow-up-right" size={15} color="#DC2626" />
-                          </View>
-                          <View>
-                            <Text style={styles.launchDesc}>Fornecedor Embalagens Kraft & Fitas</Text>
-                            <Text style={styles.launchDate}>Vence amanhã • Pagamento via Boleto</Text>
-                          </View>
-                        </View>
-                        <Text style={styles.launchValueExpense}>- R$ 480,00</Text>
-                      </View>
-
-                      {/* Lançamento 2 */}
-                      <View style={styles.launchItem}>
-                        <View style={styles.launchLeft}>
-                          <View style={[styles.launchIconBox, { backgroundColor: '#DCFCE7' }]}>
-                            <Feather name="arrow-down-left" size={15} color="#16A34A" />
-                          </View>
-                          <View>
-                            <Text style={styles.launchDesc}>Casamento Mariana (Saldo Restante 50%)</Text>
-                            <Text style={styles.launchDate}>Quinta-feira • Pix na Entrega</Text>
-                          </View>
-                        </View>
-                        <Text style={styles.launchValueIncome}>+ R$ 1.200,00</Text>
-                      </View>
-
-                      {/* Lançamento 3 */}
-                      <View style={styles.launchItem}>
-                        <View style={styles.launchLeft}>
-                          <View style={[styles.launchIconBox, { backgroundColor: '#FEE2E2' }]}>
-                            <Feather name="arrow-up-right" size={15} color="#DC2626" />
-                          </View>
-                          <View>
-                            <Text style={styles.launchDesc}>Morangos e Frutas Vermelhas Orgânicas</Text>
-                            <Text style={styles.launchDate}>Sexta-feira • Fornecedor Sítio da Serra</Text>
-                          </View>
-                        </View>
-                        <Text style={styles.launchValueExpense}>- R$ 180,00</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
+                {layout.mainCards.map((cardId) => renderCard(cardId))}
               </View>
 
-              {/* ======================== COLUNA LATERAL (DIREITA) ======================== */}
+              {/* COLUNA LATERAL */}
               <View style={styles.gridSideCol}>
-
-                {/* 1. LEMBRETES E AVISOS (INSUMOS ACABANDO / CRÍTICOS) */}
-                <View style={styles.panelCard}>
-                  <View style={styles.panelHeader}>
-                    <View style={styles.panelTitleRow}>
-                      <View style={[styles.miniAlertIcon, { backgroundColor: '#FEE2E2' }]}>
-                        <Feather name="alert-triangle" size={14} color="#DC2626" />
-                      </View>
-                      <Text style={styles.panelTitle}>Insumos em Alerta</Text>
-                    </View>
-                    <Text style={styles.criticalCountBadge}>3 críticos</Text>
-                  </View>
-
-                  <View style={styles.insumosList}>
-                    {/* Insumo 1 */}
-                    <View style={styles.insumoItem}>
-                      <View style={styles.insumoTopRow}>
-                        <Text style={styles.insumoName}>Farinha de Amêndoa Pura (França)</Text>
-                        <View style={styles.insumoPctBadge}>
-                          <Text style={styles.insumoPctText}>15% restante</Text>
-                        </View>
-                      </View>
-                      <View style={styles.insumoProgressTrack}>
-                        <View style={[styles.insumoProgressFill, { width: '15%', backgroundColor: '#DC2626' }]} />
-                      </View>
-                      <View style={styles.insumoBottomRow}>
-                        <Text style={styles.insumoStockText}>Restam 1.2 kg (Mín: 5.0 kg)</Text>
-                        <TouchableOpacity style={styles.orderInsumoBtn}>
-                          <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Insumo 2 */}
-                    <View style={styles.insumoItem}>
-                      <View style={styles.insumoTopRow}>
-                        <Text style={styles.insumoName}>Morangos Orgânicos Selecionados</Text>
-                        <View style={styles.insumoPctBadge}>
-                          <Text style={styles.insumoPctText}>22% restante</Text>
-                        </View>
-                      </View>
-                      <View style={styles.insumoProgressTrack}>
-                        <View style={[styles.insumoProgressFill, { width: '22%', backgroundColor: '#F59E0B' }]} />
-                      </View>
-                      <View style={styles.insumoBottomRow}>
-                        <Text style={styles.insumoStockText}>Restam 4 caixas (Mín: 10 cx)</Text>
-                        <TouchableOpacity style={styles.orderInsumoBtn}>
-                          <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Insumo 3 */}
-                    <View style={styles.insumoItem}>
-                      <View style={styles.insumoTopRow}>
-                        <Text style={styles.insumoName}>Fitas de Cetim Dusty Rose (22mm)</Text>
-                        <View style={styles.insumoPctBadge}>
-                          <Text style={styles.insumoPctText}>10% restante</Text>
-                        </View>
-                      </View>
-                      <View style={styles.insumoProgressTrack}>
-                        <View style={[styles.insumoProgressFill, { width: '10%', backgroundColor: '#DC2626' }]} />
-                      </View>
-                      <View style={styles.insumoBottomRow}>
-                        <Text style={styles.insumoStockText}>Restam 1 rolo (Mín: 4 rolos)</Text>
-                        <TouchableOpacity style={styles.orderInsumoBtn}>
-                          <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-
-                  <TouchableOpacity style={styles.buyOrderBtn} activeOpacity={0.85}>
-                    <Feather name="shopping-cart" size={15} color="#5798D7" />
-                    <Text style={styles.buyOrderBtnText}>Gerar Ordem de Compra Imediata</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* 2. RANKING TOP 3 PRODUTOS MAIS VENDIDOS */}
-                <View style={styles.panelCard}>
-                  <View style={styles.panelHeader}>
-                    <View style={styles.panelTitleRow}>
-                      <View style={styles.sectionDot} />
-                      <Text style={styles.panelTitle}>Top 3 Mais Vendidos</Text>
-                    </View>
-                    <Text style={styles.panelActionLink}>Ranking</Text>
-                  </View>
-
-                  <View style={styles.rankingList}>
-                    {/* Top 1 */}
-                    <View style={styles.rankingItem}>
-                      <View style={styles.rankingMedalBox}>
-                        <Text style={styles.rankingMedal}>🥇</Text>
-                      </View>
-                      <View style={styles.rankingInfo}>
-                        <Text style={styles.rankingProdName}>Cookie Duo Tradicional</Text>
-                        <Text style={styles.rankingProdMeta}>142 vendidos • R$ 2.400,00</Text>
-                        <View style={styles.rankingBarTrack}>
-                          <View style={[styles.rankingBarFill, { width: '95%', backgroundColor: KipiPalette.icedDenim }]} />
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Top 2 */}
-                    <View style={styles.rankingItem}>
-                      <View style={styles.rankingMedalBox}>
-                        <Text style={styles.rankingMedal}>🥈</Text>
-                      </View>
-                      <View style={styles.rankingInfo}>
-                        <Text style={styles.rankingProdName}>Bolo Red Velvet Floral</Text>
-                        <Text style={styles.rankingProdMeta}>38 vendidos • R$ 4.560,00</Text>
-                        <View style={styles.rankingBarTrack}>
-                          <View style={[styles.rankingBarFill, { width: '75%', backgroundColor: KipiPalette.pistachio }]} />
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Top 3 */}
-                    <View style={styles.rankingItem}>
-                      <View style={styles.rankingMedalBox}>
-                        <Text style={styles.rankingMedal}>🥉</Text>
-                      </View>
-                      <View style={styles.rankingInfo}>
-                        <Text style={styles.rankingProdName}>Cento de Brigadeiros Pistache</Text>
-                        <Text style={styles.rankingProdMeta}>26 centos • R$ 3.120,00</Text>
-                        <View style={styles.rankingBarTrack}>
-                          <View style={[styles.rankingBarFill, { width: '58%', backgroundColor: '#7BAEE0' }]} />
-                        </View>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
-                {/* 3. ANIVERSARIANTES E CLIENTES */}
-                <View style={styles.panelCard}>
-                  <View style={styles.panelHeader}>
-                    <View style={styles.panelTitleRow}>
-                      <View style={styles.sectionDot} />
-                      <Text style={styles.panelTitle}>Clientes & Fidelidade</Text>
-                    </View>
-                    <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
-                      <Text style={[styles.panelChipText, { color: '#708018' }]}>68% Recompra</Text>
-                    </View>
-                  </View>
-
-                  {/* 3 MÉTRICAS DE CLIENTES */}
-                  <View style={styles.clientsMetricsRow}>
-                    <View style={styles.clientMetricCard}>
-                      <Text style={styles.clientMetricNum}>148</Text>
-                      <Text style={styles.clientMetricLabel}>Ativos</Text>
-                    </View>
-                    <View style={styles.clientMetricCard}>
-                      <Text style={[styles.clientMetricNum, { color: '#16A34A' }]}>+14</Text>
-                      <Text style={styles.clientMetricLabel}>Na Semana</Text>
-                    </View>
-                    <View style={styles.clientMetricCard}>
-                      <Text style={[styles.clientMetricNum, { color: KipiPalette.icedDenim }]}>68%</Text>
-                      <Text style={styles.clientMetricLabel}>Recompra</Text>
-                    </View>
-                  </View>
-
-                  {/* ANIVERSARIANTES PRÓXIMOS */}
-                  <View style={styles.bdayArea}>
-                    <Text style={styles.bdayTitle}>🎂 ANIVERSARIANTES DE OUTUBRO</Text>
-                    <View style={styles.bdayList}>
-                      <View style={styles.bdayItem}>
-                        <View style={styles.bdayLeft}>
-                          <View style={styles.bdayAvatar}>
-                            <Text style={styles.bdayAvatarText}>CM</Text>
-                          </View>
-                          <View>
-                            <Text style={styles.bdayName}>Dra. Camila Morales</Text>
-                            <Text style={styles.bdayDate}>24 de Outubro • VIP</Text>
-                          </View>
-                        </View>
-                        <TouchableOpacity style={styles.bdayGiftBtn}>
-                          <Text style={styles.bdayGiftBtnText}>Cupom 🎁</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      <View style={styles.bdayItem}>
-                        <View style={styles.bdayLeft}>
-                          <View style={styles.bdayAvatar}>
-                            <Text style={styles.bdayAvatarText}>MA</Text>
-                          </View>
-                          <View>
-                            <Text style={styles.bdayName}>Mariana Albuquerque</Text>
-                            <Text style={styles.bdayDate}>28 de Outubro • Noiva</Text>
-                          </View>
-                        </View>
-                        <TouchableOpacity style={styles.bdayGiftBtn}>
-                          <Text style={styles.bdayGiftBtnText}>Cupom 🎁</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-
+                {layout.sideCards.map((cardId) => renderCard(cardId))}
               </View>
             </View>
 
-            {/* RODAPÉ ELEGANTE DO ATELIÊ */}
+            {/* RODAPÉ DO ATELIÊ */}
             <View style={styles.pageFooter}>
               <Text style={styles.pageFooterBrand}>
                 ● Kipi Ateliê & Confeitaria • Tecnologia, amor e gestão para seu negócio artesanal
@@ -991,7 +1283,7 @@ const styles = StyleSheet.create({
   },
 
   // =========================================================================
-  // SIDEBAR ESTILOS
+  // SIDEBAR ESTILOS (AJUSTE PERFEITO DO ÍCONE ATIVO RETRAÍDO)
   // =========================================================================
   sidebar: {
     backgroundColor: '#FFFFFF',
@@ -1015,6 +1307,7 @@ const styles = StyleSheet.create({
   sidebarCollapsed: {
     width: 68,
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   sidebarHeader: {
     flexDirection: 'row',
@@ -1077,7 +1370,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sidebarNavContent: {
-    gap: 6,
+    gap: 8,
+    alignItems: 'stretch',
   },
   navItem: {
     flexDirection: 'row',
@@ -1087,12 +1381,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 12,
   },
+  // O INDICADOR QUANDO O MENU ESTÁ RECOLHIDO: QUADRADINHO PERFEITO E ENVOLVENTE
   navItemCollapsed: {
-    justifyContent: 'center',
+    width: 42,
+    height: 42,
+    paddingVertical: 0,
     paddingHorizontal: 0,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
   },
   navItemActive: {
     backgroundColor: KipiPalette.icedDenim,
+  },
+  navItemActiveCollapsed: {
+    backgroundColor: KipiPalette.icedDenim,
+    width: 42,
+    height: 42,
+    borderRadius: 12,
   },
   navItemText: {
     fontFamily: Fonts.sans,
@@ -1123,8 +1430,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#EAF3FA',
   },
   pinBtnCollapsed: {
+    width: 42,
+    height: 36,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 0,
+    alignSelf: 'center',
   },
   pinBtnText: {
     fontFamily: Fonts.sans,
@@ -1142,6 +1453,7 @@ const styles = StyleSheet.create({
   userMiniCardCollapsed: {
     justifyContent: 'center',
     paddingHorizontal: 0,
+    alignSelf: 'center',
   },
   userMiniAvatar: {
     width: 34,
@@ -1229,7 +1541,31 @@ const styles = StyleSheet.create({
   topBarRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
+  },
+  customizeLayoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#EAF3FA',
+    borderWidth: 1.5,
+    borderColor: '#B6D6F4',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  customizeLayoutBtnActive: {
+    backgroundColor: KipiPalette.icedDenim,
+    borderColor: KipiPalette.icedDenim,
+  },
+  customizeLayoutBtnText: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '700',
+    color: KipiPalette.icedDenim,
+  },
+  customizeLayoutBtnTextActive: {
+    color: '#FFFFFF',
   },
   kitchenBadge: {
     flexDirection: 'row',
@@ -1319,6 +1655,95 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 24,
     gap: 20,
+  },
+
+  // BARRA DE AVISO DO MODO DE EDIÇÃO
+  editModeNoticeBar: {
+    backgroundColor: '#F1F6D8',
+    borderColor: '#B9C255',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  editModeNoticeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  editModeNoticeText: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: '#46500F',
+    fontWeight: '600',
+  },
+  editModeNoticeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  restoreDefaultBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#B9C255',
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  restoreDefaultBtnText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#708018',
+  },
+  saveLayoutBtn: {
+    backgroundColor: KipiPalette.icedDenim,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  saveLayoutBtnText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // CONTROLES DE REORDENAÇÃO DENTRO DO CARD
+  reorderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    marginBottom: 4,
+  },
+  reorderBtn: {
+    backgroundColor: '#F1F5F9',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  reorderBtnText: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  reorderBtnCol: {
+    backgroundColor: '#EAF3FA',
+  },
+  reorderBtnColText: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    fontWeight: '700',
+    color: KipiPalette.icedDenim,
   },
 
   // =========================================================================
@@ -1705,7 +2130,6 @@ const styles = StyleSheet.create({
     gap: 20,
   },
 
-  // PANEL CARD PADRÃO
   panelCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
@@ -1718,6 +2142,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 1,
+  },
+  panelCardEdit: {
+    borderColor: KipiPalette.icedDenim,
+    borderStyle: 'dashed',
   },
   panelHeader: {
     flexDirection: 'row',
@@ -1738,8 +2166,8 @@ const styles = StyleSheet.create({
     backgroundColor: KipiPalette.icedDenim,
   },
   miniAlertIcon: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2039,6 +2467,128 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '800',
+    color: '#16A34A',
+  },
+
+  // =========================================================================
+  // NOVO: CARD DE REVENDEDORAS & CONSIGNAÇÃO
+  // =========================================================================
+  resellerMetricsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  resellerMetricBox: {
+    flex: 1,
+    minWidth: 140,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 3,
+  },
+  resellerMetricLabel: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  resellerMetricNumber: {
+    fontFamily: Fonts.sans,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  resellerMetricSub: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    color: '#64748B',
+  },
+  resellerStockAlertArea: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 14,
+    gap: 10,
+  },
+  resellerAlertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  resellerAlertTitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#B45309',
+    letterSpacing: 0.4,
+  },
+  resellerAlertList: {
+    gap: 8,
+  },
+  resellerAlertItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  resellerAlertLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    minWidth: 240,
+  },
+  resellerStatusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  resellerName: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  resellerAlertDesc: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: '#64748B',
+  },
+  resellerActionBtn: {
+    backgroundColor: '#EAF3FA',
+    borderWidth: 1,
+    borderColor: '#B6D6F4',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  resellerActionBtnText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: KipiPalette.icedDenim,
+  },
+  resellerOkBadge: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  resellerOkBadgeText: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    fontWeight: '700',
     color: '#16A34A',
   },
 
