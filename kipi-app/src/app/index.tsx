@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   inputFocused: {
     borderColor: KipiPalette.icedDenim,
-    backgroundColor: '#FAFCFF',
+    backgroundColor: '#FFFFFF',
   },
   inputIcon: {
     marginRight: 2,
@@ -341,6 +341,7 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 14,
     color: '#0F172A',
+    backgroundColor: 'transparent',
     outlineWidth: 0,
   },
   eyeBtn: {
