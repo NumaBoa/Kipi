@@ -59,6 +59,8 @@ export default function RootLayout() {
         <Stack.Screen name="clientes" options={{ headerShown: false }} />
         <Stack.Screen name="insumos-receitas" options={{ headerShown: false }} />
         <Stack.Screen name="produtos-estoque" options={{ headerShown: false }} />
+        <Stack.Screen name="producao" options={{ headerShown: false }} />
+        <Stack.Screen name="estoque" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
       </Stack>
     </View>

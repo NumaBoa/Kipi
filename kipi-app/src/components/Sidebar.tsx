@@ -36,8 +36,10 @@ export const MENU_GROUPS: MenuGroup[] = [
   {
     groupTitle: 'Produção',
     items: [
+      { id: 'producao', label: 'Produção & Forno', icon: 'zap', route: '/producao', isDeveloped: true },
+      { id: 'estoque', label: 'Estoque Central', icon: 'archive', route: '/estoque', isDeveloped: true },
       { id: 'insumos-receitas', label: 'Insumos e Receitas', icon: 'book-open', route: '/insumos-receitas', isDeveloped: true },
-      { id: 'produtos-estoque', label: 'Produtos e Estoque', icon: 'package', route: '/produtos-estoque', isDeveloped: true },
+      { id: 'produtos-estoque', label: 'Produtos', icon: 'package', route: '/produtos-estoque', isDeveloped: true },
     ],
   },
   {
