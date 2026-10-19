@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
+import NovoPedidoModal from '@/components/NovoPedidoModal';
 
 type Periodo = 'hoje' | 'semana' | 'mes' | 'personalizar';
 
@@ -56,6 +57,10 @@ export default function VisaoGeralScreen() {
   const [editMode, setEditMode] = useState(false);
   const [layout, setLayout] = useState<LayoutConfig>(DEFAULT_LAYOUT);
   const [mensagemSalvo, setMensagemSalvo] = useState(false);
+
+  // MODAL DE NOVO PEDIDO E FEEDBACK
+  const [modalNovoPedidoAberto, setModalNovoPedidoAberto] = useState(false);
+  const [toastSucesso, setToastSucesso] = useState<string | null>(null);
 
   // USUÁRIO LOGADO (PADRÃO: CAMILA LIMA)
   const [usuario] = useState({
@@ -1141,9 +1146,12 @@ export default function VisaoGeralScreen() {
                   <Feather name="calendar" size={14} color="#64748B" />
                   <Text style={styles.calendarPillText}>{dataExtenso}</Text>
                 </View>
-                <TouchableOpacity style={styles.primaryActionBtn} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={styles.primaryActionBtn}
+                  onPress={() => setModalNovoPedidoAberto(true)}
+                  activeOpacity={0.85}>
                   <Feather name="plus" size={16} color="#FFFFFF" />
-                  <Text style={styles.primaryActionBtnText}>Nova Encomenda</Text>
+                  <Text style={styles.primaryActionBtnText}>Novo Pedido</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1265,6 +1273,24 @@ export default function VisaoGeralScreen() {
         </View>
 
       </View>
+
+      {/* MODAL DE NOVO PEDIDO COMPLETO */}
+      <NovoPedidoModal
+        visible={modalNovoPedidoAberto}
+        onClose={() => setModalNovoPedidoAberto(false)}
+        onPedidoCriado={(novo) => {
+          setToastSucesso(`✓ Pedido #${novo.id ? novo.id.slice(0, 8) : 'novo'} registrado com sucesso!`);
+          setTimeout(() => setToastSucesso(null), 4000);
+        }}
+      />
+
+      {/* TOAST DE FEEDBACK DE SUCESSO */}
+      {toastSucesso && (
+        <View style={styles.toastSuccess}>
+          <Feather name="check-circle" size={18} color="#FFFFFF" />
+          <Text style={styles.toastSuccessText}>{toastSucesso}</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -2869,5 +2895,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
+  },
+  toastSuccess: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    backgroundColor: '#16A34A',
+    borderRadius: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 6,
+    zIndex: 9999,
+  },
+  toastSuccessText: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
