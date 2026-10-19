@@ -62,13 +62,16 @@ const PAYMENTS = [
   { name: 'Pendente', icon: 'clock' },
 ] as const;
 
+const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+
 export default function NovoPedidoModal({
   visible,
   onClose,
   onPedidoCriado,
 }: NovoPedidoModalProps) {
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 900;
+  const isDesktop = width >= 768;
 
   // ESTADOS DO PEDIDO
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -784,6 +787,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     overflow: 'hidden',
     flexDirection: 'column',
+    fontFamily: FONT_SANS as any,
     ...Platform.select({
       web: {
         boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
@@ -822,23 +826,24 @@ const styles = StyleSheet.create({
   },
   headerSubUpper: {
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: 1.5,
     color: '#2D7A58',
-    marginBottom: 2,
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    marginBottom: 3,
+    fontFamily: Platform.select({ web: '"Manrope", sans-serif' }),
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1E293B',
-    letterSpacing: -0.3,
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    letterSpacing: 0,
+    fontFamily: Platform.select({ web: '"Sora", sans-serif' }),
   },
   headerDescription: {
     fontSize: 12,
     color: '#64748B',
     marginTop: 2,
+    fontFamily: Platform.select({ web: '"Manrope", sans-serif' }),
   },
   closeRoundBtn: {
     width: 32,
@@ -1033,9 +1038,9 @@ const styles = StyleSheet.create({
   },
   vitrineTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1E293B',
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    fontFamily: FONT_DISPLAY,
   },
   vitrineCountHint: {
     fontSize: 11,
@@ -1260,9 +1265,9 @@ const styles = StyleSheet.create({
   },
   asideTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1E293B',
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    fontFamily: FONT_DISPLAY,
   },
   asideClientSub: {
     fontSize: 11,
@@ -1452,9 +1457,9 @@ const styles = StyleSheet.create({
   },
   asideTotalAmount: {
     fontSize: 24,
-    fontWeight: '800',
+    fontWeight: '600',
     color: '#2D7A58',
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    fontFamily: FONT_DISPLAY,
   },
   btnFinalizeCta: {
     height: 44,
@@ -1474,8 +1479,8 @@ const styles = StyleSheet.create({
   btnFinalizeCtaText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    fontWeight: '600',
+    fontFamily: FONT_SANS,
   },
   paymentStatusFooterLine: {
     flexDirection: 'row',
@@ -1486,6 +1491,7 @@ const styles = StyleSheet.create({
   paymentStatusFooterText: {
     fontSize: 10,
     color: '#64748B',
+    fontFamily: FONT_SANS,
   },
 
   // TELA DE SUCESSO (COMPLETED)
@@ -1507,9 +1513,9 @@ const styles = StyleSheet.create({
   },
   completedTitle: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1E293B',
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    fontFamily: FONT_DISPLAY,
   },
   completedSummary: {
     fontSize: 14,

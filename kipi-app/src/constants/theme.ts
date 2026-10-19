@@ -67,12 +67,12 @@ export const Fonts = Platform.select({
     rounded: 'sans-serif',
   },
   web: {
-    display: '"Plus Jakarta Sans", -apple-system, sans-serif',
-    sans: '"Plus Jakarta Sans", -apple-system, sans-serif',
-    editorial: '"Plus Jakarta Sans", -apple-system, sans-serif',
+    display: '"Sora", "Plus Jakarta Sans", -apple-system, sans-serif',
+    sans: '"Manrope", "Plus Jakarta Sans", -apple-system, sans-serif',
+    editorial: '"Sora", -apple-system, sans-serif',
     mono: 'monospace',
-    serif: '"Plus Jakarta Sans", -apple-system, sans-serif',
-    rounded: '"Plus Jakarta Sans", -apple-system, sans-serif',
+    serif: '"Sora", -apple-system, sans-serif',
+    rounded: '"Sora", -apple-system, sans-serif',
   },
   default: {
     display: 'normal',

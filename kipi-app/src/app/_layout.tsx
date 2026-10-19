@@ -26,6 +26,26 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     `;
     document.head.appendChild(style);
   }
+
+  const fontId = 'google-fonts-sora-manrope';
+  if (!document.getElementById(fontId)) {
+    const linkPreconnect1 = document.createElement('link');
+    linkPreconnect1.rel = 'preconnect';
+    linkPreconnect1.href = 'https://fonts.googleapis.com';
+    document.head.appendChild(linkPreconnect1);
+
+    const linkPreconnect2 = document.createElement('link');
+    linkPreconnect2.rel = 'preconnect';
+    linkPreconnect2.href = 'https://fonts.gstatic.com';
+    linkPreconnect2.crossOrigin = 'anonymous';
+    document.head.appendChild(linkPreconnect2);
+
+    const fontLink = document.createElement('link');
+    fontLink.id = fontId;
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(fontLink);
+  }
 }
 
 export default function RootLayout() {
