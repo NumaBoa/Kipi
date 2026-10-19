@@ -275,11 +275,12 @@ export default function VisaoGeralScreen() {
 
   // ITENS DO MENU LATERAL
   const navItems = [
-    { id: 'visao-geral', label: 'Visão Geral', icon: 'grid', active: true },
-    { id: 'encomendas', label: 'Encomendas & Cozinha', icon: 'coffee', active: false },
+    { id: 'visao-geral', label: 'Visão Geral', icon: 'grid', active: true, route: '/visao-geral' },
+    { id: 'pedidos', label: 'Pedidos & Vendas', icon: 'shopping-bag', active: false, route: '/pedidos' },
+    { id: 'encomendas', label: 'Encomendas & Cozinha', icon: 'coffee', active: false, route: '/pedidos' },
     { id: 'estoque', label: 'Estoque & Insumos', icon: 'package', active: false },
     { id: 'fichas', label: 'Fichas Técnicas', icon: 'book-open', active: false },
-    { id: 'revendedoras', label: 'Revendedoras & Pontos', icon: 'shopping-bag', active: false },
+    { id: 'revendedoras', label: 'Revendedoras & Pontos', icon: 'map-pin', active: false },
     { id: 'clientes', label: 'Clientes & Vendas', icon: 'users', active: false },
     { id: 'financeiro', label: 'Fluxo de Caixa', icon: 'dollar-sign', active: false },
     { id: 'config', label: 'Configurações', icon: 'settings', active: false },
@@ -905,7 +906,12 @@ export default function VisaoGeralScreen() {
                   item.active && styles.navItemActive,
                   item.active && !menuExpanded && styles.navItemActiveCollapsed,
                 ]}
-                activeOpacity={0.75}>
+                activeOpacity={0.75}
+                onPress={() => {
+                  if (item.route && item.route !== '/visao-geral') {
+                    router.push(item.route as any);
+                  }
+                }}>
                 <Feather
                   name={item.icon as any}
                   size={19}

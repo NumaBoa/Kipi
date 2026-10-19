@@ -35,6 +35,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="visao-geral" options={{ headerShown: false }} />
+        <Stack.Screen name="pedidos" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
       </Stack>
     </View>
