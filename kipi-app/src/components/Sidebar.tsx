@@ -37,7 +37,7 @@ export const MENU_GROUPS: MenuGroup[] = [
     groupTitle: 'Produção',
     items: [
       { id: 'insumos-receitas', label: 'Insumos e Receitas', icon: 'book-open', route: '/insumos-receitas', isDeveloped: true },
-      { id: 'produtos-estoque', label: 'Produtos e Estoque', icon: 'package', route: '/produtos-estoque', isDeveloped: false },
+      { id: 'produtos-estoque', label: 'Produtos e Estoque', icon: 'package', route: '/produtos-estoque', isDeveloped: true },
     ],
   },
   {
