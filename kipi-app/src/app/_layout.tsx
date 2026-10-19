@@ -57,6 +57,7 @@ export default function RootLayout() {
         <Stack.Screen name="visao-geral" options={{ headerShown: false }} />
         <Stack.Screen name="pedidos" options={{ headerShown: false }} />
         <Stack.Screen name="clientes" options={{ headerShown: false }} />
+        <Stack.Screen name="insumos-receitas" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
       </Stack>
     </View>
