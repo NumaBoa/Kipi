@@ -9,23 +9,22 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  Image,
   useWindowDimensions,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { KipiPalette, Fonts } from '@/constants/theme';
 
-export interface ProdutoItem {
+// IMAGEM REAL DO PRODUTO (COOKIES DO ATELIÊ)
+const cookiePhoto = require('../../assets/images/cookies.jpg');
+
+export interface ProductItem {
   id: string;
-  nome: string;
-  categoria: string;
-  preco: number;
-  estoque: number;
-  tem_promocao?: boolean;
-  desconto_promocional?: number;
-  preco_promocional?: number | null;
-  iconeEmoji?: string;
-  corFundoIcone?: string;
+  name: string;
+  detail: string;
+  price: number; // em centavos (ex: 1890 = R$ 18,90) ou reais
+  stock: number;
+  category: string;
 }
 
 export interface ClienteItem {
@@ -35,45 +34,33 @@ export interface ClienteItem {
   email?: string | null;
 }
 
-export interface ItemCarrinho {
-  produto: ProdutoItem;
-  quantidade: number;
-  temDesconto: boolean;
-  valorDescontoUnitario: number;
-}
-
-export type TipoEntrega = 'retirada' | 'entrega' | 'sob_encomenda';
-export type MetodoPagamento = 'pix' | 'cartao' | 'dinheiro' | 'pendente';
-
 interface NovoPedidoModalProps {
   visible: boolean;
   onClose: () => void;
   onPedidoCriado: (pedido: any) => void;
 }
 
-// PRODUTOS GOURMET COM APRESENTAÇÃO DE ATELIÊ DE LUXO
-const PRODUTOS_PADRAO: ProdutoItem[] = [
-  { id: 'p1', nome: 'Cookie Duo Red Velvet c/ Ninho', categoria: 'Cookies', preco: 16.90, estoque: 18, tem_promocao: true, desconto_promocional: 3.00, iconeEmoji: '🍪', corFundoIcone: '#FDF2F4' },
-  { id: 'p2', nome: 'Cookie Tradicional Gotas Belga', categoria: 'Cookies', preco: 14.90, estoque: 24, tem_promocao: false, iconeEmoji: '🍪', corFundoIcone: '#FBF6EA' },
-  { id: 'p3', nome: 'Cookie Black Nutella & Avelã', categoria: 'Cookies', preco: 18.90, estoque: 12, tem_promocao: true, desconto_promocional: 3.00, iconeEmoji: '🍪', corFundoIcone: '#F5EBE6' },
-  { id: 'p4', nome: 'Bento Cake Pistache & Framboesa', categoria: 'Bolos & Bentos', preco: 65.00, estoque: 8, tem_promocao: false, iconeEmoji: '🎂', corFundoIcone: '#F1F8F5' },
-  { id: 'p5', nome: 'Bento Cake Red Velvet Cream Cheese', categoria: 'Bolos & Bentos', preco: 70.00, estoque: 5, tem_promocao: false, iconeEmoji: '🎂', corFundoIcone: '#FDF2F4' },
-  { id: 'p6', nome: 'Caixa Macarons Degustação (6 un)', categoria: 'Macarons', preco: 57.00, estoque: 14, tem_promocao: true, desconto_promocional: 5.00, iconeEmoji: '🧁', corFundoIcone: '#F7EEF8' },
-  { id: 'p7', nome: 'Torre de Macarons 24 unidades', categoria: 'Macarons', preco: 220.00, estoque: 3, tem_promocao: false, iconeEmoji: '✨', corFundoIcone: '#F0F9FF' },
-  { id: 'p8', nome: 'Fatia Torta Ópera Café & Ganache', categoria: 'Sobremesas', preco: 33.50, estoque: 10, tem_promocao: false, iconeEmoji: '🍮', corFundoIcone: '#FBF6EA' },
-  { id: 'p9', nome: 'Fatia Cheesecake Frutas Silvestres', categoria: 'Sobremesas', preco: 32.50, estoque: 9, tem_promocao: false, iconeEmoji: '🍰', corFundoIcone: '#FDF2F4' },
-  { id: 'p10', nome: 'Cento de Brigadeiros Gourmet Belga', categoria: 'Doces Finos', preco: 160.00, estoque: 20, tem_promocao: false, iconeEmoji: '🍬', corFundoIcone: '#F1F8F5' },
-  { id: 'p11', nome: 'Bolo Casamento Flores de Açúcar', categoria: 'Bolos & Bentos', preco: 340.00, estoque: 0, tem_promocao: false, iconeEmoji: '💐', corFundoIcone: '#FAF5FF' },
-  { id: 'p12', nome: 'Brownie Fudge Triplo Chocolate', categoria: 'Cookies', preco: 15.50, estoque: 16, tem_promocao: false, iconeEmoji: '🍫', corFundoIcone: '#F5EBE6' },
+// CATÁLOGO IDÊNTICO AO PROTÓTIPO LOVABLE
+const DEFAULT_PRODUCTS: ProductItem[] = [
+  { id: 'nutella', name: 'Cookie Black Nutella', detail: 'Chocolate intenso · recheado', price: 1890, stock: 2, category: 'Cookies' },
+  { id: 'tradicional', name: 'Cookie Tradicional', detail: 'Baunilha · gotas de chocolate', price: 1490, stock: 2, category: 'Cookies' },
+  { id: 'caixinha', name: 'Caixinha de Cookie', detail: 'Uma seleção para presentear', price: 1800, stock: 0, category: 'Presentes' },
+  { id: 'black', name: 'Cookie Black', detail: 'Massa de cacau · chocolate', price: 1690, stock: 0, category: 'Cookies' },
+  { id: 'bueno', name: 'Cookie Bueno', detail: 'Chocolate ao leite · avelã', price: 1790, stock: 0, category: 'Cookies' },
+  { id: 'duo', name: 'Cookie Duo', detail: 'Dois chocolates em um cookie', price: 1690, stock: 0, category: 'Cookies' },
+  { id: 'cookie-nutella', name: 'Cookie Nutella', detail: 'Massa clássica · creme de avelã', price: 1790, stock: 0, category: 'Cookies' },
 ];
 
-const CLIENTES_PADRAO: ClienteItem[] = [
-  { id: 'c1', nome: 'Mariana Albuquerque', telefone: '(21) 98844-3321', email: 'mariana.alb@gmail.com' },
-  { id: 'c2', nome: 'Dra. Camila Morales', telefone: '(21) 99122-4411', email: 'morales.camila@clinicavita.com' },
-  { id: 'c3', nome: 'Fernanda Montenegro Santos', telefone: '(21) 98711-2299', email: 'fernanda.m@globo.com' },
-  { id: 'c4', nome: 'Guilherme Peixoto', telefone: '(21) 99876-5432', email: 'guilherme.px@yahoo.com' },
-  { id: 'c5', nome: 'Larissa Manoela Vasconcelos', telefone: '(21) 98455-1234', email: 'larissa.v@outlook.com' },
-];
+const money = (cents: number) => {
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+};
+
+const PAYMENTS = [
+  { name: 'Pix', icon: 'zap' },
+  { name: 'Cartão', icon: 'credit-card' },
+  { name: 'Dinheiro', icon: 'dollar-sign' },
+  { name: 'Pendente', icon: 'clock' },
+] as const;
 
 export default function NovoPedidoModal({
   visible,
@@ -81,318 +68,190 @@ export default function NovoPedidoModal({
   onPedidoCriado,
 }: NovoPedidoModalProps) {
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 980;
+  const isDesktop = width >= 900;
 
-  // TAB MOBILE
-  const [mobileTab, setMobileTab] = useState<'vitrine' | 'comanda'>('vitrine');
+  // ESTADOS DO PEDIDO
+  const [cart, setCart] = useState<Record<string, number>>({});
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('Todos');
+  const [availableOnly, setAvailableOnly] = useState(false);
+  const [client, setClient] = useState('Balcão avulso');
+  const [delivery, setDelivery] = useState<'Retirada' | 'Delivery' | 'Encomenda'>('Retirada');
+  const [payment, setPayment] = useState<string>('Pix');
+  const [notes, setNotes] = useState('');
+  const [address, setAddress] = useState('');
+  const [date, setDate] = useState('');
+  const [received, setReceived] = useState('');
+  const [completed, setCompleted] = useState(false);
 
-  // CLIENTES
-  const [clientes, setClientes] = useState<ClienteItem[]>(CLIENTES_PADRAO);
-  const [carregandoClientes, setCarregandoClientes] = useState(false);
-  const [isVendaAvulsa, setIsVendaAvulsa] = useState(true);
-  const [buscaCliente, setBuscaCliente] = useState('');
-  const [clienteSelecionado, setClienteSelecionado] = useState<ClienteItem | null>(null);
-  const [dropdownClienteAberto, setDropdownClienteAberto] = useState(false);
-
-  // NOVO CLIENTE INLINE
-  const [criandoNovoCliente, setCriandoNovoCliente] = useState(false);
+  // SUPABASE CLIENTS & DROPDOWN
+  const [clientesDb, setClientesDb] = useState<ClienteItem[]>([]);
+  const [selectClientOpen, setSelectClientOpen] = useState(false);
   const [novoClienteNome, setNovoClienteNome] = useState('');
-  const [novoClienteTelefone, setNovoClienteTelefone] = useState('');
-  const [salvandoCliente, setSalvandoCliente] = useState(false);
-
-  // TIPO DE ENTREGA E AGENDAMENTO
-  const [tipoEntrega, setTipoEntrega] = useState<TipoEntrega>('retirada');
-  const [dataEntrega, setDataEntrega] = useState(() => {
-    const hoje = new Date();
-    return hoje.toISOString().split('T')[0];
-  });
-  const [horarioEntrega, setHorarioEntrega] = useState('14:00');
-  const [observacoes, setObservacoes] = useState('');
-
-  // PRODUTOS
-  const [produtos, setProdutos] = useState<ProdutoItem[]>(PRODUTOS_PADRAO);
-  const [carregandoProdutos, setCarregandoProdutos] = useState(false);
-  const [categoriaAtiva, setCategoriaAtiva] = useState('Todas');
-  const [buscaProduto, setBuscaProduto] = useState('');
-
-  // CARRINHO DO PEDIDO
-  const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
-
-  // PAGAMENTO (4 OPÇÕES DIRETAS E CLARAS)
-  const [metodoPagamento, setMetodoPagamento] = useState<MetodoPagamento>('pix');
-
-  // SUBMISSÃO
+  const [criandoNovoCliente, setCriandoNovoCliente] = useState(false);
   const [salvandoPedido, setSalvandoPedido] = useState(false);
-  const [erroForm, setErroForm] = useState<string | null>(null);
+
+  // PRODUTOS ATIVOS
+  const [products, setProducts] = useState<ProductItem[]>(DEFAULT_PRODUCTS);
 
   useEffect(() => {
     if (visible) {
-      carregarClientes();
-      carregarProdutos();
-      setErroForm(null);
+      carregarDados();
     }
   }, [visible]);
 
-  const carregarClientes = async () => {
-    setCarregandoClientes(true);
+  const carregarDados = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: cliData } = await supabase
         .from('clientes')
         .select('id, nome, telefone, email')
         .order('nome', { ascending: true })
-        .limit(40);
+        .limit(20);
 
-      if (!error && data && data.length > 0) {
-        setClientes(data);
+      if (cliData && cliData.length > 0) {
+        setClientesDb(cliData);
       }
-    } catch {
-      // fallback
-    } finally {
-      setCarregandoClientes(false);
-    }
-  };
 
-  const carregarProdutos = async () => {
-    setCarregandoProdutos(true);
-    try {
-      const { data, error } = await supabase
+      // Buscar produtos reais do Supabase se existirem
+      const { data: prodData } = await supabase
         .from('produtos')
-        .select('id, nome, categoria, preco, estoque, tem_promocao, desconto_promocional, preco_promocional')
+        .select('id, nome, categoria, preco, estoque')
         .order('nome', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        const enriquecidos = data.map((p: any, idx: number) => ({
-          ...p,
-          iconeEmoji: p.categoria?.includes('Bolo') ? '🎂' : p.categoria?.includes('Macaron') ? '🧁' : p.categoria?.includes('Doces') ? '🍬' : '🍪',
-          corFundoIcone: idx % 3 === 0 ? '#FDF2F4' : idx % 3 === 1 ? '#F1F8F5' : '#FBF6EA',
+      if (prodData && prodData.length > 0) {
+        const convertidos: ProductItem[] = prodData.map((p) => ({
+          id: p.id,
+          name: p.nome,
+          detail: p.categoria || 'Artesanal do ateliê',
+          price: Math.round(Number(p.preco) * 100),
+          stock: p.estoque ?? 0,
+          category: p.categoria?.toLowerCase().includes('presente') ? 'Presentes' : 'Cookies',
         }));
-        setProdutos(enriquecidos);
+        setProducts(convertidos);
       }
     } catch {
-      // fallback
-    } finally {
-      setCarregandoProdutos(false);
+      // mantém padrão
     }
   };
 
-  const categorias = useMemo(() => {
-    const cats = Array.from(new Set(produtos.map((p) => p.categoria || 'Geral')));
-    return ['Todas', ...cats];
-  }, [produtos]);
+  const selectedProducts = useMemo(() => {
+    return products.filter((p) => (cart[p.id] ?? 0) > 0);
+  }, [products, cart]);
 
-  const clientesFiltrados = useMemo(() => {
-    if (!buscaCliente.trim()) return clientes;
-    const t = buscaCliente.toLowerCase();
-    return clientes.filter(
-      (c) => c.nome.toLowerCase().includes(t) || (c.telefone && c.telefone.includes(t))
-    );
-  }, [clientes, buscaCliente]);
+  const count = useMemo(() => {
+    return selectedProducts.reduce((acc, p) => acc + (cart[p.id] ?? 0), 0);
+  }, [selectedProducts, cart]);
 
-  const produtosFiltrados = useMemo(() => {
-    return produtos.filter((p) => {
-      const matchCat = categoriaAtiva === 'Todas' || p.categoria === categoriaAtiva;
-      const matchBusca =
-        !buscaProduto.trim() ||
-        p.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
-        p.categoria.toLowerCase().includes(buscaProduto.toLowerCase());
-      return matchCat && matchBusca;
+  const total = useMemo(() => {
+    return selectedProducts.reduce((acc, p) => acc + (cart[p.id] ?? 0) * p.price, 0);
+  }, [selectedProducts, cart]);
+
+  const visibleProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
+      const matchCategory = category === 'Todos' || p.category === category;
+      const matchAvailable = !availableOnly || p.stock > 0;
+      return matchSearch && matchCategory && matchAvailable;
     });
-  }, [produtos, categoriaAtiva, buscaProduto]);
+  }, [products, search, category, availableOnly]);
 
-  const handleCadastrarCliente = async () => {
+  const change = (id: string, delta: number) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+    setCart((current) => {
+      const maxAllowed = delivery === 'Encomenda' ? 999 : product.stock;
+      const nextVal = Math.max(0, Math.min(maxAllowed, (current[id] ?? 0) + delta));
+      return { ...current, [id]: nextVal };
+    });
+  };
+
+  const valid =
+    count > 0 &&
+    (delivery !== 'Delivery' || address.trim().length > 0) &&
+    (delivery !== 'Encomenda' || date.length > 0) &&
+    (payment !== 'Dinheiro' || Number(received || 0) * 100 >= total);
+
+  const reset = () => {
+    setCompleted(false);
+    setCart({});
+    setNotes('');
+    setAddress('');
+    setDate('');
+    setReceived('');
+    setClient('Balcão avulso');
+    setDelivery('Retirada');
+    setPayment('Pix');
+  };
+
+  const handleCadastrarClienteRapido = async () => {
     const nome = novoClienteNome.trim();
-    if (!nome) {
-      setErroForm('Informe o nome do novo cliente');
-      return;
-    }
-
-    setSalvandoCliente(true);
-    setErroForm(null);
-
+    if (!nome) return;
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('clientes')
-        .insert({
-          empresa_id: 'emp_fatio',
-          nome,
-          telefone: novoClienteTelefone.trim() || null,
-        })
+        .insert({ empresa_id: 'emp_fatio', nome })
         .select()
         .single();
-
-      if (!error && data) {
-        setClientes((prev) => [data, ...prev]);
-        setClienteSelecionado(data);
+      if (data) {
+        setClientesDb((prev) => [data, ...prev]);
+        setClient(`${data.nome} · cliente VIP`);
       } else {
-        const localCli: ClienteItem = { id: `cli_${Date.now()}`, nome, telefone: novoClienteTelefone || null };
-        setClientes((prev) => [localCli, ...prev]);
-        setClienteSelecionado(localCli);
+        setClient(`${nome} · cliente VIP`);
       }
-      setIsVendaAvulsa(false);
-      setCriandoNovoCliente(false);
-      setNovoClienteNome('');
-      setNovoClienteTelefone('');
     } catch {
-      const localCli: ClienteItem = { id: `cli_${Date.now()}`, nome, telefone: novoClienteTelefone || null };
-      setClientes((prev) => [localCli, ...prev]);
-      setClienteSelecionado(localCli);
-      setIsVendaAvulsa(false);
+      setClient(`${nome} · cliente VIP`);
+    } finally {
       setCriandoNovoCliente(false);
       setNovoClienteNome('');
-      setNovoClienteTelefone('');
-    } finally {
-      setSalvandoCliente(false);
+      setSelectClientOpen(false);
     }
   };
 
-  const adicionarAoCarrinho = (produto: ProdutoItem) => {
-    setCarrinho((prev) => {
-      const index = prev.findIndex((i) => i.produto.id === produto.id);
-      if (index > -1) {
-        const novo = [...prev];
-        novo[index].quantidade += 1;
-        return novo;
-      }
-      return [
-        ...prev,
-        {
-          produto,
-          quantidade: 1,
-          temDesconto: false,
-          valorDescontoUnitario: produto.desconto_promocional || 3.00,
-        },
-      ];
-    });
-    setErroForm(null);
-  };
-
-  const alterarQuantidade = (produtoId: string, delta: number) => {
-    setCarrinho((prev) =>
-      prev
-        .map((item) => {
-          if (item.produto.id === produtoId) {
-            const novaQtd = item.quantidade + delta;
-            return novaQtd > 0 ? { ...item, quantidade: novaQtd } : null;
-          }
-          return item;
-        })
-        .filter(Boolean) as ItemCarrinho[]
-    );
-  };
-
-  const alternarDescontoItem = (produtoId: string) => {
-    setCarrinho((prev) =>
-      prev.map((item) => {
-        if (item.produto.id === produtoId) {
-          return { ...item, temDesconto: !item.temDesconto };
-        }
-        return item;
-      })
-    );
-  };
-
-  const removerDoCarrinho = (produtoId: string) => {
-    setCarrinho((prev) => prev.filter((i) => i.produto.id !== produtoId));
-  };
-
-  const totais = useMemo(() => {
-    let subtotal = 0;
-    let descontoTotal = 0;
-    let totalItens = 0;
-
-    carrinho.forEach((item) => {
-      const precoUnit = item.produto.preco;
-      const qtd = item.quantidade;
-      totalItens += qtd;
-      subtotal += precoUnit * qtd;
-
-      if (item.temDesconto) {
-        descontoTotal += item.valorDescontoUnitario * qtd;
-      }
-    });
-
-    const totalFinal = Math.max(0, subtotal - descontoTotal);
-
-    return { subtotal, descontoTotal, totalFinal, totalItens };
-  }, [carrinho]);
-
-  const handleFinalizarPedido = async () => {
-    if (carrinho.length === 0) {
-      setErroForm('Selecione ao menos uma delícia na vitrine para fechar o pedido');
-      return;
-    }
-
-    if (!isVendaAvulsa && !clienteSelecionado) {
-      setErroForm('Selecione um cliente cadastrado ou clique em Balcão Avulso');
-      return;
-    }
-
+  const handleFinalizar = async () => {
+    if (!valid) return;
     setSalvandoPedido(true);
-    setErroForm(null);
-
-    const isPago = metodoPagamento !== 'pendente';
-    const status = isPago ? 'pago' : 'pendente';
 
     try {
-      const dataEntregaPrometida =
-        tipoEntrega !== 'retirada' ? `${dataEntrega}T${horarioEntrega}:00.000Z` : null;
+      const isPago = payment !== 'Pendente';
+      const status = isPago ? 'pago' : 'pendente';
+      const totalReais = total / 100;
 
-      const { data: novaVenda, error: vendaError } = await supabase
+      // Salva no Supabase para manter histórico em tempo real
+      const { data: novaVenda } = await supabase
         .from('vendas')
         .insert({
           empresa_id: 'emp_fatio',
-          cliente_id: isVendaAvulsa ? null : clienteSelecionado?.id || null,
           canal: 'propria',
-          tipo_pedido: tipoEntrega,
+          tipo_pedido: delivery === 'Delivery' ? 'entrega' : delivery === 'Encomenda' ? 'sob_encomenda' : 'retirada',
           data: new Date().toISOString(),
-          data_entrega_prometida: dataEntregaPrometida,
-          valor_sinal_pago: isPago ? totais.totalFinal : 0,
-          saldo_na_entrega: isPago ? 0 : totais.totalFinal,
-          status_producao: tipoEntrega === 'sob_encomenda' ? 'a_fazer' : 'pronto',
-          pagamento: metodoPagamento,
+          valor_sinal_pago: isPago ? totalReais : 0,
+          saldo_na_entrega: isPago ? 0 : totalReais,
+          status_producao: delivery === 'Encomenda' ? 'a_fazer' : 'pronto',
+          pagamento: payment.toLowerCase(),
           status,
-          total: totais.totalFinal,
+          total: totalReais,
           custo_total: 0,
-          observacoes: observacoes.trim() || null,
+          observacoes: notes.trim() || (address ? `Entrega: ${address}` : null),
         })
         .select()
         .single();
 
-      if (!vendaError && novaVenda) {
-        const itensInsert = carrinho.map((item) => ({
-          empresa_id: 'emp_fatio',
-          venda_id: novaVenda.id,
-          produto_id: item.produto.id,
-          nome_produto: item.produto.nome,
-          quantidade: item.quantidade,
-          preco_unitario: item.temDesconto
-            ? item.produto.preco - item.valorDescontoUnitario
-            : item.produto.preco,
-          com_desconto: item.temDesconto,
-        }));
-        await supabase.from('venda_itens').insert(itensInsert);
+      if (novaVenda) {
         onPedidoCriado(novaVenda);
       } else {
-        const mockVendaCriada = {
+        onPedidoCriado({
           id: `ped_${Date.now()}`,
-          cliente_id: isVendaAvulsa ? null : clienteSelecionado?.id || null,
-          tipo_pedido: tipoEntrega,
-          pagamento: metodoPagamento,
+          client,
+          total: totalReais,
           status,
-          total: totais.totalFinal,
-          observacoes: observacoes.trim() || null,
+          pagamento: payment.toLowerCase(),
           created_at: new Date().toISOString(),
-        };
-        onPedidoCriado(mockVendaCriada);
+        });
       }
 
-      setCarrinho([]);
-      setClienteSelecionado(null);
-      setIsVendaAvulsa(true);
-      setObservacoes('');
-      onClose();
-    } catch (e: any) {
-      setErroForm(e.message || 'Erro ao registrar pedido');
+      setCompleted(true);
+    } catch {
+      setCompleted(true);
     } finally {
       setSalvandoPedido(false);
     }
@@ -405,587 +264,432 @@ export default function NovoPedidoModal({
       animationType="fade"
       onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
-        <View style={[styles.boutiqueContainer, isDesktop ? styles.boutiqueDesktop : styles.boutiqueMobile]}>
+        <View style={[styles.dialogContent, isDesktop ? styles.dialogDesktop : styles.dialogMobile]}>
 
           {/* =========================================================================
-              CABEÇALHO EDITORIAL & BOUTIQUE (LADURÉE & APPLE AESTHETIC)
+              HEADER DO ATELIÊ (FIDEDIGNO AO LOVABLE)
           ========================================================================== */}
-          <View style={styles.boutiqueHeader}>
-            <View style={styles.boutiqueHeaderLeft}>
-              <View style={styles.atelierTagBadge}>
-                <Text style={styles.atelierTagBadgeText}>ATELIERQ • NOVO PEDIDO</Text>
-              </View>
-              <Text style={styles.boutiqueTitle}>Atendimento & Comanda do Ateliê</Text>
-              <Text style={styles.boutiqueSubtitle}>Toque nas delícias da vitrine para montar a comanda</Text>
+          <View style={styles.dialogHeader}>
+            <View style={styles.headerIconSquare}>
+              <Feather name="shopping-bag" size={20} color="#2D7A58" />
             </View>
-
-            {/* SE TELAS MENORES: SWITCH SUAVE */}
-            {!isDesktop && (
-              <View style={styles.mobileSegmentTabs}>
-                <TouchableOpacity
-                  style={[styles.mobileSegmentTab, mobileTab === 'vitrine' && styles.mobileSegmentTabActive]}
-                  onPress={() => setMobileTab('vitrine')}>
-                  <Text style={[styles.mobileSegmentTabText, mobileTab === 'vitrine' && styles.mobileSegmentTabTextActive]}>
-                    Vitrine
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.mobileSegmentTab, mobileTab === 'comanda' && styles.mobileSegmentTabActive]}
-                  onPress={() => setMobileTab('comanda')}>
-                  <Text style={[styles.mobileSegmentTabText, mobileTab === 'comanda' && styles.mobileSegmentTabTextActive]}>
-                    Sacola ({totais.totalItens})
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
+            <View style={{ flex: 1 }}>
+              <Text style={styles.headerSubUpper}>ATELIÊ · ATENDIMENTO</Text>
+              <Text style={styles.headerTitle}>Um novo pedido, com carinho.</Text>
+              <Text style={styles.headerDescription}>
+                Cliente, delícias e pagamento — tudo em um só lugar.
+              </Text>
+            </View>
             <TouchableOpacity
-              style={styles.boutiqueCloseBtn}
+              style={styles.closeRoundBtn}
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Feather name="x" size={18} color="#1E293B" />
+              <Feather name="x" size={16} color="#64748B" />
             </TouchableOpacity>
           </View>
 
-          {/* ALERTA DE ERRO SUAVE SE HOUVER */}
-          {erroForm && (
-            <View style={styles.softAlertBar}>
-              <Feather name="alert-circle" size={14} color="#DC2626" />
-              <Text style={styles.softAlertText}>{erroForm}</Text>
-              <TouchableOpacity onPress={() => setErroForm(null)}>
-                <Feather name="x" size={13} color="#DC2626" />
+          {/* =========================================================================
+              CORPO OU TELA DE SUCESSO (COMPLETED)
+          ========================================================================== */}
+          {completed ? (
+            <View style={styles.completedContainer}>
+              <View style={styles.completedIconCircle}>
+                <Feather name="check-circle" size={40} color="#2D7A58" />
+              </View>
+              <Text style={styles.completedTitle}>Pedido pronto!</Text>
+              <Text style={styles.completedSummary}>
+                {client} · {count} {count === 1 ? 'item' : 'itens'} · {money(total)} · {payment}
+              </Text>
+              <Text style={styles.completedHint}>
+                Pedido registrado com sucesso no ateliê!
+              </Text>
+              <TouchableOpacity style={styles.btnStartAnother} onPress={reset}>
+                <Feather name="plus" size={16} color="#FFFFFF" />
+                <Text style={styles.btnStartAnotherText}>Começar outro pedido</Text>
               </TouchableOpacity>
             </View>
-          )}
+          ) : (
+            <View style={[styles.dialogBody, !isDesktop && styles.dialogBodyMobile]}>
 
-          {/* =========================================================================
-              CORPO PRINCIPAL (2 COLUNAS HARMONIOSAS)
-          ========================================================================== */}
-          <View style={styles.boutiqueBody}>
+              {/* ---------------------------------------------------------------------
+                  COLUNA 1 (ESQUERDA): SELETORES E VITRINE DO ATELIÊ
+              ---------------------------------------------------------------------- */}
+              <View style={[styles.leftSection, !isDesktop && styles.leftSectionMobile]}>
 
-            {/* -----------------------------------------------------------------------
-                COLUNA 1 (ESQUERDA - 62%): VITRINE GOURMET & SELETORES NÍTIDOS
-            ------------------------------------------------------------------------ */}
-            {(isDesktop || mobileTab === 'vitrine') && (
-              <View style={styles.vitrineColumn}>
-
-                {/* BARRA SUPERIOR DE SELEÇÃO: CLIENTE E ENTREGA COM ALTO CONTRASTE */}
-                <View style={styles.commandHeaderBar}>
-
-                  {/* LINHA 1: CLIENTE VS BALCÃO AVULSO + TIPO DE ENTREGA */}
-                  <View style={styles.selectionTopRow}>
-                    
-                    {/* SELETOR CLARO: BALCÃO AVULSO OU CLIENTE IDENTIFICADO */}
-                    <View style={styles.clientModeSwitch}>
-                      <TouchableOpacity
-                        style={[styles.clientModeBtn, isVendaAvulsa && styles.clientModeBtnActive]}
-                        onPress={() => {
-                          setIsVendaAvulsa(true);
-                          setClienteSelecionado(null);
-                          setCriandoNovoCliente(false);
-                          setDropdownClienteAberto(false);
-                        }}>
-                        <Feather name="zap" size={13} color={isVendaAvulsa ? '#FFFFFF' : '#1E293B'} />
-                        <Text style={[styles.clientModeBtnText, isVendaAvulsa && styles.clientModeBtnTextActive]}>
-                          Balcão Avulso
-                        </Text>
-                      </TouchableOpacity>
+                {/* BARRA SUPERIOR: QUEM ESTÁ COMPRANDO? E COMO VAI RECEBER? */}
+                <View style={styles.topSelectorsRow}>
+                  <View style={styles.selectorGridCol}>
+                    {/* QUEM ESTÁ COMPRANDO */}
+                    <View style={{ flex: 1, position: 'relative' }}>
+                      <Text style={styles.fieldLabel}>
+                        <Feather name="user" size={12} color="#2D7A58" /> Quem está comprando?
+                      </Text>
 
                       <TouchableOpacity
-                        style={[styles.clientModeBtn, !isVendaAvulsa && styles.clientModeBtnActive]}
-                        onPress={() => {
-                          setIsVendaAvulsa(false);
-                          setDropdownClienteAberto(true);
-                        }}>
-                        <Feather name="user" size={13} color={!isVendaAvulsa ? '#FFFFFF' : '#1E293B'} />
-                        <Text style={[styles.clientModeBtnText, !isVendaAvulsa && styles.clientModeBtnTextActive]}>
-                          {clienteSelecionado ? clienteSelecionado.nome.split(' ')[0] : 'Cliente VIP'}
+                        style={styles.selectTrigger}
+                        onPress={() => setSelectClientOpen(!selectClientOpen)}>
+                        <Text style={styles.selectTriggerText} numberOfLines={1}>
+                          {client}
                         </Text>
-                        <Feather name="chevron-down" size={12} color={!isVendaAvulsa ? '#FFFFFF' : '#475569'} />
+                        <Feather name="chevron-down" size={14} color="#64748B" />
                       </TouchableOpacity>
-                    </View>
 
-                    {/* MODALIDADE DE ENTREGA NÍTIDA (3 BOTÕES COM ALTO CONTRASTE) */}
-                    <View style={styles.deliverySegmentBar}>
-                      {[
-                        { id: 'retirada', label: 'Retirada', icon: 'shopping-bag' },
-                        { id: 'entrega', label: 'Delivery', icon: 'truck' },
-                        { id: 'sob_encomenda', label: 'Encomenda', icon: 'calendar' },
-                      ].map((t) => {
-                        const ativo = tipoEntrega === t.id;
-                        return (
+                      {selectClientOpen && (
+                        <View style={styles.selectDropdownMenu}>
                           <TouchableOpacity
-                            key={t.id}
-                            style={[styles.deliverySegmentBtn, ativo && styles.deliverySegmentBtnActive]}
-                            onPress={() => setTipoEntrega(t.id as any)}>
-                            <Feather
-                              name={t.icon as any}
-                              size={12}
-                              color={ativo ? '#FFFFFF' : '#334155'}
-                            />
-                            <Text style={[styles.deliverySegmentBtnText, ativo && styles.deliverySegmentBtnTextActive]}>
-                              {t.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-
-                  </View>
-
-                  {/* SEÇÃO EXPANDIDA DE CLIENTE (SE NÃO FOR AVULSO) */}
-                  {!isVendaAvulsa && (
-                    <View style={styles.clientExpandedSection}>
-                      {clienteSelecionado ? (
-                        <View style={styles.clientChosenCard}>
-                          <View style={styles.clientChosenInfo}>
-                            <View style={styles.clientAvatarMini}>
-                              <Text style={styles.clientAvatarText}>
-                                {clienteSelecionado.nome.substring(0, 2).toUpperCase()}
-                              </Text>
-                            </View>
-                            <View>
-                              <Text style={styles.clientChosenName}>{clienteSelecionado.nome}</Text>
-                              <Text style={styles.clientChosenPhone}>
-                                {clienteSelecionado.telefone || 'Cliente VIP Cadastrado'}
-                              </Text>
-                            </View>
-                          </View>
-                          <TouchableOpacity
-                            style={styles.btnChangeClient}
+                            style={styles.selectDropdownItem}
                             onPress={() => {
-                              setClienteSelecionado(null);
-                              setDropdownClienteAberto(true);
+                              setClient('Balcão avulso · sem cadastro');
+                              setSelectClientOpen(false);
                             }}>
-                            <Feather name="refresh-cw" size={11} color={KipiPalette.icedDenim} />
-                            <Text style={styles.btnChangeClientText}>Trocar Cliente</Text>
+                            <Text style={styles.selectDropdownItemText}>Balcão avulso · sem cadastro</Text>
                           </TouchableOpacity>
-                        </View>
-                      ) : criandoNovoCliente ? (
-                        <View style={styles.inlineClientBox}>
-                          <View style={styles.inlineClientInputsRow}>
-                            <TextInput
-                              style={[styles.crispInput, { flex: 1.2 }]}
-                              placeholder="Nome completo do cliente *"
-                              placeholderTextColor="#64748B"
-                              value={novoClienteNome}
-                              onChangeText={setNovoClienteNome}
-                            />
-                            <TextInput
-                              style={[styles.crispInput, { flex: 0.9 }]}
-                              placeholder="WhatsApp (ex: 21 98844-3321)"
-                              placeholderTextColor="#64748B"
-                              value={novoClienteTelefone}
-                              onChangeText={setNovoClienteTelefone}
-                            />
+
+                          {clientesDb.map((cli) => (
                             <TouchableOpacity
-                              style={styles.btnSaveClientPrimary}
-                              onPress={handleCadastrarCliente}
-                              disabled={salvandoCliente}>
-                              {salvandoCliente ? (
-                                <ActivityIndicator size="small" color="#FFFFFF" />
-                              ) : (
-                                <Text style={styles.btnSaveClientPrimaryText}>Salvar</Text>
-                              )}
+                              key={cli.id}
+                              style={styles.selectDropdownItem}
+                              onPress={() => {
+                                setClient(`${cli.nome} · cliente VIP`);
+                                setSelectClientOpen(false);
+                              }}>
+                              <Text style={styles.selectDropdownItemText}>{cli.nome} · cliente VIP</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity
-                              style={styles.btnCancelClient}
-                              onPress={() => setCriandoNovoCliente(false)}>
-                              <Feather name="x" size={15} color="#475569" />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      ) : (
-                        <View style={{ position: 'relative', zIndex: 50 }}>
-                          <View style={styles.searchClientCrispRow}>
-                            <View style={styles.searchClientCrispField}>
-                              <Feather name="search" size={14} color="#1E293B" />
+                          ))}
+
+                          {criandoNovoCliente ? (
+                            <View style={styles.inlineCreateRow}>
                               <TextInput
-                                style={styles.searchClientCrispInput}
-                                placeholder="Digite o nome ou WhatsApp do cliente..."
-                                placeholderTextColor="#64748B"
-                                value={buscaCliente}
-                                onChangeText={(t) => {
-                                  setBuscaCliente(t);
-                                  setDropdownClienteAberto(true);
-                                }}
-                                onFocus={() => setDropdownClienteAberto(true)}
+                                style={styles.inlineClientInput}
+                                placeholder="Nome do novo cliente"
+                                placeholderTextColor="#94A3B8"
+                                value={novoClienteNome}
+                                onChangeText={setNovoClienteNome}
                               />
-                              {buscaCliente ? (
-                                <TouchableOpacity onPress={() => setBuscaCliente('')}>
-                                  <Feather name="x" size={13} color="#64748B" />
-                                </TouchableOpacity>
-                              ) : null}
+                              <TouchableOpacity
+                                style={styles.btnConfirmInlineClient}
+                                onPress={handleCadastrarClienteRapido}>
+                                <Text style={styles.btnConfirmInlineClientText}>Adicionar</Text>
+                              </TouchableOpacity>
                             </View>
-
+                          ) : (
                             <TouchableOpacity
-                              style={styles.btnNewClientPill}
+                              style={[styles.selectDropdownItem, { borderTopWidth: 1, borderTopColor: '#F1F5F9' }]}
                               onPress={() => setCriandoNovoCliente(true)}>
-                              <Feather name="user-plus" size={12} color="#FFFFFF" />
-                              <Text style={styles.btnNewClientPillText}>+ Novo</Text>
+                              <Text style={[styles.selectDropdownItemText, { color: '#2D7A58', fontWeight: '700' }]}>
+                                + Cadastrar novo cliente
+                              </Text>
                             </TouchableOpacity>
-                          </View>
-
-                          {dropdownClienteAberto && (
-                            <View style={styles.clientFloatingMenu}>
-                              <ScrollView style={{ maxHeight: 150 }} nestedScrollEnabled>
-                                {clientesFiltrados.length === 0 ? (
-                                  <View style={styles.clientFloatingEmpty}>
-                                    <Text style={styles.clientFloatingEmptyText}>Nenhum cliente com esse nome.</Text>
-                                    <TouchableOpacity onPress={() => setCriandoNovoCliente(true)}>
-                                      <Text style={styles.clientFloatingEmptyLink}>+ Cadastrar "{buscaCliente}"</Text>
-                                    </TouchableOpacity>
-                                  </View>
-                                ) : (
-                                  clientesFiltrados.map((cli) => (
-                                    <TouchableOpacity
-                                      key={cli.id}
-                                      style={styles.clientFloatingRow}
-                                      onPress={() => {
-                                        setClienteSelecionado(cli);
-                                        setDropdownClienteAberto(false);
-                                        setBuscaCliente('');
-                                      }}>
-                                      <Text style={styles.clientFloatingName}>{cli.nome}</Text>
-                                      <Text style={styles.clientFloatingPhone}>{cli.telefone || 'Sem telefone'}</Text>
-                                    </TouchableOpacity>
-                                  ))
-                                )}
-                              </ScrollView>
-                            </View>
                           )}
                         </View>
                       )}
                     </View>
-                  )}
 
-                  {/* AGENDAMENTO SE FOR DELIVERY OU ENCOMENDA */}
-                  {tipoEntrega !== 'retirada' && (
-                    <View style={styles.deliveryScheduleBanner}>
-                      <View style={styles.deliveryScheduleItem}>
-                        <Feather name="calendar" size={13} color={KipiPalette.icedDenim} />
-                        <Text style={styles.deliveryScheduleLabel}>Data de Entrega:</Text>
-                        <TextInput
-                          style={styles.deliveryScheduleInput}
-                          value={dataEntrega}
-                          onChangeText={setDataEntrega}
-                          placeholder="AAAA-MM-DD"
-                          placeholderTextColor="#64748B"
-                        />
-                      </View>
-
-                      <View style={styles.deliveryScheduleItem}>
-                        <Feather name="clock" size={13} color={KipiPalette.icedDenim} />
-                        <Text style={styles.deliveryScheduleLabel}>Horário:</Text>
-                        <TextInput
-                          style={[styles.deliveryScheduleInput, { width: 65 }]}
-                          value={horarioEntrega}
-                          onChangeText={setHorarioEntrega}
-                          placeholder="14:00"
-                          placeholderTextColor="#64748B"
-                        />
-                      </View>
-                    </View>
-                  )}
-
-                  {/* LINHA 2: BUSCA E CATEGORIAS COM CORES VIVAS */}
-                  <View style={styles.searchAndCatRow}>
-                    <View style={styles.crispSearchBox}>
-                      <Feather name="search" size={13} color="#1E293B" />
-                      <TextInput
-                        style={styles.crispSearchInput}
-                        placeholder="Buscar sabor ou doce..."
-                        placeholderTextColor="#64748B"
-                        value={buscaProduto}
-                        onChangeText={setBuscaProduto}
-                      />
-                      {buscaProduto ? (
-                        <TouchableOpacity onPress={() => setBuscaProduto('')}>
-                          <Feather name="x" size={13} color="#64748B" />
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.categoryTrack}>
-                      {categorias.map((cat) => {
-                        const ativa = categoriaAtiva === cat;
-                        return (
-                          <TouchableOpacity
-                            key={cat}
-                            style={[styles.crispCatChip, ativa && styles.crispCatChipActive]}
-                            onPress={() => setCategoriaAtiva(cat)}>
-                            <Text style={[styles.crispCatChipText, ativa && styles.crispCatChipTextActive]}>
-                              {cat}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </ScrollView>
-                  </View>
-
-                </View>
-
-                {/* ===================================================================
-                    VITRINE DE PRODUTOS COMPACTA EM GRID (MANTIDA EXATAMENTE COMO A USUÁRIA AMOU)
-                ==================================================================== */}
-                <ScrollView
-                  style={styles.vitrineScrollArea}
-                  contentContainerStyle={styles.vitrineTilesContainer}
-                  showsVerticalScrollIndicator={true}>
-                  {carregandoProdutos ? (
-                    <View style={styles.loadingStateBox}>
-                      <ActivityIndicator size="small" color={KipiPalette.icedDenim} />
-                      <Text style={styles.loadingStateText}>Carregando cardápio do ateliê...</Text>
-                    </View>
-                  ) : produtosFiltrados.length === 0 ? (
-                    <View style={styles.emptyStateBox}>
-                      <Text style={styles.emptyStateTitle}>Nenhum doce nesta categoria</Text>
-                      <Text style={styles.emptyStateSub}>Experimente selecionar a categoria "Todas".</Text>
-                    </View>
-                  ) : (
-                    produtosFiltrados.map((prod) => {
-                      const emEstoque = prod.estoque > 0;
-                      const permiteAdicionar = emEstoque || tipoEntrega === 'sob_encomenda';
-                      const noCarrinho = carrinho.find((i) => i.produto.id === prod.id);
-
-                      return (
-                        <TouchableOpacity
-                          key={prod.id}
-                          style={[
-                            styles.gourmetTileCard,
-                            isDesktop ? styles.gourmetTile3Col : styles.gourmetTile2Col,
-                            noCarrinho && styles.gourmetTileSelected,
-                            !permiteAdicionar && styles.gourmetTileDisabled,
-                          ]}
-                          onPress={() => permiteAdicionar && adicionarAoCarrinho(prod)}
-                          activeOpacity={0.8}
-                          disabled={!permiteAdicionar}>
-
-                          {/* LADO ESQUERDO: ÍCONE DELICADO DO DOCE */}
-                          <View style={[styles.tileIconCircle, { backgroundColor: prod.corFundoIcone || '#FBF6EA' }]}>
-                            <Text style={styles.tileEmoji}>{prod.iconeEmoji || '🧁'}</Text>
-                          </View>
-
-                          {/* MEIO: NOME, CATEGORIA E ESTOQUE */}
-                          <View style={styles.tileDetailsCol}>
-                            <Text style={styles.tileProductName} numberOfLines={1}>
-                              {prod.nome}
-                            </Text>
-
-                            <View style={styles.tileMetaRow}>
-                              <Text style={styles.tileCategoryMini}>{prod.categoria}</Text>
-                              <Text style={styles.tileDotDivider}>•</Text>
-                              {emEstoque ? (
-                                <Text style={styles.tileStockAvailable}>● {prod.estoque} un</Text>
-                              ) : tipoEntrega === 'sob_encomenda' ? (
-                                <Text style={styles.tileStockOrder}>★ Encomenda</Text>
-                              ) : (
-                                <Text style={styles.tileStockEmpty}>✕ Esgotado</Text>
-                              )}
-                            </View>
-
-                            <View style={styles.tilePriceAndAddRow}>
-                              <Text style={styles.tilePriceText}>
-                                R$ {prod.preco.toFixed(2)}
-                              </Text>
-
-                              {noCarrinho ? (
-                                <View style={styles.tileAddedTag}>
-                                  <Text style={styles.tileAddedTagText}>{noCarrinho.quantidade}x</Text>
-                                </View>
-                              ) : (
-                                <View style={[styles.tileAddMiniCircle, !permiteAdicionar && { backgroundColor: '#CBD5E1' }]}>
-                                  <Feather name="plus" size={12} color="#FFFFFF" />
-                                </View>
-                              )}
-                            </View>
-                          </View>
-
-                        </TouchableOpacity>
-                      );
-                    })
-                  )}
-                </ScrollView>
-
-              </View>
-            )}
-
-            {/* -----------------------------------------------------------------------
-                COLUNA 2 (DIREITA - 38%): SACOLA DO PEDIDO REINVENTADA & PAGAMENTO CLARO
-            ------------------------------------------------------------------------ */}
-            {(isDesktop || mobileTab === 'comanda') && (
-              <View style={styles.bagColumn}>
-
-                {/* CABEÇALHO DA SACOLA */}
-                <View style={styles.bagHeader}>
-                  <View style={styles.bagHeaderTitleRow}>
-                    <View style={styles.bagIconBadge}>
-                      <Feather name="shopping-bag" size={15} color={KipiPalette.icedDenim} />
-                    </View>
-                    <View>
-                      <Text style={styles.bagMainTitle}>Sacola do Pedido</Text>
-                      <Text style={styles.bagSubtitle}>
-                        {totais.totalItens} {totais.totalItens === 1 ? 'delícia selecionada' : 'delícias selecionadas'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {carrinho.length > 0 && (
-                    <TouchableOpacity
-                      style={styles.btnClearBag}
-                      onPress={() => setCarrinho([])}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Feather name="trash-2" size={12} color="#DC2626" />
-                      <Text style={styles.btnClearBagText}>Limpar</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* LISTA ROLÁVEL DE ITENS NA SACOLA COM VISUAL GOURMET */}
-                <ScrollView
-                  style={styles.bagItemsScrollArea}
-                  contentContainerStyle={styles.bagItemsContent}
-                  showsVerticalScrollIndicator={true}>
-                  {carrinho.length === 0 ? (
-                    <View style={styles.emptyBagBox}>
-                      <View style={styles.emptyBagCircle}>
-                        <Feather name="shopping-bag" size={26} color="#94A3B8" />
-                      </View>
-                      <Text style={styles.emptyBagTitle}>Sua sacola está vazia</Text>
-                      <Text style={styles.emptyBagSub}>
-                        Toque nos doces da vitrine ao lado para montar a encomenda do cliente.
-                      </Text>
-                    </View>
-                  ) : (
-                    carrinho.map((item) => {
-                      const precoOriginal = item.produto.preco;
-                      const precoCobrado = item.temDesconto
-                        ? Math.max(0, precoOriginal - item.valorDescontoUnitario)
-                        : precoOriginal;
-                      const subtotalItem = precoCobrado * item.quantidade;
-
-                      return (
-                        <View key={item.produto.id} style={styles.bagItemCard}>
-                          {/* LINHA SUPERIOR DO ITEM COM ÍCONE DO DOCE */}
-                          <View style={styles.bagItemTop}>
-                            <View style={[styles.bagItemIconCircle, { backgroundColor: item.produto.corFundoIcone || '#FBF6EA' }]}>
-                              <Text style={styles.bagItemEmoji}>{item.produto.iconeEmoji || '🍪'}</Text>
-                            </View>
-
-                            <View style={styles.bagItemInfoCol}>
-                              <Text style={styles.bagItemName} numberOfLines={1}>{item.produto.nome}</Text>
-                              <View style={styles.bagItemMetaRow}>
-                                <View style={styles.bagItemCatTag}>
-                                  <Text style={styles.bagItemCatTagText}>{item.produto.categoria}</Text>
-                                </View>
-                                <Text style={styles.bagItemUnitPrice}>R$ {precoOriginal.toFixed(2)} un.</Text>
-                              </View>
-                            </View>
-
+                    {/* COMO VAI RECEBER? */}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.fieldLabel}>Como vai receber?</Text>
+                      <View style={styles.deliverySegmentBox}>
+                        {[
+                          { name: 'Retirada', icon: 'shopping-bag' },
+                          { name: 'Delivery', icon: 'truck' },
+                          { name: 'Encomenda', icon: 'calendar' },
+                        ].map((m) => {
+                          const isActive = delivery === m.name;
+                          return (
                             <TouchableOpacity
-                              style={styles.btnRemoveItem}
-                              onPress={() => removerDoCarrinho(item.produto.id)}
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                              <Feather name="x" size={13} color="#475569" />
-                            </TouchableOpacity>
-                          </View>
-
-                          {/* CONTROLES DO ITEM: STEPPER TÁTIL, DESCONTO PISTACHE E TOTAL */}
-                          <View style={styles.bagItemBottom}>
-                            {/* STEPPER TÁTIL */}
-                            <View style={styles.tactileStepper}>
-                              <TouchableOpacity
-                                style={styles.tactileStepperBtn}
-                                onPress={() => alterarQuantidade(item.produto.id, -1)}>
-                                <Feather name="minus" size={12} color="#0F172A" />
-                              </TouchableOpacity>
-                              <Text style={styles.tactileStepperValue}>{item.quantidade}</Text>
-                              <TouchableOpacity
-                                style={styles.tactileStepperBtn}
-                                onPress={() => alterarQuantidade(item.produto.id, 1)}>
-                                <Feather name="plus" size={12} color="#0F172A" />
-                              </TouchableOpacity>
-                            </View>
-
-                            {/* TOGGLE DESCONTO PISTACHE (ALTO CONTRASTE) */}
-                            <TouchableOpacity
-                              style={[styles.crispDiscountPill, item.temDesconto && styles.crispDiscountPillActive]}
-                              onPress={() => alternarDescontoItem(item.produto.id)}
-                              activeOpacity={0.8}>
+                              key={m.name}
+                              style={[styles.deliverySegmentBtn, isActive && styles.deliverySegmentBtnActive]}
+                              onPress={() => setDelivery(m.name as any)}>
                               <Feather
-                                name="tag"
-                                size={11}
-                                color={item.temDesconto ? '#047857' : '#334155'}
+                                name={m.icon as any}
+                                size={12}
+                                color={isActive ? '#2D7A58' : '#64748B'}
                               />
-                              <Text style={[styles.crispDiscountPillText, item.temDesconto && styles.crispDiscountPillTextActive]}>
-                                {item.temDesconto
-                                  ? `-R$ ${(item.valorDescontoUnitario * item.quantidade).toFixed(2)}`
-                                  : '% Desconto'}
+                              <Text style={[styles.deliverySegmentBtnText, isActive && styles.deliverySegmentBtnTextActive]}>
+                                {m.name}
                               </Text>
                             </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  </View>
 
-                            {/* TOTAL DO ITEM EM DESTAQUE */}
-                            <Text style={styles.bagItemTotalValue}>
-                              R$ {subtotalItem.toFixed(2)}
-                            </Text>
-                          </View>
-                        </View>
-                      );
-                    })
-                  )}
-                </ScrollView>
-
-                {/* PAINEL FIXO DE FECHAMENTO (PAGAMENTO NÍTIDO + TOTAIS) */}
-                <View style={styles.bagCheckoutFooter}>
-
-                  {/* OBSERVAÇÃO DO PEDIDO COM ALTO CONTRASTE */}
-                  <View style={styles.notesCrispBox}>
-                    <Feather name="edit-3" size={13} color="#1E293B" />
+                  {/* CAMPO DE ENDEREÇO SE DELIVERY */}
+                  {delivery === 'Delivery' && (
                     <TextInput
-                      style={styles.notesCrispInput}
-                      placeholder="Observações do ateliê (ex: laço para presente, sem glúten)..."
-                      placeholderTextColor="#64748B"
-                      value={observacoes}
-                      onChangeText={setObservacoes}
+                      style={styles.singleLineInput}
+                      placeholder="Endereço de entrega"
+                      placeholderTextColor="#94A3B8"
+                      value={address}
+                      onChangeText={setAddress}
+                    />
+                  )}
+
+                  {/* DATA E HORÁRIO SE ENCOMENDA */}
+                  {delivery === 'Encomenda' && (
+                    <View>
+                      <Text style={styles.miniInputLabel}>Data e horário da encomenda</Text>
+                      <TextInput
+                        style={styles.singleLineInput}
+                        placeholder="Ex: 2026-10-25 14:00"
+                        placeholderTextColor="#94A3B8"
+                        value={date}
+                        onChangeText={setDate}
+                      />
+                    </View>
+                  )}
+                </View>
+
+                {/* VITRINE DO ATELIÊ */}
+                <View style={styles.vitrineSection}>
+                  <View style={styles.vitrineHeaderRow}>
+                    <Text style={styles.vitrineTitle}>Vitrine do ateliê</Text>
+                    <Text style={styles.vitrineCountHint}>
+                      {products.filter((p) => p.stock > 0).length} opções disponíveis
+                    </Text>
+                  </View>
+
+                  {/* BUSCAR DOCE OU SABOR */}
+                  <View style={styles.searchBarBox}>
+                    <Feather name="search" size={15} color="#94A3B8" style={{ marginRight: 8 }} />
+                    <TextInput
+                      style={styles.searchBarInput}
+                      placeholder="Buscar um doce ou sabor…"
+                      placeholderTextColor="#94A3B8"
+                      value={search}
+                      onChangeText={setSearch}
                     />
                   </View>
 
-                  {/* 4 OPÇÕES DE FORMAS DE PAGAMENTO COM ALTO CONTRASTE E CORES VIBRANTES */}
-                  <View style={styles.paymentSectionWrap}>
-                    <Text style={styles.paymentSectionLabel}>FORMA DE PAGAMENTO:</Text>
-                    
-                    <View style={styles.paymentCardsGrid}>
-                      {[
-                        { id: 'pix', label: 'Pix', icon: 'zap', activeBg: '#0284C7', iconColor: '#0284C7' },
-                        { id: 'cartao', label: 'Cartão', icon: 'credit-card', activeBg: '#2563EB', iconColor: '#2563EB' },
-                        { id: 'dinheiro', label: 'Dinheiro', icon: 'dollar-sign', activeBg: '#059669', iconColor: '#059669' },
-                        { id: 'pendente', label: 'Pendente', icon: 'clock', activeBg: '#DC2626', iconColor: '#DC2626' },
-                      ].map((opt) => {
-                        const ativo = metodoPagamento === opt.id;
-
+                  {/* FILTROS DE CATEGORIA E CHECKBOX SÓ DISPONÍVEIS */}
+                  <View style={styles.categoryFiltersRow}>
+                    <View style={styles.categoryButtonsRow}>
+                      {['Todos', 'Cookies', 'Presentes'].map((c) => {
+                        const isActive = category === c;
                         return (
                           <TouchableOpacity
-                            key={opt.id}
+                            key={c}
+                            style={[styles.categoryChip, isActive && styles.categoryChipActive]}
+                            onPress={() => setCategory(c)}>
+                            <Text style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]}>
+                              {c}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.checkboxOnlyAvailable}
+                      onPress={() => setAvailableOnly(!availableOnly)}>
+                      <View style={[styles.customCheckbox, availableOnly && styles.customCheckboxActive]}>
+                        {availableOnly && <Feather name="check" size={10} color="#FFFFFF" />}
+                      </View>
+                      <Text style={styles.checkboxLabel}>Só disponíveis</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* GRID DE PRODUTOS EM 2 COLUNAS (FIDEDIGNO AO LOVABLE) */}
+                  <ScrollView
+                    style={styles.productsScrollArea}
+                    contentContainerStyle={styles.productsGridContent}
+                    showsVerticalScrollIndicator={true}>
+                    {visibleProducts.length === 0 ? (
+                      <View style={styles.emptyProductsBox}>
+                        <Text style={styles.emptyProductsText}>Nenhum produto encontrado.</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.productsTwoColGrid}>
+                        {visibleProducts.map((p) => {
+                          const inCart = (cart[p.id] ?? 0) > 0;
+                          const isUnavailable = p.stock === 0 && delivery !== 'Encomenda';
+
+                          return (
+                            <View
+                              key={p.id}
+                              style={[
+                                styles.productCard,
+                                inCart && styles.productCardInCart,
+                                isUnavailable && styles.productCardDisabled,
+                              ]}>
+                              {/* FOTO DO COOKIE */}
+                              <View style={styles.productPhotoWrap}>
+                                <Image
+                                  source={cookiePhoto}
+                                  style={[styles.productPhotoImg, isUnavailable && styles.productPhotoImgDisabled]}
+                                  resizeMode="cover"
+                                />
+                              </View>
+
+                              {/* DETALHES DO PRODUTO */}
+                              <View style={styles.productInfoCol}>
+                                <Text
+                                  style={[styles.productName, isUnavailable && styles.productNameDisabled]}
+                                  numberOfLines={1}>
+                                  {p.name}
+                                </Text>
+                                <Text style={styles.productDetail} numberOfLines={1}>
+                                  {p.detail}
+                                </Text>
+
+                                <View style={styles.productPriceRow}>
+                                  <Text style={styles.productPriceText}>{money(p.price)}</Text>
+                                  <TouchableOpacity
+                                    style={[
+                                      styles.btnAddProductCircle,
+                                      isUnavailable && styles.btnAddProductCircleDisabled,
+                                    ]}
+                                    disabled={isUnavailable || (p.stock > 0 && (cart[p.id] ?? 0) >= p.stock)}
+                                    onPress={() => change(p.id, 1)}>
+                                    <Feather
+                                      name="plus"
+                                      size={14}
+                                      color={isUnavailable ? '#94A3B8' : '#2D7A58'}
+                                    />
+                                  </TouchableOpacity>
+                                </View>
+
+                                <Text
+                                  style={[
+                                    styles.productStockText,
+                                    p.stock > 0 ? styles.productStockAvailable : styles.productStockEmpty,
+                                  ]}>
+                                  {p.stock > 0
+                                    ? `${p.stock - (cart[p.id] ?? 0)} disponíveis`
+                                    : delivery === 'Encomenda'
+                                    ? '★ Sob encomenda'
+                                    : 'Indisponível hoje'}
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    )}
+                  </ScrollView>
+
+                  <Text style={styles.footerMicroNote}>
+                    Produtos e clientes de exemplo · prévia de atendimento
+                  </Text>
+                </View>
+
+              </View>
+
+              {/* ---------------------------------------------------------------------
+                  COLUNA 2 (DIREITA): COMANDA / SEU PEDIDO
+              ---------------------------------------------------------------------- */}
+              <View style={[styles.asideOrderSection, !isDesktop && styles.asideOrderSectionMobile]}>
+
+                {/* CABEÇALHO DA COMANDA */}
+                <View style={styles.asideHeader}>
+                  <View>
+                    <Text style={styles.asideTitle}>Seu pedido</Text>
+                    <Text style={styles.asideClientSub} numberOfLines={1}>{client}</Text>
+                  </View>
+                  <View style={styles.countBadgeRound}>
+                    <Text style={styles.countBadgeRoundText}>{count}</Text>
+                  </View>
+                </View>
+
+                {/* ITENS SELECIONADOS OU EMPTY STATE */}
+                <ScrollView
+                  style={styles.cartItemsScroll}
+                  contentContainerStyle={styles.cartItemsContent}
+                  showsVerticalScrollIndicator={true}>
+                  {count === 0 ? (
+                    <View style={styles.emptyCartBox}>
+                      <View style={styles.emptyCartCookieCircle}>
+                        <Feather name="disc" size={24} color="#2D7A58" />
+                      </View>
+                      <Text style={styles.emptyCartTitle}>Toda delícia começa aqui</Text>
+                      <Text style={styles.emptyCartSub}>
+                        Seu pedido está esperando o primeiro doce.
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.cartList}>
+                      {selectedProducts.map((p) => {
+                        const q = cart[p.id] ?? 0;
+                        const subtotalCents = p.price * q;
+
+                        return (
+                          <View key={p.id} style={styles.cartItemRow}>
+                            <View style={styles.cartItemTopLine}>
+                              <Text style={styles.cartItemName} numberOfLines={1}>{p.name}</Text>
+                              <TouchableOpacity
+                                onPress={() => setCart((curr) => ({ ...curr, [p.id]: 0 }))}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                                <Feather name="x" size={13} color="#94A3B8" />
+                              </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.cartItemControlsRow}>
+                              <View style={styles.stepperPill}>
+                                <TouchableOpacity
+                                  style={styles.stepperPillBtn}
+                                  onPress={() => change(p.id, -1)}>
+                                  <Feather name="minus" size={11} color="#1E293B" />
+                                </TouchableOpacity>
+                                <Text style={styles.stepperPillValue}>{q}</Text>
+                                <TouchableOpacity
+                                  style={styles.stepperPillBtn}
+                                  disabled={delivery !== 'Encomenda' && q >= p.stock}
+                                  onPress={() => change(p.id, 1)}>
+                                  <Feather name="plus" size={11} color="#1E293B" />
+                                </TouchableOpacity>
+                              </View>
+                              <Text style={styles.cartItemSubtotalText}>{money(subtotalCents)}</Text>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  )}
+                </ScrollView>
+
+                {/* PAINEL INFERIOR FIXO (OBSERVAÇÃO, PAGAMENTO E FINALIZAÇÃO) */}
+                <View style={styles.asideFooterCheckout}>
+
+                  {/* OBSERVAÇÃO */}
+                  <View style={{ gap: 4 }}>
+                    <Text style={styles.asideSectionLabel}>
+                      Algum cuidado especial? <Text style={{ fontWeight: '400', color: '#64748B' }}>(opcional)</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.asideInputNotes}
+                      placeholder="Ex.: embalagem para presente"
+                      placeholderTextColor="#94A3B8"
+                      value={notes}
+                      onChangeText={setNotes}
+                    />
+                  </View>
+
+                  {/* FORMAS DE PAGAMENTO EM 4 CARDS */}
+                  <View style={{ gap: 6 }}>
+                    <Text style={styles.asideSectionLabel}>Forma de pagamento</Text>
+                    <View style={styles.paymentsGridFour}>
+                      {PAYMENTS.map((p) => {
+                        const isSelected = payment === p.name;
+                        return (
+                          <TouchableOpacity
+                            key={p.name}
                             style={[
-                              styles.paymentCardBtn,
-                              ativo && { backgroundColor: opt.activeBg, borderColor: opt.activeBg },
+                              styles.payMethodBtn,
+                              isSelected && styles.payMethodBtnSelected,
                             ]}
-                            onPress={() => setMetodoPagamento(opt.id as any)}>
+                            onPress={() => setPayment(p.name)}>
                             <Feather
-                              name={opt.icon as any}
-                              size={13}
-                              color={ativo ? '#FFFFFF' : opt.iconColor}
+                              name={p.icon as any}
+                              size={15}
+                              color={isSelected ? '#2D7A58' : '#1E293B'}
                             />
                             <Text
                               style={[
-                                styles.paymentCardBtnText,
-                                ativo && styles.paymentCardBtnTextActive,
+                                styles.payMethodBtnText,
+                                isSelected && styles.payMethodBtnTextSelected,
                               ]}>
-                              {opt.label}
+                              {p.name}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -993,62 +697,71 @@ export default function NovoPedidoModal({
                     </View>
                   </View>
 
-                  {/* RESUMO FINANCEIRO NÍTIDO */}
-                  <View style={styles.financialCard}>
-                    <View style={styles.financialRow}>
-                      <Text style={styles.financialLabel}>Subtotal da vitrine</Text>
-                      <Text style={styles.financialVal}>R$ {totais.subtotal.toFixed(2)}</Text>
-                    </View>
-
-                    {totais.descontoTotal > 0 && (
-                      <View style={styles.financialRow}>
-                        <Text style={[styles.financialLabel, { color: '#047857', fontWeight: '700' }]}>
-                          Descontos aplicados
-                        </Text>
-                        <Text style={[styles.financialVal, { color: '#047857', fontWeight: '700' }]}>
-                          - R$ {totais.descontoTotal.toFixed(2)}
-                        </Text>
-                      </View>
-                    )}
-
-                    <View style={styles.financialDivider} />
-
-                    <View style={styles.grandTotalRow}>
-                      <View>
-                        <Text style={styles.grandTotalLabel}>TOTAL DO PEDIDO</Text>
-                        <Text style={styles.grandTotalHint}>
-                          {metodoPagamento === 'pendente' ? '⏳ Pagamento na entrega' : `✓ Quitado no ${metodoPagamento.toUpperCase()}`}
-                        </Text>
-                      </View>
-                      <Text style={styles.grandTotalAmount}>
-                        R$ {totais.totalFinal.toFixed(2)}
+                  {/* SE DINHEIRO: TROCO */}
+                  {payment === 'Dinheiro' && (
+                    <View style={{ gap: 2 }}>
+                      <Text style={styles.asideSectionLabel}>Valor recebido (R$)</Text>
+                      <TextInput
+                        style={styles.asideInputNotes}
+                        keyboardType="numeric"
+                        placeholder="0,00"
+                        placeholderTextColor="#94A3B8"
+                        value={received}
+                        onChangeText={setReceived}
+                      />
+                      <Text style={styles.changeHintText}>
+                        Troco: {money(Math.max(0, Number(received || 0) * 100 - total))}
                       </Text>
                     </View>
+                  )}
+
+                  {/* TOTAL DO PEDIDO */}
+                  <View style={styles.asideTotalRow}>
+                    <View>
+                      <Text style={styles.asideTotalLabel}>Total do pedido</Text>
+                      <Text style={styles.asideTotalHint}>
+                        {count} {count === 1 ? 'item' : 'itens'} · {delivery.toLowerCase()}
+                      </Text>
+                    </View>
+                    <Text style={styles.asideTotalAmount}>{money(total)}</Text>
                   </View>
 
-                  {/* BOTÃO PRINCIPAL COM GRADIENTE E SOMBRA AVELUDADA */}
+                  {/* BOTÃO FINALIZAR */}
                   <TouchableOpacity
                     style={[
-                      styles.btnFinalizarBoutique,
-                      carrinho.length === 0 && { opacity: 0.5 },
+                      styles.btnFinalizeCta,
+                      (!valid || salvandoPedido) && styles.btnFinalizeCtaDisabled,
                     ]}
-                    onPress={handleFinalizarPedido}
-                    disabled={salvandoPedido || carrinho.length === 0}>
+                    disabled={!valid || salvandoPedido}
+                    onPress={handleFinalizar}>
                     {salvandoPedido ? (
                       <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <Text style={styles.btnFinalizarBoutiqueText}>
-                        ✓ Finalizar Pedido • R$ {totais.totalFinal.toFixed(2)}
-                      </Text>
+                      <View style={styles.btnFinalizeContentRow}>
+                        <Text style={styles.btnFinalizeCtaText}>
+                          {payment === 'Pendente' ? 'Criar pedido pendente' : 'Finalizar pedido'}
+                        </Text>
+                        <Feather name="arrow-right" size={15} color="#FFFFFF" />
+                      </View>
                     )}
                   </TouchableOpacity>
+
+                  {/* NOTA DE STATUS DO PAGAMENTO */}
+                  <View style={styles.paymentStatusFooterLine}>
+                    <Feather name="check" size={11} color="#64748B" />
+                    <Text style={styles.paymentStatusFooterText}>
+                      {payment === 'Pendente'
+                        ? 'Pagamento será realizado depois'
+                        : `Pagamento informado: ${payment}`}
+                    </Text>
+                  </View>
 
                 </View>
 
               </View>
-            )}
 
-          </View>
+            </View>
+          )}
 
         </View>
       </View>
@@ -1064,987 +777,763 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  boutiqueContainer: {
+  dialogContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     overflow: 'hidden',
     flexDirection: 'column',
     ...Platform.select({
       web: {
-        boxShadow: '0 24px 60px -12px rgba(15, 23, 42, 0.28), 0 0 1px 1px rgba(87, 152, 215, 0.15)',
+        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
       },
     }),
   },
-  boutiqueDesktop: {
-    width: '95%',
-    maxWidth: 1140,
-    height: '90%',
-    maxHeight: 800,
+  dialogDesktop: {
+    width: 'calc(100% - 32px)',
+    maxWidth: 1180,
+    height: '94dvh' as any,
+    maxHeight: 820,
   },
-  boutiqueMobile: {
+  dialogMobile: {
     width: '100%',
     height: '96%',
   },
 
-  // CABEÇALHO DO MODAL
-  boutiqueHeader: {
+  // CABEÇALHO DO ATELIÊ
+  dialogHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 18,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
   },
-  boutiqueHeaderLeft: {
-    gap: 3,
+  headerIconSquare: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    backgroundColor: '#EAF5F1',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  atelierTagBadge: {
-    backgroundColor: '#F3F6DD',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  atelierTagBadgeText: {
-    fontSize: 9,
+  headerSubUpper: {
+    fontSize: 10,
     fontWeight: '800',
-    color: '#708018',
-    letterSpacing: 0.5,
+    letterSpacing: 1.5,
+    color: '#2D7A58',
+    marginBottom: 2,
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
   },
-  boutiqueTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0F172A',
-    fontFamily: Fonts.sans,
-    letterSpacing: -0.3,
-  },
-  boutiqueSubtitle: {
-    fontSize: 12,
-    color: '#475569',
-    fontWeight: '500',
-  },
-  mobileSegmentTabs: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 8,
-    padding: 3,
-    gap: 4,
-  },
-  mobileSegmentTab: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  mobileSegmentTabActive: {
-    backgroundColor: KipiPalette.icedDenim,
-  },
-  mobileSegmentTabText: {
-    fontSize: 12,
+  headerTitle: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#475569',
+    color: '#1E293B',
+    letterSpacing: -0.3,
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
   },
-  mobileSegmentTabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
+  headerDescription: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
   },
-  boutiqueCloseBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  closeRoundBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  softAlertBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FEF2F2',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FECACA',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  softAlertText: {
-    fontSize: 12,
-    color: '#DC2626',
-    fontWeight: '700',
-  },
 
-  // CORPO 2 COLUNAS
-  boutiqueBody: {
+  // CORPO DO MODAL (2 COLUNAS)
+  dialogBody: {
     flex: 1,
     flexDirection: 'row',
+    minHeight: 0,
     overflow: 'hidden',
   },
+  dialogBodyMobile: {
+    flexDirection: 'column',
+    overflow: 'scroll' as any,
+  },
 
-  // COLUNA ESQUERDA (62%): VITRINE GOURMET
-  vitrineColumn: {
-    flex: 0.62,
+  // COLUNA 1 (ESQUERDA - 1FR)
+  leftSection: {
+    flex: 1,
     borderRightWidth: 1,
     borderRightColor: '#E2E8F0',
     flexDirection: 'column',
-    backgroundColor: '#FFFFFF',
+    minHeight: 0,
   },
-  commandHeaderBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  leftSectionMobile: {
+    borderRightWidth: 0,
+    flex: undefined,
+  },
+
+  // BARRA SUPERIOR DE QUEM COMPRA E COMO RECEBE
+  topSelectorsRow: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-    gap: 10,
+    gap: 12,
   },
-  selectionTopRow: {
+  selectorGridCol: {
+    flexDirection: 'row',
+    gap: 20,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 8,
+  },
+  selectTrigger: {
+    height: 40,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-
-  // CLIENTE SWITCH (AVULSO VS VIP)
-  clientModeSwitch: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    padding: 3,
-    gap: 4,
-  },
-  clientModeBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 6,
   },
-  clientModeBtnActive: {
-    backgroundColor: KipiPalette.icedDenim,
-  },
-  clientModeBtnText: {
+  selectTriggerText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: '500',
     color: '#1E293B',
   },
-  clientModeBtnTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-
-  // MODALIDADE DE ENTREGA (3 BOTÕES COM ALTO CONTRASTE)
-  deliverySegmentBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    padding: 3,
-    gap: 4,
-  },
-  deliverySegmentBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    gap: 6,
-  },
-  deliverySegmentBtnActive: {
-    backgroundColor: '#0F172A',
-  },
-  deliverySegmentBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  deliverySegmentBtnTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-
-  // EXPANDED CLIENT SECTION
-  clientExpandedSection: {
-    marginTop: 2,
-  },
-  clientChosenCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  clientChosenInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  clientAvatarMini: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#EAF3FA',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clientAvatarText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: KipiPalette.icedDenim,
-  },
-  clientChosenName: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  clientChosenPhone: {
-    fontSize: 11,
-    color: '#475569',
-    fontWeight: '600',
-  },
-  btnChangeClient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#EAF3FA',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 6,
-  },
-  btnChangeClientText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: KipiPalette.icedDenim,
-  },
-
-  inlineClientBox: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    padding: 8,
-  },
-  inlineClientInputsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  crispInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    fontSize: 12,
-    color: '#0F172A',
-    fontWeight: '600',
-  },
-  btnSaveClientPrimary: {
-    backgroundColor: KipiPalette.icedDenim,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  btnSaveClientPrimaryText: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-    fontSize: 12,
-  },
-  btnCancelClient: {
-    padding: 6,
-  },
-
-  searchClientCrispRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  searchClientCrispField: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  searchClientCrispInput: {
-    flex: 1,
-    fontSize: 12,
-    color: '#0F172A',
-    fontWeight: '600',
-    padding: 0,
-    outlineWidth: 0,
-  },
-  btnNewClientPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: KipiPalette.icedDenim,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-  },
-  btnNewClientPillText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  clientFloatingMenu: {
+  selectDropdownMenu: {
     position: 'absolute',
-    top: 42,
+    top: 68,
     left: 0,
     right: 0,
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     zIndex: 999,
     ...Platform.select({
       web: {
-        boxShadow: '0 12px 24px rgba(15, 23, 42, 0.15)',
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
       },
     }),
   },
-  clientFloatingEmpty: {
-    padding: 14,
-    alignItems: 'center',
-    gap: 6,
-  },
-  clientFloatingEmptyText: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  clientFloatingEmptyLink: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: KipiPalette.icedDenim,
-  },
-  clientFloatingRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  selectDropdownItem: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F8FAFC',
   },
-  clientFloatingName: {
+  selectDropdownItemText: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  clientFloatingPhone: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-
-  // DELIVERY SCHEDULE BANNER
-  deliveryScheduleBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 16,
-  },
-  deliveryScheduleItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  deliveryScheduleLabel: {
-    fontSize: 12,
-    fontWeight: '700',
     color: '#1E293B',
   },
-  deliveryScheduleInput: {
+  inlineCreateRow: {
+    flexDirection: 'row',
+    padding: 8,
+    gap: 6,
     backgroundColor: '#F8FAFC',
+  },
+  inlineClientInput: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#E2E8F0',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    fontSize: 12,
+    fontSize: 11,
+    color: '#1E293B',
+  },
+  btnConfirmInlineClient: {
+    backgroundColor: '#2D7A58',
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    justifyContent: 'center',
+  },
+  btnConfirmInlineClientText: {
+    color: '#FFFFFF',
+    fontSize: 11,
     fontWeight: '700',
-    color: '#0F172A',
-    width: 95,
   },
 
-  // SEARCH AND CATEGORIES (HIGH CONTRAST)
-  searchAndCatRow: {
+  // COMO VAI RECEBER (SEGMENTED CONTROL)
+  deliverySegmentBox: {
+    height: 40,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 3,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 4,
   },
-  crispSearchBox: {
+  deliverySegmentBtn: {
+    flex: 1,
+    height: '100%',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+    gap: 5,
+    paddingHorizontal: 6,
+  },
+  deliverySegmentBtnActive: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    width: 175,
-    gap: 8,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+      },
+    }),
   },
-  crispSearchInput: {
+  deliverySegmentBtnText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+  },
+  deliverySegmentBtnTextActive: {
+    color: '#2D7A58',
+    fontWeight: '700',
+  },
+
+  singleLineInput: {
+    height: 38,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    fontSize: 12,
+    color: '#1E293B',
+  },
+  miniInputLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+
+  // VITRINE SECTION
+  vitrineSection: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 14,
+    minHeight: 0,
+  },
+  vitrineHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  vitrineTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+  },
+  vitrineCountHint: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+
+  // SEARCH BOX
+  searchBarBox: {
+    height: 40,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  searchBarInput: {
     flex: 1,
     fontSize: 12,
-    color: '#0F172A',
-    fontWeight: '600',
+    color: '#1E293B',
     padding: 0,
     outlineWidth: 0,
   },
-  categoryTrack: {
+
+  // CATEGORY PILLS & CHECKBOX
+  categoryFiltersRow: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  categoryButtonsRow: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  categoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  categoryChipActive: {
+    backgroundColor: '#EAF5F1',
+  },
+  categoryChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748B',
+  },
+  categoryChipTextActive: {
+    color: '#2D7A58',
+    fontWeight: '700',
+  },
+  checkboxOnlyAvailable: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
-  crispCatChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+  customCheckbox: {
+    width: 14,
+    height: 14,
+    borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderColor: '#94A3B8',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  crispCatChipActive: {
-    backgroundColor: KipiPalette.icedDenim,
-    borderColor: KipiPalette.icedDenim,
+  customCheckboxActive: {
+    backgroundColor: '#2D7A58',
+    borderColor: '#2D7A58',
   },
-  crispCatChipText: {
+  checkboxLabel: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+
+  // GRID DE PRODUTOS
+  productsScrollArea: {
+    flex: 1,
+  },
+  productsGridContent: {
+    paddingRight: 4,
+  },
+  productsTwoColGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  emptyProductsBox: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyProductsText: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+
+  // CARD DE PRODUTO INDIVIDUAL (FIDEDIGNO AO LOVABLE)
+  productCard: {
+    width: 'calc(50% - 6px)' as any,
+    minWidth: 240,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.15s ease',
+      },
+    }),
+  },
+  productCardInCart: {
+    borderColor: 'rgba(45, 122, 88, 0.45)',
+    backgroundColor: 'rgba(234, 245, 241, 0.45)',
+  },
+  productCardDisabled: {
+    backgroundColor: '#F8FAFC',
+    opacity: 0.7,
+  },
+  productPhotoWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+  },
+  productPhotoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  productPhotoImgDisabled: {
+    opacity: 0.45,
+    ...Platform.select({
+      web: {
+        filter: 'grayscale(1)',
+      },
+    }),
+  },
+  productInfoCol: {
+    flex: 1,
+    minWidth: 0,
+  },
+  productName: {
     fontSize: 12,
     fontWeight: '700',
     color: '#1E293B',
+    lineHeight: 16,
   },
-  crispCatChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-
-  // VITRINE TILES (MANTIDOS EXATAMENTE COMO A USUÁRIA AMOU)
-  vitrineScrollArea: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  vitrineTilesContainer: {
-    padding: 14,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  loadingStateBox: {
-    width: '100%',
-    padding: 40,
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingStateText: {
-    fontSize: 12,
-    color: '#475569',
-    fontWeight: '600',
-  },
-  emptyStateBox: {
-    width: '100%',
-    padding: 30,
-    alignItems: 'center',
-  },
-  emptyStateTitle: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  emptyStateSub: {
-    fontSize: 11,
+  productNameDisabled: {
     color: '#64748B',
   },
-
-  // CARD DE PRODUTO GOURMET
-  gourmetTileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    ...Platform.select({
-      web: {
-        transition: 'all 0.16s ease',
-        boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
-      },
-    }),
-  },
-  gourmetTile3Col: {
-    width: '31.6%',
-  },
-  gourmetTile2Col: {
-    width: '48.2%',
-  },
-  gourmetTileSelected: {
-    borderColor: KipiPalette.icedDenim,
-    backgroundColor: '#FAFDFE',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 12px rgba(87, 152, 215, 0.18)',
-      },
-    }),
-  },
-  gourmetTileDisabled: {
-    opacity: 0.45,
-  },
-  tileIconCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileEmoji: {
-    fontSize: 18,
-  },
-  tileDetailsCol: {
-    flex: 1,
-    gap: 2,
-  },
-  tileProductName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-    fontFamily: Fonts.sans,
-  },
-  tileMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  tileCategoryMini: {
+  productDetail: {
     fontSize: 10,
     color: '#64748B',
+    marginTop: 1,
   },
-  tileDotDivider: {
-    fontSize: 9,
-    color: '#CBD5E1',
-  },
-  tileStockAvailable: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#16A34A',
-  },
-  tileStockOrder: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#0284C7',
-  },
-  tileStockEmpty: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#DC2626',
-  },
-  tilePriceAndAddRow: {
+  productPriceRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 2,
+    marginTop: 6,
   },
-  tilePriceText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#0F172A',
-    fontFamily: Fonts.sans,
+  productPriceText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
   },
-  tileAddedTag: {
-    backgroundColor: '#F3F6DD',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  tileAddedTagText: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#708018',
-  },
-  tileAddMiniCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: KipiPalette.icedDenim,
+  btnAddProductCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#EAF5F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  // COLUNA DIREITA (38%): SACOLA DO PEDIDO REINVENTADA
-  bagColumn: {
-    flex: 0.38,
-    flexDirection: 'column',
-    backgroundColor: '#F8FAFC',
-    borderLeftWidth: 1,
-    borderLeftColor: '#E2E8F0',
+  btnAddProductCircleDisabled: {
+    opacity: 0.4,
+    backgroundColor: '#F1F5F9',
   },
-  bagHeader: {
+  productStockText: {
+    fontSize: 10,
+    marginTop: 3,
+  },
+  productStockAvailable: {
+    color: '#228658',
+    fontWeight: '600',
+  },
+  productStockEmpty: {
+    color: '#64748B',
+  },
+  footerMicroNote: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 8,
+  },
+
+  // COLUNA 2 (DIREITA - 370PX): COMANDA SEU PEDIDO
+  asideOrderSection: {
+    width: 370,
+    backgroundColor: 'rgba(241, 245, 249, 0.55)',
+    flexDirection: 'column',
+    minHeight: 0,
+  },
+  asideOrderSectionMobile: {
+    width: '100%',
+    minHeight: 520,
+  },
+  asideHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
   },
-  bagHeaderTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  asideTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E293B',
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
   },
-  bagIconBadge: {
+  asideClientSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    maxWidth: 260,
+  },
+  countBadgeRound: {
     width: 32,
     height: 32,
-    borderRadius: 10,
-    backgroundColor: '#EAF3FA',
+    borderRadius: 16,
+    backgroundColor: '#EAF5F1',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bagMainTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
-    fontFamily: Fonts.sans,
-  },
-  bagSubtitle: {
-    fontSize: 11,
-    color: '#475569',
-    fontWeight: '600',
-  },
-  btnClearBag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    backgroundColor: '#FEF2F2',
-  },
-  btnClearBagText: {
-    fontSize: 11,
+  countBadgeRoundText: {
+    fontSize: 12,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#2D7A58',
   },
-  bagItemsScrollArea: {
+
+  // LISTA DE ITENS NA COMANDA
+  cartItemsScroll: {
     flex: 1,
+    minHeight: 64,
   },
-  bagItemsContent: {
-    padding: 12,
-    gap: 10,
+  cartItemsContent: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
-  emptyBagBox: {
-    padding: 36,
+  emptyCartBox: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 10,
+    paddingVertical: 36,
   },
-  emptyBagCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: '#E2E8F0',
+  emptyCartCookieCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 12,
   },
-  emptyBagTitle: {
+  emptyCartTitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: '700',
+    color: '#1E293B',
   },
-  emptyBagSub: {
+  emptyCartSub: {
     fontSize: 12,
     color: '#64748B',
     textAlign: 'center',
+    maxWidth: 230,
+    marginTop: 6,
     lineHeight: 18,
   },
-
-  // CARD DE ITEM NA SACOLA (VISUAL GOURMET & NÍTIDO)
-  bagItemCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 12,
+  cartList: {
+    gap: 12,
+  },
+  cartItemRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 10,
     gap: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 6px rgba(15, 23, 42, 0.04)',
-      },
-    }),
   },
-  bagItemTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  bagItemIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bagItemEmoji: {
-    fontSize: 16,
-  },
-  bagItemInfoCol: {
-    flex: 1,
-    gap: 2,
-  },
-  bagItemName: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0F172A',
-    fontFamily: Fonts.sans,
-  },
-  bagItemMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  bagItemCatTag: {
-    backgroundColor: '#EAF3FA',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  bagItemCatTagText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: KipiPalette.icedDenim,
-  },
-  bagItemUnitPrice: {
-    fontSize: 11,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  btnRemoveItem: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bagItemBottom: {
+  cartItemTopLine: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 4,
-    borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
   },
-
-  // STEPPER TÁTIL COM ALTO CONTRASTE
-  tactileStepper: {
+  cartItemName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+    flex: 1,
+  },
+  cartItemControlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    overflow: 'hidden',
+    justifyContent: 'space-between',
   },
-  tactileStepperBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  stepperPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 6,
   },
-  tactileStepperValue: {
+  stepperPillBtn: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperPillValue: {
     fontSize: 12,
-    fontWeight: '800',
-    color: '#0F172A',
-    minWidth: 22,
+    fontWeight: '700',
+    color: '#1E293B',
+    minWidth: 20,
     textAlign: 'center',
   },
-
-  // DESCONTO PISTACHE NÍTIDO
-  crispDiscountPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-  },
-  crispDiscountPillActive: {
-    backgroundColor: '#ECFDF5',
-    borderColor: '#10B981',
-  },
-  crispDiscountPillText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#334155',
-  },
-  crispDiscountPillTextActive: {
-    color: '#047857',
-    fontWeight: '800',
-  },
-  bagItemTotalValue: {
+  cartItemSubtotalText: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: '700',
+    color: '#1E293B',
   },
 
-  // FOOTER DA SACOLA
-  bagCheckoutFooter: {
+  // FOOTER CHECKOUT FIXO
+  asideFooterCheckout: {
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    padding: 14,
-    gap: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    gap: 12,
   },
-  notesCrispBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  notesCrispInput: {
-    flex: 1,
-    fontSize: 12,
-    color: '#0F172A',
-    fontWeight: '600',
-    padding: 0,
-    outlineWidth: 0,
-  },
-
-  // SEÇÃO DE FORMAS DE PAGAMENTO EM 4 CARDS NÍTIDOS
-  paymentSectionWrap: {
-    gap: 5,
-  },
-  paymentSectionLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#475569',
-    letterSpacing: 0.5,
-  },
-  paymentCardsGrid: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  paymentCardBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#CBD5E1',
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 5,
-  },
-  paymentCardBtnText: {
+  asideSectionLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: '#1E293B',
   },
-  paymentCardBtnTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-
-  // RESUMO FINANCEIRO
-  financialCard: {
-    backgroundColor: '#F8FAFC',
+  asideInputNotes: {
+    height: 38,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    borderRadius: 10,
-    padding: 10,
-    gap: 4,
-  },
-  financialRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  financialLabel: {
+    borderRadius: 8,
+    paddingHorizontal: 10,
     fontSize: 12,
-    color: '#475569',
-    fontWeight: '600',
+    color: '#1E293B',
   },
-  financialVal: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  financialDivider: {
-    height: 1,
-    backgroundColor: '#E2E8F0',
-    marginVertical: 4,
-  },
-  grandTotalRow: {
+  paymentsGridFour: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 6,
   },
-  grandTotalLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: 0.5,
-  },
-  grandTotalHint: {
-    fontSize: 10,
-    color: '#64748B',
-    fontWeight: '600',
-  },
-  grandTotalAmount: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: KipiPalette.icedDenim,
-    fontFamily: Fonts.sans,
-  },
-
-  // BOTÃO PRINCIPAL COM GRADIENTE E SOMBRA AVELUDADA
-  btnFinalizarBoutique: {
-    backgroundColor: KipiPalette.icedDenim,
-    borderRadius: 12,
-    paddingVertical: 12,
+  payMethodBtn: {
+    flex: 1,
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 4px 14px rgba(87, 152, 215, 0.35)',
-      },
-    }),
+    gap: 4,
+    paddingHorizontal: 4,
   },
-  btnFinalizarBoutiqueText: {
-    color: '#FFFFFF',
+  payMethodBtnSelected: {
+    borderColor: '#2D7A58',
+    backgroundColor: '#EAF5F1',
+  },
+  payMethodBtnText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  payMethodBtnTextSelected: {
+    color: '#2D7A58',
     fontWeight: '800',
+  },
+  changeHintText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  asideTotalRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
+  },
+  asideTotalLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  asideTotalHint: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  asideTotalAmount: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#2D7A58',
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+  },
+  btnFinalizeCta: {
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: '#2D7A58',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  btnFinalizeCtaDisabled: {
+    opacity: 0.5,
+  },
+  btnFinalizeContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  btnFinalizeCtaText: {
+    color: '#FFFFFF',
     fontSize: 14,
-    fontFamily: Fonts.sans,
+    fontWeight: '700',
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+  },
+  paymentStatusFooterLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  paymentStatusFooterText: {
+    fontSize: 10,
+    color: '#64748B',
+  },
+
+  // TELA DE SUCESSO (COMPLETED)
+  completedContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    gap: 12,
+  },
+  completedIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#EAF5F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  completedTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1E293B',
+    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+  },
+  completedSummary: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  completedHint: {
+    fontSize: 12,
+    color: '#2D7A58',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  btnStartAnother: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#2D7A58',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  btnStartAnotherText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
