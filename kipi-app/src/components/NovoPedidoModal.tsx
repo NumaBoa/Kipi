@@ -40,9 +40,8 @@ export interface ItemCarrinho {
   valorDescontoUnitario: number;
 }
 
-type TipoEntrega = 'retirada' | 'entrega' | 'sob_encomenda';
-type FormaPagamento = 'pix' | 'cartao' | 'dinheiro';
-type StatusPagamento = 'pago' | 'pendente';
+export type TipoEntrega = 'retirada' | 'entrega' | 'sob_encomenda';
+export type MetodoPagamento = 'pix' | 'cartao' | 'dinheiro' | 'pendente';
 
 interface NovoPedidoModalProps {
   visible: boolean;
@@ -62,6 +61,7 @@ const PRODUTOS_PADRAO: ProdutoItem[] = [
   { id: 'p9', nome: 'Fatia Cheesecake Frutas Silvestres', categoria: 'Sobremesas', preco: 32.50, estoque: 9, tem_promocao: false },
   { id: 'p10', nome: 'Cento de Brigadeiros Gourmet Belga', categoria: 'Doces Finos', preco: 160.00, estoque: 20, tem_promocao: false },
   { id: 'p11', nome: 'Bolo Casamento Flores de Açúcar', categoria: 'Bolos & Bentos', preco: 340.00, estoque: 0, tem_promocao: false },
+  { id: 'p12', nome: 'Brownie Fudge Triplo Chocolate', categoria: 'Cookies', preco: 15.50, estoque: 16, tem_promocao: false },
 ];
 
 const CLIENTES_PADRAO: ClienteItem[] = [
@@ -78,10 +78,10 @@ export default function NovoPedidoModal({
   onPedidoCriado,
 }: NovoPedidoModalProps) {
   const { width } = useWindowDimensions();
-  const isWide = width >= 940;
+  const isDesktop = width >= 960;
 
-  // TAB ATIVA EM DISPOSITIVOS MENORES (CATÁLOGO OU COMANDA)
-  const [mobileTab, setMobileTab] = useState<'catalogo' | 'comanda'>('catalogo');
+  // TAB MOBILE (VITRINE VS COMANDA)
+  const [mobileTab, setMobileTab] = useState<'vitrine' | 'comanda'>('vitrine');
 
   // CLIENTES
   const [clientes, setClientes] = useState<ClienteItem[]>(CLIENTES_PADRAO);
@@ -91,7 +91,7 @@ export default function NovoPedidoModal({
   const [clienteSelecionado, setClienteSelecionado] = useState<ClienteItem | null>(null);
   const [dropdownClienteAberto, setDropdownClienteAberto] = useState(false);
 
-  // NOVO CLIENTE (INLINE)
+  // NOVO CLIENTE INLINE
   const [criandoNovoCliente, setCriandoNovoCliente] = useState(false);
   const [novoClienteNome, setNovoClienteNome] = useState('');
   const [novoClienteTelefone, setNovoClienteTelefone] = useState('');
@@ -115,15 +115,13 @@ export default function NovoPedidoModal({
   // CARRINHO DO PEDIDO
   const [carrinho, setCarrinho] = useState<ItemCarrinho[]>([]);
 
-  // PAGAMENTO
-  const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('pix');
-  const [statusPagamento, setStatusPagamento] = useState<StatusPagamento>('pago');
+  // PAGAMENTO (PIX, CARTÃO, DINHEIRO OU PENDENTE)
+  const [metodoPagamento, setMetodoPagamento] = useState<MetodoPagamento>('pix');
 
   // SUBMISSÃO & FEEDBACK
   const [salvandoPedido, setSalvandoPedido] = useState(false);
   const [erroForm, setErroForm] = useState<string | null>(null);
 
-  // CARREGAR DADOS DO SUPABASE QUANDO ABERTO
   useEffect(() => {
     if (visible) {
       carregarClientes();
@@ -145,7 +143,7 @@ export default function NovoPedidoModal({
         setClientes(data);
       }
     } catch {
-      // mantém padrão
+      // fallback
     } finally {
       setCarregandoClientes(false);
     }
@@ -163,30 +161,25 @@ export default function NovoPedidoModal({
         setProdutos(data);
       }
     } catch {
-      // mantém padrão
+      // fallback
     } finally {
       setCarregandoProdutos(false);
     }
   };
 
-  // CATEGORIAS
   const categorias = useMemo(() => {
     const cats = Array.from(new Set(produtos.map((p) => p.categoria || 'Geral')));
     return ['Todas', ...cats];
   }, [produtos]);
 
-  // CLIENTES FILTRADOS
   const clientesFiltrados = useMemo(() => {
     if (!buscaCliente.trim()) return clientes;
-    const termo = buscaCliente.toLowerCase();
+    const t = buscaCliente.toLowerCase();
     return clientes.filter(
-      (c) =>
-        c.nome.toLowerCase().includes(termo) ||
-        (c.telefone && c.telefone.includes(termo))
+      (c) => c.nome.toLowerCase().includes(t) || (c.telefone && c.telefone.includes(t))
     );
   }, [clientes, buscaCliente]);
 
-  // PRODUTOS FILTRADOS
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((p) => {
       const matchCat = categoriaAtiva === 'Todas' || p.categoria === categoriaAtiva;
@@ -198,7 +191,6 @@ export default function NovoPedidoModal({
     });
   }, [produtos, categoriaAtiva, buscaProduto]);
 
-  // CADASTRAR NOVO CLIENTE RÁPIDO
   const handleCadastrarCliente = async () => {
     const nome = novoClienteNome.trim();
     if (!nome) {
@@ -224,11 +216,7 @@ export default function NovoPedidoModal({
         setClientes((prev) => [data, ...prev]);
         setClienteSelecionado(data);
       } else {
-        const localCli: ClienteItem = {
-          id: `cli_${Date.now()}`,
-          nome,
-          telefone: novoClienteTelefone || null,
-        };
+        const localCli: ClienteItem = { id: `cli_${Date.now()}`, nome, telefone: novoClienteTelefone || null };
         setClientes((prev) => [localCli, ...prev]);
         setClienteSelecionado(localCli);
       }
@@ -237,11 +225,7 @@ export default function NovoPedidoModal({
       setNovoClienteNome('');
       setNovoClienteTelefone('');
     } catch {
-      const localCli: ClienteItem = {
-        id: `cli_${Date.now()}`,
-        nome,
-        telefone: novoClienteTelefone || null,
-      };
+      const localCli: ClienteItem = { id: `cli_${Date.now()}`, nome, telefone: novoClienteTelefone || null };
       setClientes((prev) => [localCli, ...prev]);
       setClienteSelecionado(localCli);
       setIsVendaAvulsa(false);
@@ -253,7 +237,6 @@ export default function NovoPedidoModal({
     }
   };
 
-  // GERENCIAMENTO DO CARRINHO
   const adicionarAoCarrinho = (produto: ProdutoItem) => {
     setCarrinho((prev) => {
       const index = prev.findIndex((i) => i.produto.id === produto.id);
@@ -304,7 +287,6 @@ export default function NovoPedidoModal({
     setCarrinho((prev) => prev.filter((i) => i.produto.id !== produtoId));
   };
 
-  // CÁLCULO DE TOTAIS
   const totais = useMemo(() => {
     let subtotal = 0;
     let descontoTotal = 0;
@@ -323,15 +305,9 @@ export default function NovoPedidoModal({
 
     const totalFinal = Math.max(0, subtotal - descontoTotal);
 
-    return {
-      subtotal,
-      descontoTotal,
-      totalFinal,
-      totalItens,
-    };
+    return { subtotal, descontoTotal, totalFinal, totalItens };
   }, [carrinho]);
 
-  // FINALIZAR PEDIDO
   const handleFinalizarPedido = async () => {
     if (carrinho.length === 0) {
       setErroForm('Adicione ao menos um produto à comanda');
@@ -346,6 +322,9 @@ export default function NovoPedidoModal({
     setSalvandoPedido(true);
     setErroForm(null);
 
+    const isPago = metodoPagamento !== 'pendente';
+    const status = isPago ? 'pago' : 'pendente';
+
     try {
       const dataEntregaPrometida =
         tipoEntrega !== 'retirada' ? `${dataEntrega}T${horarioEntrega}:00.000Z` : null;
@@ -359,11 +338,11 @@ export default function NovoPedidoModal({
           tipo_pedido: tipoEntrega,
           data: new Date().toISOString(),
           data_entrega_prometida: dataEntregaPrometida,
-          valor_sinal_pago: statusPagamento === 'pago' ? totais.totalFinal : 0,
-          saldo_na_entrega: statusPagamento === 'pago' ? 0 : totais.totalFinal,
+          valor_sinal_pago: isPago ? totais.totalFinal : 0,
+          saldo_na_entrega: isPago ? 0 : totais.totalFinal,
           status_producao: tipoEntrega === 'sob_encomenda' ? 'a_fazer' : 'pronto',
-          pagamento: formaPagamento,
-          status: statusPagamento === 'pago' ? 'pago' : 'pendente',
+          pagamento: metodoPagamento,
+          status,
           total: totais.totalFinal,
           custo_total: 0,
           observacoes: observacoes.trim() || null,
@@ -386,13 +365,12 @@ export default function NovoPedidoModal({
         await supabase.from('venda_itens').insert(itensInsert);
         onPedidoCriado(novaVenda);
       } else {
-        // Fallback local se estiver offline
         const mockVendaCriada = {
           id: `ped_${Date.now()}`,
           cliente_id: isVendaAvulsa ? null : clienteSelecionado?.id || null,
           tipo_pedido: tipoEntrega,
-          pagamento: formaPagamento,
-          status: statusPagamento,
+          pagamento: metodoPagamento,
+          status,
           total: totais.totalFinal,
           observacoes: observacoes.trim() || null,
           created_at: new Date().toISOString(),
@@ -400,7 +378,6 @@ export default function NovoPedidoModal({
         onPedidoCriado(mockVendaCriada);
       }
 
-      // Limpar formulário e fechar
       setCarrinho([]);
       setClienteSelecionado(null);
       setIsVendaAvulsa(true);
@@ -420,28 +397,29 @@ export default function NovoPedidoModal({
       animationType="fade"
       onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
-        <View style={[styles.posContainer, isWide ? styles.posContainerDesktop : styles.posContainerMobile]}>
+        <View style={[styles.posContainer, isDesktop ? styles.posDesktop : styles.posMobile]}>
 
           {/* =========================================================================
-              CABEÇALHO FIXO DO POS TERMINAL
+              BARRA SUPERIOR COMPACTA E ELEGANTE (SEM SCROLL)
           ========================================================================== */}
           <View style={styles.posHeader}>
             <View style={styles.posHeaderLeft}>
-              <View style={styles.headerBadge}>
-                <View style={styles.headerPulseDot} />
-                <Text style={styles.headerBadgeText}>KIPI POS • TERMINAL DE ATENDIMENTO</Text>
+              <View style={styles.posLogoChip}>
+                <Text style={styles.posLogoChipText}>KIPI</Text>
               </View>
-              <Text style={styles.posMainTitle}>Novo Pedido & Venda de Balcão</Text>
+              <View>
+                <Text style={styles.posTitle}>Novo Pedido • Atendimento Balcão</Text>
+                <Text style={styles.posSubtitle}>Selecione produtos na vitrine e finalize na comanda</Text>
+              </View>
             </View>
 
-            {/* SE MOBILE: SWITCH ENTRE CATÁLOGO E COMANDA */}
-            {!isWide && (
-              <View style={styles.mobileTabSwitch}>
+            {/* SE MOBILE / TELA MENOR: SWITCH COMPACTO */}
+            {!isDesktop && (
+              <View style={styles.mobileTabsSwitch}>
                 <TouchableOpacity
-                  style={[styles.mobileTabBtn, mobileTab === 'catalogo' && styles.mobileTabBtnActive]}
-                  onPress={() => setMobileTab('catalogo')}>
-                  <Feather name="grid" size={14} color={mobileTab === 'catalogo' ? '#FFFFFF' : '#64748B'} />
-                  <Text style={[styles.mobileTabText, mobileTab === 'catalogo' && styles.mobileTabTextActive]}>
+                  style={[styles.mobileTabBtn, mobileTab === 'vitrine' && styles.mobileTabBtnActive]}
+                  onPress={() => setMobileTab('vitrine')}>
+                  <Text style={[styles.mobileTabBtnText, mobileTab === 'vitrine' && styles.mobileTabBtnTextActive]}>
                     Vitrine
                   </Text>
                 </TouchableOpacity>
@@ -449,8 +427,7 @@ export default function NovoPedidoModal({
                 <TouchableOpacity
                   style={[styles.mobileTabBtn, mobileTab === 'comanda' && styles.mobileTabBtnActive]}
                   onPress={() => setMobileTab('comanda')}>
-                  <Feather name="shopping-bag" size={14} color={mobileTab === 'comanda' ? '#FFFFFF' : '#64748B'} />
-                  <Text style={[styles.mobileTabText, mobileTab === 'comanda' && styles.mobileTabTextActive]}>
+                  <Text style={[styles.mobileTabBtnText, mobileTab === 'comanda' && styles.mobileTabBtnTextActive]}>
                     Comanda ({totais.totalItens})
                   </Text>
                 </TouchableOpacity>
@@ -461,370 +438,305 @@ export default function NovoPedidoModal({
               style={styles.closeBtn}
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Feather name="x" size={20} color="#64748B" />
+              <Feather name="x" size={18} color="#64748B" />
             </TouchableOpacity>
           </View>
 
           {/* ALERTA DE ERRO SE HOUVER */}
           {erroForm && (
-            <View style={styles.errorAlertBar}>
-              <Feather name="alert-circle" size={15} color="#DC2626" />
-              <Text style={styles.errorAlertText}>{erroForm}</Text>
+            <View style={styles.errorBanner}>
+              <Feather name="alert-circle" size={14} color="#DC2626" />
+              <Text style={styles.errorBannerText}>{erroForm}</Text>
               <TouchableOpacity onPress={() => setErroForm(null)}>
-                <Feather name="x" size={14} color="#DC2626" />
+                <Feather name="x" size={13} color="#DC2626" />
               </TouchableOpacity>
             </View>
           )}
 
           {/* =========================================================================
-              CORPO PRINCIPAL EM 2 COLUNAS (SPLIT STUDIO - CATÁLOGO À ESQUERDA, COMANDA À DIREITA)
+              CORPO 2 COLUNAS (SPLIT STUDIO - NADA DE SCROLL GIGANTE!)
           ========================================================================== */}
-          <View style={styles.posBodyLayout}>
+          <View style={styles.posBody}>
 
             {/* -----------------------------------------------------------------------
-                COLUNA ESQUERDA: CLIENTE + ATENDIMENTO + CATÁLOGO DE PRODUTOS
+                COLUNA 1 (ESQUERDA - 62%): COMANDOS DE ATENDIMENTO + VITRINE COMPACTA
             ------------------------------------------------------------------------ */}
-            {(isWide || mobileTab === 'catalogo') && (
-              <View style={styles.catalogColumn}>
+            {(isDesktop || mobileTab === 'vitrine') && (
+              <View style={styles.leftVitrineCol}>
 
-                {/* 1. BARRA SUPERIOR: CLIENTE & TIPO DE ENTREGA */}
-                <View style={styles.topControlsStrip}>
+                {/* COMANDOS SUPERIORES ULTRA-COMPACTOS: CLIENTE E ATENDIMENTO */}
+                <View style={styles.commandStrip}>
 
-                  {/* IDENTIFICAÇÃO DO CLIENTE */}
-                  <View style={styles.clientStripBlock}>
-                    <View style={styles.stripLabelRow}>
-                      <Feather name="user" size={13} color={KipiPalette.icedDenim} />
-                      <Text style={styles.stripLabel}>CLIENTE DO PEDIDO:</Text>
+                  {/* LINHA 1: CLIENTE + ATENDIMENTO LADO A LADO */}
+                  <View style={styles.commandRow}>
+                    {/* CLIENTE TOGGLE */}
+                    <View style={styles.clientCommandGroup}>
+                      <View style={styles.modePillsGroup}>
+                        <TouchableOpacity
+                          style={[styles.modePill, isVendaAvulsa && styles.modePillActive]}
+                          onPress={() => {
+                            setIsVendaAvulsa(true);
+                            setClienteSelecionado(null);
+                            setCriandoNovoCliente(false);
+                            setDropdownClienteAberto(false);
+                          }}>
+                          <Feather name="zap" size={12} color={isVendaAvulsa ? '#FFFFFF' : '#64748B'} />
+                          <Text style={[styles.modePillText, isVendaAvulsa && styles.modePillTextActive]}>
+                            Balcão Avulso
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.modePill, !isVendaAvulsa && styles.modePillActive]}
+                          onPress={() => {
+                            setIsVendaAvulsa(false);
+                            setDropdownClienteAberto(true);
+                          }}>
+                          <Feather name="user" size={12} color={!isVendaAvulsa ? '#FFFFFF' : '#64748B'} />
+                          <Text style={[styles.modePillText, !isVendaAvulsa && styles.modePillTextActive]}>
+                            {clienteSelecionado ? clienteSelecionado.nome.split(' ')[0] : 'Cliente VIP ▾'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
 
-                    <View style={styles.clientModePills}>
-                      <TouchableOpacity
-                        style={[styles.clientModePill, isVendaAvulsa && styles.clientModePillActive]}
-                        onPress={() => {
-                          setIsVendaAvulsa(true);
-                          setClienteSelecionado(null);
-                          setCriandoNovoCliente(false);
-                          setDropdownClienteAberto(false);
-                        }}>
-                        <Feather name="zap" size={13} color={isVendaAvulsa ? '#FFFFFF' : '#64748B'} />
-                        <Text style={[styles.clientModePillText, isVendaAvulsa && styles.clientModePillTextActive]}>
-                          Venda Balcão (Avulsa)
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.clientModePill, !isVendaAvulsa && styles.clientModePillActive]}
-                        onPress={() => {
-                          setIsVendaAvulsa(false);
-                          setDropdownClienteAberto(true);
-                        }}>
-                        <Feather name="user-check" size={13} color={!isVendaAvulsa ? '#FFFFFF' : '#64748B'} />
-                        <Text style={[styles.clientModePillText, !isVendaAvulsa && styles.clientModePillTextActive]}>
-                          {clienteSelecionado ? clienteSelecionado.nome : 'Cliente Cadastrado ▾'}
-                        </Text>
-                      </TouchableOpacity>
+                    {/* ATENDIMENTO SEGMENTADO */}
+                    <View style={styles.deliverySegmentGroup}>
+                      {[
+                        { id: 'retirada', label: 'Retirada', icon: 'shopping-bag' },
+                        { id: 'entrega', label: 'Delivery', icon: 'truck' },
+                        { id: 'sob_encomenda', label: 'Encomenda', icon: 'calendar' },
+                      ].map((t) => (
+                        <TouchableOpacity
+                          key={t.id}
+                          style={[styles.deliverySegmentBtn, tipoEntrega === t.id && styles.deliverySegmentBtnActive]}
+                          onPress={() => setTipoEntrega(t.id as any)}>
+                          <Feather
+                            name={t.icon as any}
+                            size={12}
+                            color={tipoEntrega === t.id ? KipiPalette.icedDenim : '#64748B'}
+                          />
+                          <Text style={[styles.deliverySegmentText, tipoEntrega === t.id && styles.deliverySegmentTextActive]}>
+                            {t.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
                     </View>
+                  </View>
 
-                    {/* SE CLIENTE CADASTRADO: BUSCA / DROPDOWN OU CADASTRO INLINE */}
-                    {!isVendaAvulsa && (
-                      <View style={styles.clientSearchDrawer}>
-                        {clienteSelecionado ? (
-                          <View style={styles.selectedClientBadge}>
-                            <View style={styles.selectedClientBadgeLeft}>
-                              <View style={styles.clientAvatarMini}>
-                                <Text style={styles.clientAvatarMiniText}>
-                                  {clienteSelecionado.nome[0].toUpperCase()}
-                                </Text>
-                              </View>
-                              <View>
-                                <Text style={styles.selectedClientBadgeName}>
-                                  {clienteSelecionado.nome}
-                                </Text>
-                                <Text style={styles.selectedClientBadgeSub}>
-                                  {clienteSelecionado.telefone || 'Sem telefone'}
-                                </Text>
-                              </View>
-                            </View>
-
-                            <TouchableOpacity
-                              style={styles.btnTrocarCliente}
-                              onPress={() => {
-                                setClienteSelecionado(null);
-                                setDropdownClienteAberto(true);
-                              }}>
-                              <Text style={styles.btnTrocarClienteText}>Trocar</Text>
-                            </TouchableOpacity>
-                          </View>
-                        ) : criandoNovoCliente ? (
-                          <View style={styles.inlineNewClientBox}>
-                            <View style={styles.inlineNewClientHeader}>
-                              <Text style={styles.inlineNewClientTitle}>+ Cadastrar Cliente Rápido</Text>
-                              <TouchableOpacity onPress={() => setCriandoNovoCliente(false)}>
-                                <Feather name="x" size={14} color="#64748B" />
+                  {/* LINHA CONDICIONAL: SE CLIENTE CADASTRADO OU AGENDAMENTO ATIVO */}
+                  {(!isVendaAvulsa || tipoEntrega !== 'retirada') && (
+                    <View style={styles.secondaryCommandRow}>
+                      {!isVendaAvulsa && (
+                        <View style={styles.clientInlineSearchWrap}>
+                          {clienteSelecionado ? (
+                            <View style={styles.clientPickedBadge}>
+                              <Text style={styles.clientPickedName} numberOfLines={1}>
+                                👤 {clienteSelecionado.nome} {clienteSelecionado.telefone ? `(${clienteSelecionado.telefone})` : ''}
+                              </Text>
+                              <TouchableOpacity onPress={() => setClienteSelecionado(null)}>
+                                <Text style={styles.clientChangeText}>Trocar</Text>
                               </TouchableOpacity>
                             </View>
-
-                            <View style={styles.inlineInputsRow}>
+                          ) : criandoNovoCliente ? (
+                            <View style={styles.quickNewClientRow}>
                               <TextInput
-                                style={[styles.inlineInput, { flex: 1.2 }]}
+                                style={[styles.quickInput, { flex: 1.2 }]}
                                 placeholder="Nome completo *"
                                 placeholderTextColor="#94A3B8"
                                 value={novoClienteNome}
                                 onChangeText={setNovoClienteNome}
                               />
                               <TextInput
-                                style={[styles.inlineInput, { flex: 0.8 }]}
-                                placeholder="Telefone / WPP"
+                                style={[styles.quickInput, { flex: 0.8 }]}
+                                placeholder="WhatsApp"
                                 placeholderTextColor="#94A3B8"
                                 value={novoClienteTelefone}
                                 onChangeText={setNovoClienteTelefone}
                               />
-                              <TouchableOpacity
-                                style={styles.btnInlineSaveClient}
-                                onPress={handleCadastrarCliente}
-                                disabled={salvandoCliente}>
-                                {salvandoCliente ? (
-                                  <ActivityIndicator size="small" color="#FFFFFF" />
-                                ) : (
-                                  <Text style={styles.btnInlineSaveClientText}>Salvar</Text>
-                                )}
+                              <TouchableOpacity style={styles.btnQuickSave} onPress={handleCadastrarCliente}>
+                                <Text style={styles.btnQuickSaveText}>Salvar</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity onPress={() => setCriandoNovoCliente(false)}>
+                                <Feather name="x" size={14} color="#64748B" />
                               </TouchableOpacity>
                             </View>
-                          </View>
-                        ) : (
-                          <View style={styles.clientPickerContainer}>
-                            <View style={styles.clientSearchInputBox}>
-                              <Feather name="search" size={14} color="#94A3B8" />
-                              <TextInput
-                                style={styles.clientSearchInputField}
-                                placeholder="Buscar cliente por nome ou celular..."
-                                placeholderTextColor="#94A3B8"
-                                value={buscaCliente}
-                                onChangeText={(t) => {
-                                  setBuscaCliente(t);
-                                  setDropdownClienteAberto(true);
-                                }}
-                                onFocus={() => setDropdownClienteAberto(true)}
-                              />
-                              <TouchableOpacity
-                                style={styles.btnOpenNewClientForm}
-                                onPress={() => setCriandoNovoCliente(true)}>
-                                <Text style={styles.btnOpenNewClientFormText}>+ Novo</Text>
-                              </TouchableOpacity>
-                            </View>
-
-                            {dropdownClienteAberto && (
-                              <View style={styles.floatingClientDropdown}>
-                                <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled>
-                                  {clientesFiltrados.map((cli) => (
-                                    <TouchableOpacity
-                                      key={cli.id}
-                                      style={styles.dropdownClientRow}
-                                      onPress={() => {
-                                        setClienteSelecionado(cli);
-                                        setDropdownClienteAberto(false);
-                                        setBuscaCliente('');
-                                      }}>
-                                      <View>
-                                        <Text style={styles.dropdownClientRowName}>{cli.nome}</Text>
-                                        <Text style={styles.dropdownClientRowSub}>{cli.telefone || 'Sem telefone'}</Text>
-                                      </View>
-                                      <Feather name="check" size={14} color={KipiPalette.icedDenim} />
-                                    </TouchableOpacity>
-                                  ))}
-                                </ScrollView>
+                          ) : (
+                            <View style={{ flex: 1, position: 'relative' }}>
+                              <View style={styles.clientSearchMiniField}>
+                                <Feather name="search" size={13} color="#94A3B8" />
+                                <TextInput
+                                  style={styles.clientSearchMiniInput}
+                                  placeholder="Digite nome ou celular do cliente..."
+                                  placeholderTextColor="#94A3B8"
+                                  value={buscaCliente}
+                                  onChangeText={(t) => {
+                                    setBuscaCliente(t);
+                                    setDropdownClienteAberto(true);
+                                  }}
+                                  onFocus={() => setDropdownClienteAberto(true)}
+                                />
+                                <TouchableOpacity onPress={() => setCriandoNovoCliente(true)}>
+                                  <Text style={styles.quickAddLinkText}>+ Novo</Text>
+                                </TouchableOpacity>
                               </View>
-                            )}
-                          </View>
-                        )}
-                      </View>
-                    )}
-                  </View>
 
-                  {/* TIPO DE ATENDIMENTO / ENTREGA */}
-                  <View style={styles.deliveryStripBlock}>
-                    <View style={styles.stripLabelRow}>
-                      <Feather name="truck" size={13} color={KipiPalette.icedDenim} />
-                      <Text style={styles.stripLabel}>ATENDIMENTO:</Text>
-                    </View>
+                              {dropdownClienteAberto && (
+                                <View style={styles.clientFloatingList}>
+                                  <ScrollView style={{ maxHeight: 140 }} nestedScrollEnabled>
+                                    {clientesFiltrados.map((cli) => (
+                                      <TouchableOpacity
+                                        key={cli.id}
+                                        style={styles.clientFloatingItem}
+                                        onPress={() => {
+                                          setClienteSelecionado(cli);
+                                          setDropdownClienteAberto(false);
+                                          setBuscaCliente('');
+                                        }}>
+                                        <Text style={styles.clientFloatingName}>{cli.nome}</Text>
+                                        <Text style={styles.clientFloatingPhone}>{cli.telefone || 'Sem fone'}</Text>
+                                      </TouchableOpacity>
+                                    ))}
+                                  </ScrollView>
+                                </View>
+                              )}
+                            </View>
+                          )}
+                        </View>
+                      )}
 
-                    <View style={styles.deliverySegmentedBar}>
-                      <TouchableOpacity
-                        style={[styles.deliverySegmentBtn, tipoEntrega === 'retirada' && styles.deliverySegmentBtnActive]}
-                        onPress={() => setTipoEntrega('retirada')}>
-                        <Feather name="shopping-bag" size={13} color={tipoEntrega === 'retirada' ? KipiPalette.icedDenim : '#64748B'} />
-                        <Text style={[styles.deliverySegmentText, tipoEntrega === 'retirada' && styles.deliverySegmentTextActive]}>
-                          Retirada
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.deliverySegmentBtn, tipoEntrega === 'entrega' && styles.deliverySegmentBtnActive]}
-                        onPress={() => setTipoEntrega('entrega')}>
-                        <Feather name="truck" size={13} color={tipoEntrega === 'entrega' ? KipiPalette.icedDenim : '#64748B'} />
-                        <Text style={[styles.deliverySegmentText, tipoEntrega === 'entrega' && styles.deliverySegmentTextActive]}>
-                          Delivery
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={[styles.deliverySegmentBtn, tipoEntrega === 'sob_encomenda' && styles.deliverySegmentBtnActive]}
-                        onPress={() => setTipoEntrega('sob_encomenda')}>
-                        <Feather name="calendar" size={13} color={tipoEntrega === 'sob_encomenda' ? KipiPalette.icedDenim : '#64748B'} />
-                        <Text style={[styles.deliverySegmentText, tipoEntrega === 'sob_encomenda' && styles.deliverySegmentTextActive]}>
-                          Sob Encomenda
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* DATA E HORA SE ENTREGA OU ENCOMENDA */}
-                    {tipoEntrega !== 'retirada' && (
-                      <View style={styles.inlineDeliveryScheduleRow}>
-                        <View style={styles.scheduleItem}>
-                          <Text style={styles.scheduleLabel}>Data:</Text>
+                      {tipoEntrega !== 'retirada' && (
+                        <View style={styles.deliveryDateTimeGroup}>
+                          <Text style={styles.scheduleMiniLabel}>Previsão:</Text>
                           <TextInput
-                            style={styles.scheduleInput}
+                            style={styles.scheduleMiniInput}
                             value={dataEntrega}
                             onChangeText={setDataEntrega}
                             placeholder="AAAA-MM-DD"
                           />
-                        </View>
-                        <View style={styles.scheduleItem}>
-                          <Text style={styles.scheduleLabel}>Hora:</Text>
                           <TextInput
-                            style={styles.scheduleInput}
+                            style={[styles.scheduleMiniInput, { width: 55 }]}
                             value={horarioEntrega}
                             onChangeText={setHorarioEntrega}
                             placeholder="14:00"
                           />
                         </View>
-                      </View>
-                    )}
-                  </View>
+                      )}
+                    </View>
+                  )}
 
-                </View>
+                  {/* LINHA 2: PESQUISA DE PRODUTO + CATEGORIAS */}
+                  <View style={styles.filterBarRow}>
+                    <View style={styles.searchProductCompact}>
+                      <Feather name="search" size={13} color="#94A3B8" />
+                      <TextInput
+                        style={styles.searchProductCompactInput}
+                        placeholder="Buscar por sabor, nome..."
+                        placeholderTextColor="#94A3B8"
+                        value={buscaProduto}
+                        onChangeText={setBuscaProduto}
+                      />
+                      {buscaProduto ? (
+                        <TouchableOpacity onPress={() => setBuscaProduto('')}>
+                          <Feather name="x" size={13} color="#94A3B8" />
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
 
-                {/* 2. BARRA DE BUSCA DE PRODUTOS & CATEGORIAS */}
-                <View style={styles.catalogFilterBar}>
-                  <View style={styles.productSearchBox}>
-                    <Feather name="search" size={15} color="#94A3B8" />
-                    <TextInput
-                      style={styles.productSearchField}
-                      placeholder="Buscar por nome, sabor, categoria..."
-                      placeholderTextColor="#94A3B8"
-                      value={buscaProduto}
-                      onChangeText={setBuscaProduto}
-                    />
-                    {buscaProduto.length > 0 && (
-                      <TouchableOpacity onPress={() => setBuscaProduto('')}>
-                        <Feather name="x" size={14} color="#94A3B8" />
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoryPillsRow}>
-                    {categorias.map((cat) => {
-                      const ativo = categoriaAtiva === cat;
-                      return (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.catPillsContainer}>
+                      {categorias.map((cat) => (
                         <TouchableOpacity
                           key={cat}
-                          style={[styles.catPillBtn, ativo && styles.catPillBtnActive]}
+                          style={[styles.catChip, categoriaAtiva === cat && styles.catChipActive]}
                           onPress={() => setCategoriaAtiva(cat)}>
-                          <Text style={[styles.catPillBtnText, ativo && styles.catPillBtnTextActive]}>
+                          <Text style={[styles.catChipText, categoriaAtiva === cat && styles.catChipTextActive]}>
                             {cat}
                           </Text>
                         </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
+                      ))}
+                    </ScrollView>
+                  </View>
+
                 </View>
 
-                {/* 3. VITRINE DE PRODUTOS (GRID ROLÁVEL COM CARDS MODERNOS) */}
+                {/* VITRINE DE PRODUTOS COMPACTA (CARDS MENORES, SEM SCROLL GIGANTE) */}
                 <ScrollView
-                  style={styles.productsScrollArea}
-                  contentContainerStyle={styles.productsGridContent}
+                  style={styles.vitrineScroll}
+                  contentContainerStyle={styles.vitrineGrid}
                   showsVerticalScrollIndicator={true}>
                   {carregandoProdutos ? (
-                    <View style={styles.catalogLoadingBox}>
-                      <ActivityIndicator size="large" color={KipiPalette.icedDenim} />
-                      <Text style={styles.catalogLoadingText}>Carregando cardápio do ateliê...</Text>
+                    <View style={styles.loadingBox}>
+                      <ActivityIndicator size="small" color={KipiPalette.icedDenim} />
                     </View>
                   ) : produtosFiltrados.length === 0 ? (
-                    <View style={styles.catalogEmptyBox}>
-                      <Feather name="coffee" size={32} color="#CBD5E1" />
-                      <Text style={styles.catalogEmptyTitle}>Nenhum produto encontrado</Text>
-                      <Text style={styles.catalogEmptySub}>Tente buscar outro termo ou selecione a categoria "Todas".</Text>
+                    <View style={styles.emptyBox}>
+                      <Text style={styles.emptyText}>Nenhum produto encontrado nesta busca.</Text>
                     </View>
                   ) : (
                     produtosFiltrados.map((prod) => {
                       const emEstoque = prod.estoque > 0;
                       const permiteAdicionar = emEstoque || tipoEntrega === 'sob_encomenda';
-                      const itemNoCarrinho = carrinho.find((i) => i.produto.id === prod.id);
+                      const noCarrinho = carrinho.find((i) => i.produto.id === prod.id);
 
                       return (
                         <TouchableOpacity
                           key={prod.id}
                           style={[
-                            styles.productStudioCard,
-                            itemNoCarrinho && styles.productStudioCardSelected,
-                            !permiteAdicionar && styles.productStudioCardDisabled,
+                            styles.compactProdTile,
+                            isDesktop ? styles.compactProdTile3Col : styles.compactProdTile2Col,
+                            noCarrinho && styles.compactProdTileInCart,
+                            !permiteAdicionar && styles.compactProdTileDisabled,
                           ]}
                           onPress={() => permiteAdicionar && adicionarAoCarrinho(prod)}
-                          activeOpacity={0.8}
+                          activeOpacity={0.75}
                           disabled={!permiteAdicionar}>
 
-                          {/* TOPO DO CARD: CATEGORIA & ESTOQUE */}
-                          <View style={styles.prodCardTopRow}>
-                            <View style={styles.prodCatBadge}>
-                              <Text style={styles.prodCatBadgeText}>{prod.categoria}</Text>
-                            </View>
+                          {/* CORPO DO CARD COMPACTO */}
+                          <View style={styles.tileHeaderRow}>
+                            <Text style={styles.tileCatTag} numberOfLines={1}>
+                              {prod.categoria}
+                            </Text>
 
                             {emEstoque ? (
-                              <View style={styles.stockBadgeGreen}>
-                                <Text style={styles.stockBadgeGreenText}>
-                                  ● {prod.estoque} un.
-                                </Text>
+                              <View style={styles.tileStockBadgeGreen}>
+                                <Text style={styles.tileStockTextGreen}>● {prod.estoque} un</Text>
                               </View>
                             ) : tipoEntrega === 'sob_encomenda' ? (
-                              <View style={styles.stockBadgeBlue}>
-                                <Text style={styles.stockBadgeBlueText}>★ Encomenda</Text>
+                              <View style={styles.tileStockBadgeBlue}>
+                                <Text style={styles.tileStockTextBlue}>★ Encomenda</Text>
                               </View>
                             ) : (
-                              <View style={styles.stockBadgeRed}>
-                                <Text style={styles.stockBadgeRedText}>✕ Esgotado</Text>
+                              <View style={styles.tileStockBadgeRed}>
+                                <Text style={styles.tileStockTextRed}>✕ Esgotado</Text>
                               </View>
                             )}
                           </View>
 
-                          {/* NOME DO PRODUTO */}
-                          <Text style={styles.prodCardName} numberOfLines={2}>
+                          <Text style={styles.tileTitle} numberOfLines={2}>
                             {prod.nome}
                           </Text>
 
-                          {/* PREÇO E BOTÃO RÁPIDO DE ADIÇÃO */}
-                          <View style={styles.prodCardBottomRow}>
-                            <View>
-                              <Text style={styles.prodPriceLabel}>Preço unitário</Text>
-                              <Text style={styles.prodCardPrice}>
-                                R$ {prod.preco.toFixed(2)}
-                              </Text>
-                            </View>
+                          <View style={styles.tileFooterRow}>
+                            <Text style={styles.tilePrice}>
+                              R$ {prod.preco.toFixed(2)}
+                            </Text>
 
-                            {itemNoCarrinho ? (
-                              <View style={styles.inCartCountBadge}>
-                                <Text style={styles.inCartCountText}>
-                                  {itemNoCarrinho.quantidade}x na comanda
+                            {noCarrinho ? (
+                              <View style={styles.tileCartBadge}>
+                                <Text style={styles.tileCartBadgeText}>
+                                  {noCarrinho.quantidade}x
                                 </Text>
                               </View>
                             ) : (
-                              <View style={[styles.quickAddCircle, !permiteAdicionar && { backgroundColor: '#CBD5E1' }]}>
-                                <Feather name="plus" size={16} color="#FFFFFF" />
+                              <View style={[styles.tileAddPlus, !permiteAdicionar && { backgroundColor: '#CBD5E1' }]}>
+                                <Feather name="plus" size={13} color="#FFFFFF" />
                               </View>
                             )}
                           </View>
+
                         </TouchableOpacity>
                       );
                     })
@@ -835,107 +747,92 @@ export default function NovoPedidoModal({
             )}
 
             {/* -----------------------------------------------------------------------
-                COLUNA DIREITA: COMANDA DO PEDIDO & FECHAMENTO EM TEMPO REAL
+                COLUNA 2 (DIREITA - 38%): COMANDA DO PEDIDO + PAGAMENTO SIMPLIFICADO
             ------------------------------------------------------------------------ */}
-            {(isWide || mobileTab === 'comanda') && (
-              <View style={styles.orderSummaryColumn}>
+            {(isDesktop || mobileTab === 'comanda') && (
+              <View style={styles.rightComandaCol}>
 
                 {/* CABEÇALHO DA COMANDA */}
-                <View style={styles.cartColumnHeader}>
-                  <View style={styles.cartTitleRow}>
-                    <Feather name="shopping-bag" size={18} color={KipiPalette.icedDenim} />
-                    <Text style={styles.cartMainTitle}>Comanda do Pedido</Text>
-                    <View style={styles.cartCountBadge}>
-                      <Text style={styles.cartCountBadgeText}>{totais.totalItens} un.</Text>
+                <View style={styles.comandaHeader}>
+                  <View style={styles.comandaTitleRow}>
+                    <Feather name="shopping-bag" size={16} color={KipiPalette.icedDenim} />
+                    <Text style={styles.comandaTitle}>Comanda do Pedido</Text>
+                    <View style={styles.comandaCountBadge}>
+                      <Text style={styles.comandaCountText}>{totais.totalItens} un.</Text>
                     </View>
                   </View>
 
                   {carrinho.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setCarrinho([])}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                      <Text style={styles.btnClearCartText}>Limpar</Text>
+                    <TouchableOpacity onPress={() => setCarrinho([])}>
+                      <Text style={styles.comandaClearText}>Limpar</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
-                {/* LISTA ROLÁVEL DE ITENS NA COMANDA */}
+                {/* ITENS DA COMANDA (SCROLL DEDICADO) */}
                 <ScrollView
-                  style={styles.cartItemsScrollArea}
-                  contentContainerStyle={styles.cartItemsContent}
+                  style={styles.comandaScroll}
+                  contentContainerStyle={styles.comandaItemsContent}
                   showsVerticalScrollIndicator={true}>
                   {carrinho.length === 0 ? (
-                    <View style={styles.emptyCartStudioBox}>
-                      <View style={styles.emptyCartIconWrap}>
-                        <Feather name="shopping-cart" size={28} color="#94A3B8" />
-                      </View>
-                      <Text style={styles.emptyCartStudioTitle}>Comanda Vazia</Text>
-                      <Text style={styles.emptyCartStudioSub}>
-                        Clique nos produtos ao lado para montar o pedido do cliente.
+                    <View style={styles.emptyComandaBox}>
+                      <Feather name="shopping-cart" size={26} color="#94A3B8" />
+                      <Text style={styles.emptyComandaTitle}>Comanda vazia</Text>
+                      <Text style={styles.emptyComandaSub}>
+                        Toque nos produtos ao lado para adicionar ao pedido.
                       </Text>
                     </View>
                   ) : (
                     carrinho.map((item) => {
-                      const precoOriginal = item.produto.preco;
-                      const precoFinalUnit = item.temDesconto
-                        ? Math.max(0, precoOriginal - item.valorDescontoUnitario)
-                        : precoOriginal;
-                      const subtotalItem = precoFinalUnit * item.quantidade;
+                      const precoUnit = item.produto.preco;
+                      const precoCobrado = item.temDesconto
+                        ? Math.max(0, precoUnit - item.valorDescontoUnitario)
+                        : precoUnit;
+                      const subtotalItem = precoCobrado * item.quantidade;
 
                       return (
-                        <View key={item.produto.id} style={styles.cartItemStudioCard}>
-                          {/* LINHA SUPERIOR DO ITEM */}
-                          <View style={styles.cartItemStudioTop}>
+                        <View key={item.produto.id} style={styles.cartCardCompact}>
+                          <View style={styles.cartCardTop}>
                             <View style={{ flex: 1 }}>
-                              <Text style={styles.cartItemStudioName}>{item.produto.nome}</Text>
-                              <Text style={styles.cartItemStudioCat}>
-                                {item.produto.categoria} • R$ {precoOriginal.toFixed(2)} un.
+                              <Text style={styles.cartCardName} numberOfLines={1}>{item.produto.nome}</Text>
+                              <Text style={styles.cartCardSub}>
+                                {item.produto.categoria} • R$ {precoUnit.toFixed(2)} un.
                               </Text>
                             </View>
 
                             <TouchableOpacity
-                              style={styles.btnRemoveItem}
                               onPress={() => removerDoCarrinho(item.produto.id)}
-                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                              <Feather name="x" size={16} color="#DC2626" />
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                              <Feather name="x" size={14} color="#94A3B8" />
                             </TouchableOpacity>
                           </View>
 
-                          {/* CONTROLES: QUANTIDADE + DESCONTO + TOTAL DO ITEM */}
-                          <View style={styles.cartItemStudioControls}>
-                            {/* STEPPER DE QUANTIDADE */}
-                            <View style={styles.stepperBox}>
+                          <View style={styles.cartCardBottom}>
+                            {/* STEPPER */}
+                            <View style={styles.miniStepper}>
                               <TouchableOpacity
-                                style={styles.stepperBtn}
+                                style={styles.miniStepperBtn}
                                 onPress={() => alterarQuantidade(item.produto.id, -1)}>
-                                <Feather name="minus" size={13} color="#475569" />
+                                <Feather name="minus" size={11} color="#475569" />
                               </TouchableOpacity>
-                              <Text style={styles.stepperValue}>{item.quantidade}</Text>
+                              <Text style={styles.miniStepperValue}>{item.quantidade}</Text>
                               <TouchableOpacity
-                                style={styles.stepperBtn}
+                                style={styles.miniStepperBtn}
                                 onPress={() => alterarQuantidade(item.produto.id, 1)}>
-                                <Feather name="plus" size={13} color="#475569" />
+                                <Feather name="plus" size={11} color="#475569" />
                               </TouchableOpacity>
                             </View>
 
-                            {/* TOGGLE DESCONTO UNITÁRIO */}
+                            {/* TOGGLE DESCONTO */}
                             <TouchableOpacity
-                              style={[
-                                styles.btnDescontoItem,
-                                item.temDesconto && styles.btnDescontoItemActive,
-                              ]}
-                              onPress={() => alternarDescontoItem(item.produto.id)}
-                              activeOpacity={0.8}>
+                              style={[styles.btnMiniDesconto, item.temDesconto && styles.btnMiniDescontoActive]}
+                              onPress={() => alternarDescontoItem(item.produto.id)}>
                               <Feather
                                 name="percent"
-                                size={12}
+                                size={11}
                                 color={item.temDesconto ? '#708018' : '#64748B'}
                               />
-                              <Text
-                                style={[
-                                  styles.btnDescontoItemText,
-                                  item.temDesconto && styles.btnDescontoItemTextActive,
-                                ]}>
+                              <Text style={[styles.btnMiniDescontoText, item.temDesconto && styles.btnMiniDescontoTextActive]}>
                                 {item.temDesconto
                                   ? `-R$ ${(item.valorDescontoUnitario * item.quantidade).toFixed(2)}`
                                   : 'Desconto'}
@@ -943,7 +840,7 @@ export default function NovoPedidoModal({
                             </TouchableOpacity>
 
                             {/* TOTAL DO ITEM */}
-                            <Text style={styles.cartItemTotal}>
+                            <Text style={styles.cartCardItemTotal}>
                               R$ {subtotalItem.toFixed(2)}
                             </Text>
                           </View>
@@ -953,102 +850,83 @@ export default function NovoPedidoModal({
                   )}
                 </ScrollView>
 
-                {/* PAINEL INFERIOR FIXO: FORMA DE PAGAMENTO + TOTAIS + FINALIZAR */}
-                <View style={styles.checkoutFooterPanel}>
+                {/* PAINEL FIXO DE FECHAMENTO (PAGAMENTO SIMPLIFICADO EM 4 PILAS) */}
+                <View style={styles.comandaFooter}>
 
-                  {/* OBSERVAÇÕES COMPACTAS */}
-                  <View style={styles.notesCompactBox}>
-                    <Feather name="edit-3" size={13} color="#94A3B8" />
+                  {/* OBSERVAÇÃO COMPACTA */}
+                  <View style={styles.obsFieldRow}>
+                    <Feather name="edit-2" size={12} color="#94A3B8" />
                     <TextInput
-                      style={styles.notesCompactInput}
-                      placeholder="Observações do pedido (opcional)..."
+                      style={styles.obsInputField}
+                      placeholder="Observações do pedido (ex: laço rosa)..."
                       placeholderTextColor="#94A3B8"
                       value={observacoes}
                       onChangeText={setObservacoes}
                     />
                   </View>
 
-                  {/* FORMAS DE PAGAMENTO */}
-                  <View style={styles.paymentSelectorRow}>
-                    <TouchableOpacity
-                      style={[styles.payPillBtn, formaPagamento === 'pix' && styles.payPillBtnActive]}
-                      onPress={() => setFormaPagamento('pix')}>
-                      <Feather name="zap" size={13} color={formaPagamento === 'pix' ? KipiPalette.icedDenim : '#64748B'} />
-                      <Text style={[styles.payPillText, formaPagamento === 'pix' && styles.payPillTextActive]}>
-                        Pix
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.payPillBtn, formaPagamento === 'cartao' && styles.payPillBtnActive]}
-                      onPress={() => setFormaPagamento('cartao')}>
-                      <Feather name="credit-card" size={13} color={formaPagamento === 'cartao' ? KipiPalette.icedDenim : '#64748B'} />
-                      <Text style={[styles.payPillText, formaPagamento === 'cartao' && styles.payPillTextActive]}>
-                        Cartão
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.payPillBtn, formaPagamento === 'dinheiro' && styles.payPillBtnActive]}
-                      onPress={() => setFormaPagamento('dinheiro')}>
-                      <Feather name="dollar-sign" size={13} color={formaPagamento === 'dinheiro' ? KipiPalette.icedDenim : '#64748B'} />
-                      <Text style={[styles.payPillText, formaPagamento === 'dinheiro' && styles.payPillTextActive]}>
-                        Dinheiro
-                      </Text>
-                    </TouchableOpacity>
+                  {/* PAGAMENTO SIMPLIFICADO: PIX, CARTÃO, DINHEIRO OU PENDENTE (SOLICITADO PELO USUÁRIO) */}
+                  <View style={styles.payMethodsGrid}>
+                    {[
+                      { id: 'pix', label: 'Pix', icon: 'zap' },
+                      { id: 'cartao', label: 'Cartão', icon: 'credit-card' },
+                      { id: 'dinheiro', label: 'Dinheiro', icon: 'dollar-sign' },
+                      { id: 'pendente', label: 'Pendente', icon: 'clock' },
+                    ].map((opt) => {
+                      const ativo = metodoPagamento === opt.id;
+                      const isPendente = opt.id === 'pendente';
+                      return (
+                        <TouchableOpacity
+                          key={opt.id}
+                          style={[
+                            styles.payPill,
+                            ativo && (isPendente ? styles.payPillPendenteActive : styles.payPillActive),
+                          ]}
+                          onPress={() => setMetodoPagamento(opt.id as any)}>
+                          <Feather
+                            name={opt.icon as any}
+                            size={12}
+                            color={ativo ? '#FFFFFF' : isPendente ? '#DC2626' : '#64748B'}
+                          />
+                          <Text
+                            style={[
+                              styles.payPillText,
+                              ativo && styles.payPillTextActive,
+                              isPendente && !ativo && { color: '#DC2626' },
+                            ]}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
 
-                  {/* STATUS DO PAGAMENTO */}
-                  <View style={styles.payStatusToggleRow}>
-                    <TouchableOpacity
-                      style={[styles.payStatusBtn, statusPagamento === 'pago' && styles.payStatusBtnPaid]}
-                      onPress={() => setStatusPagamento('pago')}>
-                      <Feather name="check" size={13} color={statusPagamento === 'pago' ? '#FFFFFF' : '#64748B'} />
-                      <Text style={[styles.payStatusBtnText, statusPagamento === 'pago' && styles.payStatusBtnTextPaid]}>
-                        Pago Imediato
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.payStatusBtn, statusPagamento === 'pendente' && styles.payStatusBtnPending]}
-                      onPress={() => setStatusPagamento('pendente')}>
-                      <Feather name="clock" size={13} color={statusPagamento === 'pendente' ? '#FFFFFF' : '#64748B'} />
-                      <Text style={[styles.payStatusBtnText, statusPagamento === 'pendente' && styles.payStatusBtnTextPending]}>
-                        Pendente (Na entrega)
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* TOTAIS FINANCEIROS */}
-                  <View style={styles.totalsStudioBox}>
-                    <View style={styles.totalStudioLine}>
-                      <Text style={styles.totalStudioLineLabel}>Subtotal</Text>
-                      <Text style={styles.totalStudioLineValue}>
-                        R$ {totais.subtotal.toFixed(2)}
-                      </Text>
+                  {/* RESUMO DE TOTAIS */}
+                  <View style={styles.totalsStrip}>
+                    <View style={styles.totalLine}>
+                      <Text style={styles.totalLabel}>Subtotal</Text>
+                      <Text style={styles.totalVal}>R$ {totais.subtotal.toFixed(2)}</Text>
                     </View>
 
                     {totais.descontoTotal > 0 && (
-                      <View style={styles.totalStudioLine}>
-                        <Text style={[styles.totalStudioLineLabel, { color: '#708018', fontWeight: '700' }]}>
-                          Descontos concedidos
-                        </Text>
-                        <Text style={[styles.totalStudioLineValue, { color: '#708018', fontWeight: '700' }]}>
+                      <View style={styles.totalLine}>
+                        <Text style={[styles.totalLabel, { color: '#708018', fontWeight: '700' }]}>Descontos</Text>
+                        <Text style={[styles.totalVal, { color: '#708018', fontWeight: '700' }]}>
                           - R$ {totais.descontoTotal.toFixed(2)}
                         </Text>
                       </View>
                     )}
 
-                    <View style={styles.totalStudioDivider} />
+                    <View style={styles.totalDivider} />
 
-                    <View style={styles.totalStudioGrandRow}>
+                    <View style={styles.grandTotalLine}>
                       <View>
-                        <Text style={styles.totalStudioGrandLabel}>TOTAL DO PEDIDO</Text>
-                        <Text style={styles.totalStudioStatusHint}>
-                          {statusPagamento === 'pago' ? '✓ Quitado no caixa' : '⏳ Cobrar na entrega'}
+                        <Text style={styles.grandTotalLabel}>TOTAL DO PEDIDO</Text>
+                        <Text style={styles.grandTotalHint}>
+                          {metodoPagamento === 'pendente' ? '⏳ Pagar na entrega' : `✓ Quitado via ${metodoPagamento.toUpperCase()}`}
                         </Text>
                       </View>
-                      <Text style={styles.totalStudioGrandValue}>
+                      <Text style={styles.grandTotalValue}>
                         R$ {totais.totalFinal.toFixed(2)}
                       </Text>
                     </View>
@@ -1057,22 +935,18 @@ export default function NovoPedidoModal({
                   {/* BOTÃO PRINCIPAL DE FINALIZAÇÃO */}
                   <TouchableOpacity
                     style={[
-                      styles.btnFinalizarStudio,
-                      salvandoPedido && { opacity: 0.7 },
+                      styles.btnFinalizar,
                       carrinho.length === 0 && { backgroundColor: '#CBD5E1' },
                     ]}
                     onPress={handleFinalizarPedido}
                     disabled={salvandoPedido || carrinho.length === 0}
                     activeOpacity={0.85}>
                     {salvandoPedido ? (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <ActivityIndicator size="small" color="#FFFFFF" />
-                        <Text style={styles.btnFinalizarStudioText}>Registrando pedido...</Text>
-                      </View>
+                      <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <Feather name="check-circle" size={17} color="#FFFFFF" />
-                        <Text style={styles.btnFinalizarStudioText}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Feather name="check-circle" size={15} color="#FFFFFF" />
+                        <Text style={styles.btnFinalizarText}>
                           Finalizar Pedido • R$ {totais.totalFinal.toFixed(2)}
                         </Text>
                       </View>
@@ -1092,7 +966,7 @@ export default function NovoPedidoModal({
 }
 
 // ============================================================================
-// FOLHA DE ESTILOS MODERNA (POINT OF SALE STUDIO • 2 COLUNAS)
+// FOLHA DE ESTILOS MODERNA (COMPACTA, RESPONSIVA E DE ALTA FIDELIDADE)
 // ============================================================================
 
 const styles = StyleSheet.create({
@@ -1101,7 +975,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
+    padding: 12,
     zIndex: 1000,
     ...Platform.select({
       web: {
@@ -1111,375 +985,192 @@ const styles = StyleSheet.create({
   },
   posContainer: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    borderWidth: 1,
+    borderRadius: 20,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
     overflow: 'hidden',
     flexDirection: 'column',
     ...Platform.select({
       web: {
-        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+        boxShadow: '0 25px 60px -15px rgba(15, 23, 42, 0.25)',
       },
     }),
   },
-  posContainerDesktop: {
+  posDesktop: {
     width: '95%',
     maxWidth: 1080,
     height: '88%',
-    maxHeight: 820,
+    maxHeight: 780,
   },
-  posContainerMobile: {
+  posMobile: {
     width: '100%',
     height: '94%',
   },
 
-  // --------------------------------------------------------------------------
-  // CABEÇALHO DO POS
-  // --------------------------------------------------------------------------
+  // CABEÇALHO DO MODAL
   posHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1.5,
     borderBottomColor: '#F1F5F9',
     backgroundColor: '#FFFFFF',
   },
   posHeaderLeft: {
-    gap: 3,
-  },
-  headerBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#EAF3FA',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    gap: 6,
+    gap: 10,
   },
-  headerPulseDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  posLogoChip: {
     backgroundColor: KipiPalette.icedDenim,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  headerBadgeText: {
+  posLogoChipText: {
     fontSize: 10,
     fontWeight: '800',
-    color: KipiPalette.icedDenim,
-    fontFamily: Fonts.sans,
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  posMainTitle: {
-    fontSize: 18,
+  posTitle: {
+    fontSize: 15,
     fontWeight: '800',
     color: '#0F172A',
     fontFamily: Fonts.sans,
-    letterSpacing: -0.3,
   },
-  mobileTabSwitch: {
+  posSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  mobileTabsSwitch: {
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
     borderRadius: 8,
-    padding: 3,
+    padding: 2,
     gap: 4,
   },
   mobileTabBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: 6,
-    gap: 6,
   },
   mobileTabBtnActive: {
     backgroundColor: KipiPalette.icedDenim,
   },
-  mobileTabText: {
-    fontSize: 12,
+  mobileTabBtnText: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
   },
-  mobileTabTextActive: {
+  mobileTabBtnTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
   closeBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  errorAlertBar: {
+  errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#FEF2F2',
     borderBottomWidth: 1,
     borderBottomColor: '#FECACA',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
   },
-  errorAlertText: {
-    color: '#DC2626',
+  errorBannerText: {
     fontSize: 12,
+    color: '#DC2626',
     fontWeight: '600',
   },
 
-  // --------------------------------------------------------------------------
-  // CORPO EM 2 COLUNAS (SPLIT LAYOUT)
-  // --------------------------------------------------------------------------
-  posBodyLayout: {
+  // CORPO 2 COLUNAS
+  posBody: {
     flex: 1,
     flexDirection: 'row',
     overflow: 'hidden',
   },
 
-  // --------------------------------------------------------------------------
-  // COLUNA ESQUERDA: CATÁLOGO, CLIENTE & ATENDIMENTO (60%)
-  // --------------------------------------------------------------------------
-  catalogColumn: {
-    flex: 0.60,
-    borderRightWidth: 1,
+  // COLUNA ESQUERDA (62%): VITRINE & CONTROLES
+  leftVitrineCol: {
+    flex: 0.62,
+    borderRightWidth: 1.5,
     borderRightColor: '#E2E8F0',
     flexDirection: 'column',
     backgroundColor: '#FFFFFF',
   },
-  topControlsStrip: {
-    padding: 16,
-    borderBottomWidth: 1,
+  commandStrip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1.5,
     borderBottomColor: '#F1F5F9',
     backgroundColor: '#FAFCFE',
-    gap: 12,
-  },
-  clientStripBlock: {
-    gap: 6,
-  },
-  stripLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  stripLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.5,
-  },
-  clientModePills: {
-    flexDirection: 'row',
     gap: 8,
   },
-  clientModePill: {
+  commandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  clientCommandGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
-  clientModePillActive: {
+  modePillsGroup: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    padding: 2,
+    gap: 4,
+  },
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    gap: 5,
+  },
+  modePillActive: {
     backgroundColor: KipiPalette.icedDenim,
   },
-  clientModePillText: {
-    fontSize: 12,
+  modePillText: {
+    fontSize: 11,
     fontWeight: '600',
     color: '#475569',
   },
-  clientModePillTextActive: {
+  modePillTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  clientSearchDrawer: {
-    marginTop: 4,
-  },
-  selectedClientBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  selectedClientBadgeLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  clientAvatarMini: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: KipiPalette.icedDenim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  clientAvatarMiniText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  selectedClientBadgeName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  selectedClientBadgeSub: {
-    fontSize: 10,
-    color: '#64748B',
-  },
-  btnTrocarCliente: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  btnTrocarClienteText: {
-    fontSize: 11,
-    color: KipiPalette.icedDenim,
-    fontWeight: '700',
-  },
-  clientPickerContainer: {
-    position: 'relative',
-    zIndex: 100,
-  },
-  clientSearchInputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 8,
-  },
-  clientSearchInputField: {
-    flex: 1,
-    fontSize: 12,
-    color: '#0F172A',
-    padding: 0,
-    outlineWidth: 0,
-  },
-  btnOpenNewClientForm: {
-    backgroundColor: '#EAF3FA',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  btnOpenNewClientFormText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: KipiPalette.icedDenim,
-  },
-  floatingClientDropdown: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    zIndex: 1000,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
-      },
-    }),
-  },
-  dropdownClientRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-  },
-  dropdownClientRowName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  dropdownClientRowSub: {
-    fontSize: 10,
-    color: '#64748B',
-  },
-  inlineNewClientBox: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    padding: 10,
-    gap: 8,
-  },
-  inlineNewClientHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  inlineNewClientTitle: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: KipiPalette.icedDenim,
-  },
-  inlineInputsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-  },
-  inlineInput: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    fontSize: 11,
-    color: '#0F172A',
-  },
-  btnInlineSaveClient: {
-    backgroundColor: KipiPalette.icedDenim,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  btnInlineSaveClientText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-
-  // TIPO DE ENTREGA
-  deliveryStripBlock: {
-    gap: 6,
-  },
-  deliverySegmentedBar: {
+  deliverySegmentGroup: {
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
     borderRadius: 8,
-    padding: 3,
+    padding: 2,
     gap: 4,
   },
   deliverySegmentBtn: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
     borderRadius: 6,
-    gap: 6,
+    gap: 5,
   },
   deliverySegmentBtnActive: {
     backgroundColor: '#FFFFFF',
@@ -1498,22 +1189,123 @@ const styles = StyleSheet.create({
     color: KipiPalette.icedDenim,
     fontWeight: '700',
   },
-  inlineDeliveryScheduleRow: {
+  secondaryCommandRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 4,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingTop: 4,
   },
-  scheduleItem: {
+  clientInlineSearchWrap: {
+    flex: 1,
+  },
+  clientPickedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  clientPickedName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  clientChangeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: KipiPalette.icedDenim,
+  },
+  quickNewClientRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
   },
-  scheduleLabel: {
+  quickInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    fontSize: 11,
+    color: '#0F172A',
+  },
+  btnQuickSave: {
+    backgroundColor: KipiPalette.icedDenim,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  btnQuickSaveText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  clientSearchMiniField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 6,
+  },
+  clientSearchMiniInput: {
+    flex: 1,
+    fontSize: 11,
+    color: '#0F172A',
+    padding: 0,
+    outlineWidth: 0,
+  },
+  quickAddLinkText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: KipiPalette.icedDenim,
+  },
+  clientFloatingList: {
+    position: 'absolute',
+    top: 32,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 6,
+    zIndex: 999,
+  },
+  clientFloatingItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  clientFloatingName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  clientFloatingPhone: {
+    fontSize: 10,
+    color: '#64748B',
+  },
+  deliveryDateTimeGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  scheduleMiniLabel: {
     fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
   },
-  scheduleInput: {
+  scheduleMiniInput: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#CBD5E1',
@@ -1522,373 +1314,335 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     fontSize: 11,
     color: '#0F172A',
+    width: 85,
   },
 
-  // FILTROS DO CATÁLOGO (SEARCH + CATEGORIES)
-  catalogFilterBar: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
-    gap: 8,
-  },
-  productSearchBox: {
+  // LINHA DE BUSCA DE PRODUTO + CATEGORIAS
+  filterBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
     gap: 8,
   },
-  productSearchField: {
+  searchProductCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    width: 170,
+    gap: 6,
+  },
+  searchProductCompactInput: {
     flex: 1,
-    fontSize: 12,
+    fontSize: 11,
     color: '#0F172A',
     padding: 0,
     outlineWidth: 0,
   },
-  categoryPillsRow: {
+  catPillsContainer: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 5,
   },
-  catPillBtn: {
-    paddingHorizontal: 10,
+  catChip: {
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: '#F1F5F9',
   },
-  catPillBtnActive: {
+  catChipActive: {
     backgroundColor: KipiPalette.icedDenim,
   },
-  catPillBtnText: {
+  catChipText: {
     fontSize: 11,
     fontWeight: '600',
     color: '#64748B',
   },
-  catPillBtnTextActive: {
+  catChipTextActive: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
 
-  // VITRINE GRID DE PRODUTOS
-  productsScrollArea: {
+  // VITRINE GRID DE CARDS COMPACTOS (MENOS SCROLL!)
+  vitrineScroll: {
     flex: 1,
   },
-  productsGridContent: {
-    padding: 14,
+  vitrineGrid: {
+    padding: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
-  catalogLoadingBox: {
+  loadingBox: {
     width: '100%',
     padding: 40,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
   },
-  catalogLoadingText: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  catalogEmptyBox: {
+  emptyBox: {
     width: '100%',
     padding: 30,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
   },
-  catalogEmptyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  catalogEmptySub: {
+  emptyText: {
     fontSize: 12,
     color: '#64748B',
-    textAlign: 'center',
   },
-  productStudioCard: {
-    width: '48.5%',
+  compactProdTile: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    padding: 12,
-    gap: 6,
+    padding: 9,
+    gap: 4,
     justifyContent: 'space-between',
-    ...Platform.select({
-      web: {
-        transition: 'all 0.15s ease',
-      },
-    }),
+    minHeight: 74,
   },
-  productStudioCardSelected: {
+  compactProdTile3Col: {
+    width: '31.8%',
+  },
+  compactProdTile2Col: {
+    width: '48.5%',
+  },
+  compactProdTileInCart: {
     borderColor: KipiPalette.icedDenim,
     backgroundColor: '#F9FCFF',
   },
-  productStudioCardDisabled: {
-    opacity: 0.5,
+  compactProdTileDisabled: {
+    opacity: 0.45,
   },
-  prodCardTopRow: {
+  tileHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  prodCatBadge: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  prodCatBadgeText: {
-    fontSize: 10,
+  tileCatTag: {
+    fontSize: 9,
     fontWeight: '600',
     color: '#64748B',
+    flex: 1,
   },
-  stockBadgeGreen: {
+  tileStockBadgeGreen: {
     backgroundColor: '#DCFCE7',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 4,
   },
-  stockBadgeGreenText: {
-    fontSize: 9,
+  tileStockTextGreen: {
+    fontSize: 8,
     fontWeight: '700',
     color: '#16A34A',
   },
-  stockBadgeBlue: {
+  tileStockBadgeBlue: {
     backgroundColor: '#E0F2FE',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 4,
   },
-  stockBadgeBlueText: {
-    fontSize: 9,
+  tileStockTextBlue: {
+    fontSize: 8,
     fontWeight: '700',
     color: '#0284C7',
   },
-  stockBadgeRed: {
+  tileStockBadgeRed: {
     backgroundColor: '#FEE2E2',
-    paddingHorizontal: 5,
+    paddingHorizontal: 4,
     paddingVertical: 1,
     borderRadius: 4,
   },
-  stockBadgeRedText: {
-    fontSize: 9,
+  tileStockTextRed: {
+    fontSize: 8,
     fontWeight: '700',
     color: '#DC2626',
   },
-  prodCardName: {
-    fontSize: 13,
+  tileTitle: {
+    fontSize: 12,
     fontWeight: '700',
     color: '#0F172A',
     fontFamily: Fonts.sans,
-    lineHeight: 17,
+    lineHeight: 15,
   },
-  prodCardBottomRow: {
+  tileFooterRow: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 2,
   },
-  prodPriceLabel: {
-    fontSize: 9,
-    color: '#94A3B8',
-    fontWeight: '600',
-  },
-  prodCardPrice: {
-    fontSize: 14,
+  tilePrice: {
+    fontSize: 12,
     fontWeight: '800',
     color: KipiPalette.icedDenim,
     fontFamily: Fonts.sans,
   },
-  quickAddCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+  tileCartBadge: {
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  tileCartBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#16A34A',
+  },
+  tileAddPlus: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: KipiPalette.icedDenim,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  inCartCountBadge: {
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  inCartCountText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#16A34A',
-  },
 
-  // --------------------------------------------------------------------------
-  // COLUNA DIREITA: COMANDA & FECHAMENTO (40%)
-  // --------------------------------------------------------------------------
-  orderSummaryColumn: {
-    flex: 0.40,
+  // COLUNA DIREITA (38%): COMANDA & FECHAMENTO
+  rightComandaCol: {
+    flex: 0.38,
     flexDirection: 'column',
     backgroundColor: '#F8FAFC',
   },
-  cartColumnHeader: {
+  comandaHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1.5,
     borderBottomColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
   },
-  cartTitleRow: {
+  comandaTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  cartMainTitle: {
-    fontSize: 14,
+  comandaTitle: {
+    fontSize: 13,
     fontWeight: '800',
     color: '#0F172A',
     fontFamily: Fonts.sans,
   },
-  cartCountBadge: {
+  comandaCountBadge: {
     backgroundColor: '#EAF3FA',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 8,
   },
-  cartCountBadgeText: {
-    fontSize: 11,
+  comandaCountText: {
+    fontSize: 10,
     fontWeight: '800',
     color: KipiPalette.icedDenim,
   },
-  btnClearCartText: {
+  comandaClearText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#DC2626',
   },
-  cartItemsScrollArea: {
+  comandaScroll: {
     flex: 1,
   },
-  cartItemsContent: {
-    padding: 12,
-    gap: 8,
+  comandaItemsContent: {
+    padding: 10,
+    gap: 6,
   },
-  emptyCartStudioBox: {
-    padding: 30,
+  emptyComandaBox: {
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
   },
-  emptyCartIconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyCartStudioTitle: {
-    fontSize: 14,
+  emptyComandaTitle: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
-  emptyCartStudioSub: {
+  emptyComandaSub: {
     fontSize: 11,
     color: '#64748B',
     textAlign: 'center',
-    lineHeight: 16,
   },
-  cartItemStudioCard: {
+  cartCardCompact: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    padding: 10,
-    gap: 8,
+    padding: 8,
+    gap: 6,
   },
-  cartItemStudioTop: {
+  cartCardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  cartItemStudioName: {
-    fontSize: 12,
+  cartCardName: {
+    fontSize: 11,
     fontWeight: '700',
     color: '#0F172A',
   },
-  cartItemStudioCat: {
-    fontSize: 10,
+  cartCardSub: {
+    fontSize: 9,
     color: '#64748B',
-    marginTop: 1,
   },
-  btnRemoveItem: {
-    padding: 2,
-  },
-  cartItemStudioControls: {
+  cartCardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  stepperBox: {
+  miniStepper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
-    borderRadius: 6,
+    borderRadius: 5,
   },
-  stepperBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  miniStepperBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
-  stepperValue: {
-    fontSize: 12,
+  miniStepperValue: {
+    fontSize: 11,
     fontWeight: '800',
     color: '#0F172A',
-    minWidth: 18,
+    minWidth: 16,
     textAlign: 'center',
   },
-  btnDescontoItem: {
+  btnMiniDesconto: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    gap: 3,
   },
-  btnDescontoItemActive: {
+  btnMiniDescontoActive: {
     backgroundColor: '#F1F6D8',
     borderColor: '#B9C255',
     borderWidth: 1,
   },
-  btnDescontoItemText: {
-    fontSize: 10,
+  btnMiniDescontoText: {
+    fontSize: 9,
     fontWeight: '600',
     color: '#64748B',
   },
-  btnDescontoItemTextActive: {
+  btnMiniDescontoTextActive: {
     color: '#708018',
     fontWeight: '700',
   },
-  cartItemTotal: {
-    fontSize: 13,
+  cartCardItemTotal: {
+    fontSize: 12,
     fontWeight: '800',
     color: '#0F172A',
   },
 
-  // PAINEL INFERIOR DE FECHAMENTO
-  checkoutFooterPanel: {
+  // FOOTER DA COMANDA
+  comandaFooter: {
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
+    borderTopWidth: 1.5,
     borderTopColor: '#E2E8F0',
-    padding: 14,
-    gap: 10,
+    padding: 12,
+    gap: 8,
   },
-  notesCompactBox: {
+  obsFieldRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F8FAFC',
@@ -1896,21 +1650,23 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 6,
     paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingVertical: 4,
     gap: 6,
   },
-  notesCompactInput: {
+  obsInputField: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 10,
     color: '#0F172A',
     padding: 0,
     outlineWidth: 0,
   },
-  paymentSelectorRow: {
+
+  // PAGAMENTO EM 4 PILAS SIMPLIFICADAS
+  payMethodsGrid: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
   },
-  payPillBtn: {
+  payPill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1920,116 +1676,87 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     gap: 4,
   },
-  payPillBtnActive: {
-    backgroundColor: '#EAF3FA',
-    borderWidth: 1,
-    borderColor: KipiPalette.icedDenim,
+  payPillActive: {
+    backgroundColor: KipiPalette.icedDenim,
+  },
+  payPillPendenteActive: {
+    backgroundColor: '#DC2626',
   },
   payPillText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
     color: '#64748B',
   },
   payPillTextActive: {
-    color: KipiPalette.icedDenim,
-    fontWeight: '700',
-  },
-  payStatusToggleRow: {
-    flexDirection: 'row',
-    gap: 6,
-  },
-  payStatusBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 6,
-    borderRadius: 6,
-    gap: 4,
-  },
-  payStatusBtnPaid: {
-    backgroundColor: '#16A34A',
-  },
-  payStatusBtnPending: {
-    backgroundColor: '#DC2626',
-  },
-  payStatusBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  payStatusBtnTextPaid: {
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  payStatusBtnTextPending: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  totalsStudioBox: {
+
+  // RESUMO DE TOTAIS
+  totalsStrip: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    padding: 10,
-    gap: 4,
+    padding: 8,
+    gap: 2,
   },
-  totalStudioLine: {
+  totalLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  totalStudioLineLabel: {
-    fontSize: 11,
+  totalLabel: {
+    fontSize: 10,
     color: '#64748B',
   },
-  totalStudioLineValue: {
-    fontSize: 11,
+  totalVal: {
+    fontSize: 10,
     fontWeight: '600',
     color: '#0F172A',
   },
-  totalStudioDivider: {
+  totalDivider: {
     height: 1,
     backgroundColor: '#E2E8F0',
     marginVertical: 2,
   },
-  totalStudioGrandRow: {
+  grandTotalLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 2,
   },
-  totalStudioGrandLabel: {
-    fontSize: 11,
+  grandTotalLabel: {
+    fontSize: 10,
     fontWeight: '800',
     color: '#0F172A',
   },
-  totalStudioStatusHint: {
-    fontSize: 10,
+  grandTotalHint: {
+    fontSize: 9,
     color: '#64748B',
   },
-  totalStudioGrandValue: {
-    fontSize: 18,
+  grandTotalValue: {
+    fontSize: 16,
     fontWeight: '800',
     color: KipiPalette.icedDenim,
     fontFamily: Fonts.sans,
   },
-  btnFinalizarStudio: {
+
+  // BOTÃO FINALIZAR
+  btnFinalizar: {
     backgroundColor: KipiPalette.icedDenim,
-    borderRadius: 10,
-    paddingVertical: 11,
+    borderRadius: 8,
+    paddingVertical: 10,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       web: {
-        boxShadow: '0 4px 14px rgba(87, 152, 215, 0.35)',
+        boxShadow: '0 3px 10px rgba(87, 152, 215, 0.3)',
       },
     }),
   },
-  btnFinalizarStudioText: {
+  btnFinalizarText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: Fonts.sans,
   },
 });
