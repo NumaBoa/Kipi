@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
 import NovoPedidoModal from '@/components/NovoPedidoModal';
+import Sidebar from '@/components/Sidebar';
 
 type Periodo = 'hoje' | 'semana' | 'mes' | 'personalizar';
 
@@ -863,117 +864,12 @@ export default function VisaoGeralScreen() {
       <View style={styles.mainLayout}>
 
         {/* =========================================================================
-            MENU LATERAL (EXPANSÍVEL NO HOVER + FIXAÇÃO COM PIN + ÍCONE COMPACTO REDONDO/QUADRADINHO)
+            MENU LATERAL MODULAR E ORGANIZADO POR GRUPOS
         ========================================================================== */}
-        <View
-          style={[
-            styles.sidebar,
-            menuExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed,
-          ]}
-          // @ts-ignore (propriedades web para hover)
-          onMouseEnter={() => !menuPinned && setMenuHovered(true)}
-          onMouseLeave={() => !menuPinned && setMenuHovered(false)}>
-
-          {/* TOPO DO MENU COM LOGO KIPI */}
-          <View style={styles.sidebarHeader}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoBadgeLetter}>K</Text>
-            </View>
-            {menuExpanded && (
-              <View style={styles.brandInfo}>
-                <View style={styles.brandTitleRow}>
-                  <Text style={styles.brandTitle}>Kipi</Text>
-                  <View style={styles.saasTag}>
-                    <Text style={styles.saasTagText}>ATELIÊ</Text>
-                  </View>
-                </View>
-                <Text style={styles.brandSubtitle}>Gestão de Alta Confeitaria</Text>
-              </View>
-            )}
-          </View>
-
-          {/* LISTA DE NAVEGAÇÃO */}
-          <ScrollView
-            style={styles.sidebarNav}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sidebarNavContent}>
-            {navItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.navItem,
-                  !menuExpanded && styles.navItemCollapsed,
-                  item.active && styles.navItemActive,
-                  item.active && !menuExpanded && styles.navItemActiveCollapsed,
-                ]}
-                activeOpacity={0.75}
-                onPress={() => {
-                  if (item.route && item.route !== '/visao-geral') {
-                    router.push(item.route as any);
-                  }
-                }}>
-                <Feather
-                  name={item.icon as any}
-                  size={19}
-                  color={item.active ? '#FFFFFF' : '#64748B'}
-                />
-                {menuExpanded && (
-                  <Text
-                    style={[
-                      styles.navItemText,
-                      item.active && styles.navItemTextActive,
-                    ]}>
-                    {item.label}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* RODAPÉ DO MENU */}
-          <View style={styles.sidebarFooter}>
-            {isDesktop && (
-              <TouchableOpacity
-                style={[
-                  styles.pinBtn,
-                  menuPinned && styles.pinBtnActive,
-                  !menuExpanded && styles.pinBtnCollapsed,
-                ]}
-                onPress={() => setMenuPinned(!menuPinned)}
-                activeOpacity={0.7}>
-                <Feather
-                  name={menuPinned ? 'lock' : 'unlock'}
-                  size={15}
-                  color={menuPinned ? KipiPalette.icedDenim : '#94A3B8'}
-                />
-                {menuExpanded && (
-                  <Text style={styles.pinBtnText}>
-                    {menuPinned ? 'Menu fixado' : 'Fixar menu'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
-
-            <View style={[styles.userMiniCard, !menuExpanded && styles.userMiniCardCollapsed]}>
-              <View style={styles.userMiniAvatar}>
-                <Text style={styles.userMiniAvatarLetter}>C</Text>
-              </View>
-              {menuExpanded && (
-                <View style={styles.userMiniInfo}>
-                  <Text style={styles.userMiniName} numberOfLines={1}>{usuario.nome}</Text>
-                  <Text style={styles.userMiniRole}>{usuario.papel}</Text>
-                </View>
-              )}
-              {menuExpanded && (
-                <TouchableOpacity
-                  onPress={() => router.replace('/')}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Feather name="log-out" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
+        <Sidebar
+          activeRoute="/visao-geral"
+          onNotice={(msg) => setToastSucesso(msg)}
+        />
 
         {/* =========================================================================
             ÁREA DE CONTEÚDO PRINCIPAL (DASHBOARD)

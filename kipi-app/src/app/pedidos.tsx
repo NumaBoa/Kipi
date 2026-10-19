@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
 import NovoPedidoModal from '@/components/NovoPedidoModal';
+import Sidebar from '@/components/Sidebar';
 
 // ============================================================================
 // TIPOS E MODELOS
@@ -740,118 +741,12 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
       <View style={styles.mainLayout}>
 
         {/* =========================================================================
-            MENU LATERAL (IDÊNTICO À TELA DE VISÃO GERAL)
+            MENU LATERAL MODULAR E ORGANIZADO POR GRUPOS
         ========================================================================== */}
-        <View
-          style={[
-            styles.sidebar,
-            menuExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed,
-          ]}
-          // @ts-ignore
-          onMouseEnter={() => !menuPinned && setMenuHovered(true)}
-          // @ts-ignore
-          onMouseLeave={() => !menuPinned && setMenuHovered(false)}>
-
-          {/* TOPO COM LOGO KIPI */}
-          <View style={styles.sidebarHeader}>
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoBadgeLetter}>K</Text>
-            </View>
-            {menuExpanded && (
-              <View style={styles.brandInfo}>
-                <View style={styles.brandTitleRow}>
-                  <Text style={styles.brandTitle}>Kipi</Text>
-                  <View style={styles.saasTag}>
-                    <Text style={styles.saasTagText}>ATELIÊ</Text>
-                  </View>
-                </View>
-                <Text style={styles.brandSubtitle}>Gestão de Alta Confeitaria</Text>
-              </View>
-            )}
-          </View>
-
-          {/* LISTA DE NAVEGAÇÃO */}
-          <ScrollView
-            style={styles.sidebarNav}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.sidebarNavContent}>
-            {navItems.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.navItem,
-                  !menuExpanded && styles.navItemCollapsed,
-                  item.active && styles.navItemActive,
-                  item.active && !menuExpanded && styles.navItemActiveCollapsed,
-                ]}
-                activeOpacity={0.75}
-                onPress={() => {
-                  if (item.route && item.route !== '/pedidos') {
-                    router.push(item.route as any);
-                  }
-                }}>
-                <Feather
-                  name={item.icon as any}
-                  size={19}
-                  color={item.active ? '#FFFFFF' : '#64748B'}
-                />
-                {menuExpanded && (
-                  <Text
-                    style={[
-                      styles.navItemText,
-                      item.active && styles.navItemTextActive,
-                    ]}>
-                    {item.label}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* RODAPÉ DO MENU */}
-          <View style={styles.sidebarFooter}>
-            {isDesktop && (
-              <TouchableOpacity
-                style={[
-                  styles.pinBtn,
-                  menuPinned && styles.pinBtnActive,
-                  !menuExpanded && styles.pinBtnCollapsed,
-                ]}
-                onPress={() => setMenuPinned(!menuPinned)}
-                activeOpacity={0.7}>
-                <Feather
-                  name={menuPinned ? 'lock' : 'unlock'}
-                  size={15}
-                  color={menuPinned ? KipiPalette.icedDenim : '#94A3B8'}
-                />
-                {menuExpanded && (
-                  <Text style={styles.pinBtnText}>
-                    {menuPinned ? 'Menu fixado' : 'Fixar menu'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            )}
-
-            <View style={[styles.userMiniCard, !menuExpanded && styles.userMiniCardCollapsed]}>
-              <View style={styles.userMiniAvatar}>
-                <Text style={styles.userMiniAvatarLetter}>C</Text>
-              </View>
-              {menuExpanded && (
-                <View style={styles.userMiniInfo}>
-                  <Text style={styles.userMiniName} numberOfLines={1}>{usuario.nome}</Text>
-                  <Text style={styles.userMiniRole}>{usuario.papel}</Text>
-                </View>
-              )}
-              {menuExpanded && (
-                <TouchableOpacity
-                  onPress={() => router.replace('/')}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                  <Feather name="log-out" size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
+        <Sidebar
+          activeRoute="/pedidos"
+          onNotice={(msg) => exibirToast(msg)}
+        />
 
         {/* =========================================================================
             ÁREA DE CONTEÚDO PRINCIPAL (DASHBOARD COM OS MESMOS COMPONENTES)
