@@ -5,6 +5,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   StyleSheet,
   Platform,
   useWindowDimensions,
@@ -148,9 +149,12 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
   const { menuPinned, menuHovered } = useEstadoMenu();
   const setMenuHovered = (v: boolean) => atualizarMenu({ menuHovered: v });
   const setMenuPinned = (v: boolean) => atualizarMenu({ menuPinned: v });
-  const menuExpanded = isDesktop ? (menuPinned || menuHovered) : false;
+  // Celular: o menu fica escondido atrás de um botão e abre por cima da tela
+  const [gavetaAberta, setGavetaAberta] = useState(false);
+  const menuExpanded = isDesktop ? (menuPinned || menuHovered) : gavetaAberta;
 
   const handleItemPress = (item: MenuItem) => {
+    setGavetaAberta(false);
     if (item.isDeveloped && item.route) {
       if (item.route !== activeRoute) {
         router.push(item.route as any);
@@ -166,17 +170,26 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
   const entrar = () => isDesktop && !menuPinned && !menuHovered && setMenuHovered(true);
   const sair = () => isDesktop && menuHovered && setMenuHovered(false);
 
-  if (!isDesktop) return <View style={styles.sidebarMobileHidden} />;
+  if (!isDesktop && !gavetaAberta) {
+    return (
+      <TouchableOpacity style={styles.botaoMenuCelular} onPress={() => setGavetaAberta(true)} activeOpacity={0.85}>
+        <Feather name="menu" size={20} color="#FFFFFF" />
+      </TouchableOpacity>
+    );
+  }
 
   return (
     // Fixado: o menu ocupa 240px na tela. Solto: ocupa só a faixa de ícones e abre por cima do conteúdo.
-    <View style={[styles.sidebarSlot, menuPinned ? styles.sidebarExpanded : styles.sidebarCollapsed]}>
+    // Celular: gaveta por cima de tudo, com fundo escuro que fecha ao tocar.
+    <View style={isDesktop ? [styles.sidebarSlot, menuPinned ? styles.sidebarExpanded : styles.sidebarCollapsed] : styles.gavetaFundo}>
+    {!isDesktop && <Pressable style={StyleSheet.absoluteFill} onPress={() => setGavetaAberta(false)} />}
     <View
       style={[
         styles.sidebar,
         styles.sidebarFlutuante,
         menuExpanded ? styles.sidebarExpanded : styles.sidebarCollapsed,
         !menuPinned && menuHovered && styles.sidebarSobreposto,
+        !isDesktop && styles.sidebarSobreposto,
       ]}
       // @ts-ignore — eventos de mouse do react-native-web
       onMouseEnter={entrar}
@@ -296,6 +309,7 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
                   style={[styles.areaBtn, atual && styles.areaBtnAtual]}
                   disabled={atual}
                   onPress={async () => {
+                    setGavetaAberta(false);
                     await trocarArea(i);
                     router.replace(ROTAS_DO_PERFIL[a.perfil].inicio as any);
                   }}>
@@ -375,8 +389,30 @@ const styles = StyleSheet.create({
   sidebarCollapsed: {
     width: 72,
   },
-  sidebarMobileHidden: {
-    display: 'none',
+  botaoMenuCelular: {
+    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as any,
+    right: 16,
+    bottom: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 9000,
+    ...Platform.select({
+      web: { boxShadow: '0 6px 18px rgba(15, 23, 42, 0.25)' },
+      default: { elevation: 6 },
+    }),
+  },
+  gavetaFundo: {
+    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    zIndex: 9000,
   },
 
   // HEADER LOGO
