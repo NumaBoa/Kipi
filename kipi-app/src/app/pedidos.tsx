@@ -205,7 +205,7 @@ export default function PedidosScreen() {
 
       // Vendedor
       if (filtroVendedor !== 'todos') {
-        if (!p.vendedor.toLowerCase().includes(filtroVendedor.toLowerCase())) return false;
+        if (p.vendedor !== filtroVendedor) return false;
       }
 
       // Período
@@ -551,12 +551,12 @@ export default function PedidosScreen() {
                         <View>
                           <Text style={styles.filtrosGrupoLabel}>VENDEDOR</Text>
                           <View style={styles.mdChips}>
+                            {/* Só quem de fato tem pedido registrado */}
                             {[
                               { id: 'todos', label: 'Todos' },
-                              { id: 'Camila Lima', label: 'Camila Lima' },
-                              { id: 'Juliana Carvalho', label: 'Juliana Carvalho' },
-                              { id: 'Sofia Ramos', label: 'Sofia Ramos' },
-                              { id: 'Café & Flor', label: 'Café & Flor' },
+                              ...[...new Set(pedidos.filter((p) => !p.deletado).map((p) => p.vendedor))]
+                                .sort((a, b) => a.localeCompare(b, 'pt-BR'))
+                                .map((nome) => ({ id: nome, label: nome })),
                             ].map((v) => {
                               const ativo = filtroVendedor === v.id;
                               return (
