@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -13,8 +13,38 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
+import {
+  useInsumos,
+  salvarInsumo,
+  ajustarEstoqueInsumo,
+  custoPorUnidadeEstoque,
+  fatorDaUnidade,
+  unidadeFracionadaDe,
+  useFichas,
+  calcularFicha,
+  margemReal,
+  definirHoraTrabalhada,
+  MARGEM_MINIMA,
+  type Insumo,
+} from '@/lib/insumos';
+import { useEstoqueVitrine } from '@/lib/estoqueVitrine';
+import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
+import FichaTecnicaModal from '@/components/FichaTecnicaModal';
+
+const EMOJI_CATEGORIA: Record<string, string> = {
+  Cookies: '🍪',
+  'Bolos & Bentos': '🎂',
+  Macarons: '✨',
+  'Doces Finos': '🍬',
+  Folhados: '🥐',
+  Sobremesas: '🥧',
+  Bebidas: '☕',
+  Presentes: '🎁',
+};
+
+// Insumos vêm da lista única compartilhada (Estoque Central, Produção, Produtos e Visão Geral)
+export type InsumoItem = Insumo;
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (AZUL DO SISTEMA KIPI / ATELIÊ)
@@ -36,344 +66,6 @@ export type TipoInsumoFilter = 'todos' | 'ingrediente' | 'embalagem';
 export type StatusFilter = 'todos' | 'ativos' | 'inativos';
 export type ArmazenamentoFilter = 'todos' | 'seco' | 'refrigerado' | 'congelado' | 'perecivel' | 'in_natura';
 export type NivelEstoqueFilter = 'todos' | 'critico' | 'seguro';
-
-// ============================================================================
-// TIPOS DE DADOS
-// ============================================================================
-export interface InsumoItem {
-  id: string;
-  nome: string;
-  tipo: 'ingrediente' | 'embalagem';
-  unidade: string;
-  precoPago: number; // Preço pago na compra da embalagem/unidade
-  conteudoEmbalagem: number; // ex: 1000g, 50 unidades por pacote
-  unidadeFracionada: string; // g, ml, un
-  custoUnitario: number; // Custo por g, ml ou un
-  quantidadeEstoque: number;
-  estoqueMinimo: number;
-  armazenamento: 'seco' | 'refrigerado' | 'congelado' | 'perecivel' | 'in_natura';
-  marcaFornecedor?: string;
-  status: 'ativo' | 'inativo';
-  emoji: string;
-  receitasOndeUsado?: string[];
-  ultimaCompra?: string;
-}
-
-export interface ReceitaItem {
-  id: string;
-  nome: string;
-  categoria: string;
-  rendimento: number;
-  rendimentoUnidade: string;
-  custoIngredientes: number;
-  custoEmbalagens: number;
-  custoMaoObra: number;
-  custoTotal: number;
-  custoUnitario: number;
-  precoVendaSugerido: number;
-  margemLucroPercentual: number;
-  emoji: string;
-  ingredientesCount: number;
-  tempoPreparoMinutos: number;
-}
-
-// ============================================================================
-// DADOS INICIAIS ENRIQUECIDOS (CONFEITARIA / PANIFICAÇÃO FINA)
-// ============================================================================
-const INSUMOS_INICIAIS: InsumoItem[] = [
-  // --- INGREDIENTES ---
-  {
-    id: 'ins-1',
-    nome: 'Chocolate Belga Callebaut 54%',
-    tipo: 'ingrediente',
-    unidade: 'kg',
-    precoPago: 189.90,
-    conteudoEmbalagem: 2.5, // pacote de 2.5kg
-    unidadeFracionada: 'g',
-    custoUnitario: 0.07596, // R$ 0,076 por g
-    quantidadeEstoque: 4.8,
-    estoqueMinimo: 2.0,
-    armazenamento: 'seco',
-    marcaFornecedor: 'Callebaut Barry',
-    status: 'ativo',
-    emoji: '🍫',
-    receitasOndeUsado: ['Cookie Black Belga', 'Brigadeiro Belga 54%', 'Brownie Tradicional'],
-    ultimaCompra: '14/10/2026',
-  },
-  {
-    id: 'ins-2',
-    nome: 'Farinha de Trigo Especial Tipo 1',
-    tipo: 'ingrediente',
-    unidade: 'kg',
-    precoPago: 32.50,
-    conteudoEmbalagem: 5, // fardo 5kg
-    unidadeFracionada: 'g',
-    custoUnitario: 0.0065, // R$ 0,0065 por g
-    quantidadeEstoque: 18.0,
-    estoqueMinimo: 10.0,
-    armazenamento: 'seco',
-    marcaFornecedor: 'Moinho Anaconda',
-    status: 'ativo',
-    emoji: '🌾',
-    receitasOndeUsado: ['Massa Cookie Base', 'Bolo Red Velvet', 'Bolo de Cenoura Fofo'],
-    ultimaCompra: '16/10/2026',
-  },
-  {
-    id: 'ins-3',
-    nome: 'Manteiga Extra sem Sal 82% Lipídios',
-    tipo: 'ingrediente',
-    unidade: 'kg',
-    precoPago: 48.90,
-    conteudoEmbalagem: 1, // barra 1kg
-    unidadeFracionada: 'g',
-    custoUnitario: 0.0489,
-    quantidadeEstoque: 1.2,
-    estoqueMinimo: 2.5, // EM ALERTA!
-    armazenamento: 'refrigerado',
-    marcaFornecedor: 'President / Scala',
-    status: 'ativo',
-    emoji: '🧈',
-    receitasOndeUsado: ['Cookies Artesanais', 'Massa Folhada', 'Buttercream Suíço'],
-    ultimaCompra: '10/10/2026',
-  },
-  {
-    id: 'ins-4',
-    nome: 'Pasta Pura de Pistache Siciliano',
-    tipo: 'ingrediente',
-    unidade: 'pote',
-    precoPago: 145.00,
-    conteudoEmbalagem: 1000, // 1000g
-    unidadeFracionada: 'g',
-    custoUnitario: 0.145,
-    quantidadeEstoque: 0.85,
-    estoqueMinimo: 0.5,
-    armazenamento: 'refrigerado',
-    marcaFornecedor: 'Fabbri 1905',
-    status: 'ativo',
-    emoji: '🥜',
-    receitasOndeUsado: ['Brigadeiro Pistache Sublime', 'Macarons de Pistache', 'Bento Cake Pistache'],
-    ultimaCompra: '05/10/2026',
-  },
-  {
-    id: 'ins-5',
-    nome: 'Leite Condensado Moça Integral',
-    tipo: 'ingrediente',
-    unidade: 'lata',
-    precoPago: 8.90,
-    conteudoEmbalagem: 395, // 395g
-    unidadeFracionada: 'g',
-    custoUnitario: 0.0225,
-    quantidadeEstoque: 24,
-    estoqueMinimo: 12,
-    armazenamento: 'seco',
-    marcaFornecedor: 'Nestlé Professional',
-    status: 'ativo',
-    emoji: '🥛',
-    receitasOndeUsado: ['Brigadeiros Gourmet', 'Recheio Ninho', 'Caramelo Salgado'],
-    ultimaCompra: '17/10/2026',
-  },
-  {
-    id: 'ins-6',
-    nome: 'Frutas Vermelhas Frescas (Framboesa & Mirtilo)',
-    tipo: 'ingrediente',
-    unidade: 'kg',
-    precoPago: 68.00,
-    conteudoEmbalagem: 1, // 1kg
-    unidadeFracionada: 'g',
-    custoUnitario: 0.068,
-    quantidadeEstoque: 0.4,
-    estoqueMinimo: 0.8, // EM ALERTA!
-    armazenamento: 'in_natura',
-    marcaFornecedor: 'Hortifrúti da Serra',
-    status: 'ativo',
-    emoji: '🍓',
-    receitasOndeUsado: ['Geleia Artesanal de Frutas', 'Decoração Bentô Cakes'],
-    ultimaCompra: '18/10/2026',
-  },
-  {
-    id: 'ins-7',
-    nome: 'Polpa de Morango Natural Congelada',
-    tipo: 'ingrediente',
-    unidade: 'kg',
-    precoPago: 28.00,
-    conteudoEmbalagem: 1, // 1kg
-    unidadeFracionada: 'g',
-    custoUnitario: 0.028,
-    quantidadeEstoque: 3.0,
-    estoqueMinimo: 1.0,
-    armazenamento: 'congelado',
-    marcaFornecedor: 'Brasfrut',
-    status: 'ativo',
-    emoji: '🧊',
-    receitasOndeUsado: ['Coulis de Morango', 'Recheio Sensação'],
-    ultimaCompra: '12/10/2026',
-  },
-  {
-    id: 'ins-8',
-    nome: 'Creme de Leite Fresco 35% Gordura',
-    tipo: 'ingrediente',
-    unidade: 'L',
-    precoPago: 26.90,
-    conteudoEmbalagem: 1000, // 1000ml
-    unidadeFracionada: 'ml',
-    custoUnitario: 0.0269,
-    quantidadeEstoque: 1.5,
-    estoqueMinimo: 2.0, // ALERTA
-    armazenamento: 'perecivel',
-    marcaFornecedor: 'Verde Campo / Tirolez',
-    status: 'ativo',
-    emoji: '🍶',
-    receitasOndeUsado: ['Chantilly Francês', 'Ganache Cremosa', 'Caramelo Toffee'],
-    ultimaCompra: '18/10/2026',
-  },
-
-  // --- EMBALAGENS ---
-  {
-    id: 'ins-9',
-    nome: 'Caixa Cookie Kraft c/ Visor Acetato (6 un)',
-    tipo: 'embalagem',
-    unidade: 'pacote',
-    precoPago: 64.90,
-    conteudoEmbalagem: 50, // 50 unidades no pacote
-    unidadeFracionada: 'un',
-    custoUnitario: 1.298, // R$ 1,30 por unidade
-    quantidadeEstoque: 120,
-    estoqueMinimo: 30,
-    armazenamento: 'seco',
-    marcaFornecedor: 'Cromus Embalagens',
-    status: 'ativo',
-    emoji: '📦',
-    receitasOndeUsado: ['Caixa 6 Cookies Degustação', 'Combo Presente Especial'],
-    ultimaCompra: '08/10/2026',
-  },
-  {
-    id: 'ins-10',
-    nome: 'Fita de Cetim Dourada Champagne 15mm',
-    tipo: 'embalagem',
-    unidade: 'rolo',
-    precoPago: 19.90,
-    conteudoEmbalagem: 50, // 50 metros por rolo
-    unidadeFracionada: 'm',
-    custoUnitario: 0.398, // R$ 0,40 por metro
-    quantidadeEstoque: 2.5,
-    estoqueMinimo: 1.0,
-    armazenamento: 'seco',
-    marcaFornecedor: 'Progresso Fitas',
-    status: 'ativo',
-    emoji: '🎀',
-    receitasOndeUsado: ['Laços para Caixas Presente', 'Finalização Bentô Cakes'],
-    ultimaCompra: '11/10/2026',
-  },
-  {
-    id: 'ins-11',
-    nome: 'Saco Celofane Transparente 15x25cm',
-    tipo: 'embalagem',
-    unidade: 'cento',
-    precoPago: 18.50,
-    conteudoEmbalagem: 100, // 100 unidades
-    unidadeFracionada: 'un',
-    custoUnitario: 0.185,
-    quantidadeEstoque: 350,
-    estoqueMinimo: 100,
-    armazenamento: 'seco',
-    marcaFornecedor: 'Sulformas',
-    status: 'ativo',
-    emoji: '🛍️',
-    receitasOndeUsado: ['Cookie Individual Balcão', 'Brownie Embrulhado'],
-    ultimaCompra: '15/10/2026',
-  },
-  {
-    id: 'ins-12',
-    nome: 'Caixa Bentô Cake Canelada Biodegradável',
-    tipo: 'embalagem',
-    unidade: 'fardo',
-    precoPago: 98.00,
-    conteudoEmbalagem: 50,
-    unidadeFracionada: 'un',
-    custoUnitario: 1.96,
-    quantidadeEstoque: 14,
-    estoqueMinimo: 20, // ALERTA!
-    armazenamento: 'seco',
-    marcaFornecedor: 'PackBio Gourmet',
-    status: 'ativo',
-    emoji: '🧁',
-    receitasOndeUsado: ['Bento Cake Personalizado', 'Mini Torta de Vitrine'],
-    ultimaCompra: '02/10/2026',
-  },
-  {
-    id: 'ins-13',
-    nome: 'Forminhas Quatro Pétalas Douradas N° 4',
-    tipo: 'embalagem',
-    unidade: 'milheiro',
-    precoPago: 75.00,
-    conteudoEmbalagem: 1000,
-    unidadeFracionada: 'un',
-    custoUnitario: 0.075,
-    quantidadeEstoque: 2400,
-    estoqueMinimo: 500,
-    armazenamento: 'seco',
-    marcaFornecedor: 'ArtLili Doces',
-    status: 'ativo',
-    emoji: '✨',
-    receitasOndeUsado: ['Brigadeiro Gourmet Belga', 'Docinhos Finos'],
-    ultimaCompra: '01/10/2026',
-  },
-];
-
-// FICHAS TÉCNICAS INICIAIS
-const RECEITAS_INICIAIS: ReceitaItem[] = [
-  {
-    id: 'rec-1',
-    nome: 'Cookie Black Nutella & Avelã',
-    categoria: 'Cookies',
-    rendimento: 12,
-    rendimentoUnidade: 'unidades',
-    custoIngredientes: 28.40,
-    custoEmbalagens: 4.80,
-    custoMaoObra: 6.00,
-    custoTotal: 39.20,
-    custoUnitario: 3.26,
-    precoVendaSugerido: 18.90,
-    margemLucroPercentual: 479,
-    emoji: '🍪',
-    ingredientesCount: 7,
-    tempoPreparoMinutos: 45,
-  },
-  {
-    id: 'rec-2',
-    nome: 'Bento Cake Pistache & Framboesa',
-    categoria: 'Bolos & Bentos',
-    rendimento: 1,
-    rendimentoUnidade: 'bolo 400g',
-    custoIngredientes: 18.70,
-    custoEmbalagens: 3.20,
-    custoMaoObra: 10.00,
-    custoTotal: 31.90,
-    custoUnitario: 31.90,
-    precoVendaSugerido: 65.00,
-    margemLucroPercentual: 103,
-    emoji: '🎂',
-    ingredientesCount: 9,
-    tempoPreparoMinutos: 60,
-  },
-  {
-    id: 'rec-3',
-    nome: 'Cento de Brigadeiros Gourmet Belga 54%',
-    categoria: 'Doces Finos',
-    rendimento: 100,
-    rendimentoUnidade: 'docinhos',
-    custoIngredientes: 44.50,
-    custoEmbalagens: 12.00,
-    custoMaoObra: 20.00,
-    custoTotal: 76.50,
-    custoUnitario: 0.765,
-    precoVendaSugerido: 160.00,
-    margemLucroPercentual: 109,
-    emoji: '🍬',
-    ingredientesCount: 5,
-    tempoPreparoMinutos: 90,
-  },
-];
 
 // OPÇÕES DE UNIDADES
 const UNIDADES_INGREDIENTES = [
@@ -419,9 +111,13 @@ export default function InsumosReceitasScreen() {
 
   // Estados principais
   const [tabPrincipal, setTabPrincipal] = useState<'insumos' | 'receitas'>('insumos');
-  const [insumosList, setInsumosList] = useState<InsumoItem[]>(INSUMOS_INICIAIS);
-  const [receitasList, setReceitasList] = useState<ReceitaItem[]>(RECEITAS_INICIAIS);
-  const [loading, setLoading] = useState(false);
+  // Lista única de insumos: o que muda aqui aparece no Estoque Central, na Produção e na Visão Geral
+  const insumosList = useInsumos();
+  // Fichas técnicas: as mesmas da Produção, Estoque Central e Produtos
+  const { fichas, horaTrabalhada } = useFichas();
+  const vitrine = useEstoqueVitrine();
+  const [horaTxt, setHoraTxt] = useState(String(horaTrabalhada));
+  const [fichaAberta, setFichaAberta] = useState<{ produtoId: string | null } | null>(null);
 
   // Filtros de Insumos
   const [searchQuery, setSearchQuery] = useState('');
@@ -433,7 +129,10 @@ export default function InsumosReceitasScreen() {
   // Modais
   const [modalNovoInsumoVisible, setModalNovoInsumoVisible] = useState(false);
   const [modalDetalhesVisible, setModalDetalhesVisible] = useState(false);
-  const [insumoSelecionado, setInsumoSelecionado] = useState<InsumoItem | null>(null);
+  // Guarda só o id: o dossiê mostra sempre o estoque atual (inclusive baixas feitas pela Produção)
+  const [insumoSelecionadoId, setInsumoSelecionadoId] = useState<string | null>(null);
+  const insumoSelecionado = insumosList.find((i) => i.id === insumoSelecionadoId) ?? null;
+  const setInsumoSelecionado = (i: InsumoItem | null) => setInsumoSelecionadoId(i?.id ?? null);
 
   // Formulário de Novo Insumo
   const [formTipo, setFormTipo] = useState<'ingrediente' | 'embalagem'>('ingrediente');
@@ -447,56 +146,6 @@ export default function InsumosReceitasScreen() {
   const [formMarca, setFormMarca] = useState('');
   const [formStatus, setFormStatus] = useState<'ativo' | 'inativo'>('ativo');
   const [formErro, setFormErro] = useState<string | null>(null);
-
-  // Carregar dados de Supabase com fallback seguro
-  useEffect(() => {
-    carregarInsumosSupabase();
-  }, []);
-
-  const carregarInsumosSupabase = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('insumos')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        // Fallback para os dados ricos locais
-        return;
-      }
-
-      if (data && data.length > 0) {
-        const formatados: InsumoItem[] = data.map((item: any, idx: number) => {
-          const isEmbalagem = item.tipo === 'embalagem' || item.tipo === 'material';
-          return {
-            id: item.id || `ins-db-${idx}`,
-            nome: item.nome || 'Insumo sem nome',
-            tipo: isEmbalagem ? 'embalagem' : 'ingrediente',
-            unidade: item.unidade || (isEmbalagem ? 'un' : 'kg'),
-            precoPago: Number(item.custo_unitario) || 0,
-            conteudoEmbalagem: 1,
-            unidadeFracionada: isEmbalagem ? 'un' : (item.unidade === 'L' ? 'ml' : 'g'),
-            custoUnitario: Number(item.custo_unitario) || 0,
-            quantidadeEstoque: Number(item.quantidade) || 0,
-            estoqueMinimo: Number(item.minimo) || 0,
-            armazenamento: 'seco',
-            status: 'ativo',
-            emoji: isEmbalagem ? '📦' : '🥫',
-          };
-        });
-
-        // Mesclar com os dados detalhados para manter qualidade máxima de exibição
-        const nomesDb = new Set(formatados.map(f => f.nome.toLowerCase()));
-        const unicosLocais = INSUMOS_INICIAIS.filter(loc => !nomesDb.has(loc.nome.toLowerCase()));
-        setInsumosList([...formatados, ...unicosLocais]);
-      }
-    } catch {
-      // Ignora erro silenciosamente mantendo dados locais
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // ==========================================================================
   // FILTRAGEM DOS INSUMOS
@@ -542,7 +191,7 @@ export default function InsumosReceitasScreen() {
   const totalIngredientes = insumosList.filter(i => i.tipo === 'ingrediente').length;
   const totalEmbalagens = insumosList.filter(i => i.tipo === 'embalagem').length;
   const totalAlerta = insumosList.filter(i => i.quantidadeEstoque <= i.estoqueMinimo).length;
-  const valorTotalEstoque = insumosList.reduce((acc, curr) => acc + (curr.quantidadeEstoque * curr.custoUnitario * (curr.tipo === 'ingrediente' ? 1000 : 1)), 0);
+  const valorTotalEstoque = insumosList.reduce((acc, curr) => acc + curr.quantidadeEstoque * custoPorUnidadeEstoque(curr), 0);
 
   // Formatador de Moeda R$
   const formatMoney = (val: number) => {
@@ -566,7 +215,7 @@ export default function InsumosReceitasScreen() {
   };
 
   // Salvar Novo Insumo
-  const handleSalvarNovoInsumo = async () => {
+  const handleSalvarNovoInsumo = () => {
     if (!formNome.trim()) {
       setFormErro('Por favor, informe o nome do item.');
       return;
@@ -591,7 +240,8 @@ export default function InsumosReceitasScreen() {
       unidade: formUnidade,
       precoPago: precoNum,
       conteudoEmbalagem: conteudoNum,
-      unidadeFracionada: formTipo === 'ingrediente' ? (formUnidade === 'L' || formUnidade === 'ml' ? 'ml' : 'g') : 'un',
+      unidadeFracionada: unidadeFracionadaDe(formTipo, formUnidade),
+      fatorFracionado: fatorDaUnidade(formUnidade, conteudoNum),
       custoUnitario: custoCalc,
       quantidadeEstoque: estoqueAtualNum,
       estoqueMinimo: estoqueMinimoNum,
@@ -602,34 +252,15 @@ export default function InsumosReceitasScreen() {
       ultimaCompra: new Date().toLocaleDateString('pt-BR'),
     };
 
-    // Atualiza estado local de imediato
-    setInsumosList(prev => [novo, ...prev]);
+    // Entra na lista única (Estoque Central, Produção e ficha técnica de Produtos já enxergam)
+    salvarInsumo(novo);
     setModalNovoInsumoVisible(false);
-
-    // Tentar persistir no Supabase em segundo plano
-    try {
-      await supabase.from('insumos').insert([
-        {
-          nome: novo.nome,
-          tipo: novo.tipo,
-          unidade: novo.unidade,
-          quantidade: novo.quantidadeEstoque,
-          minimo: novo.estoqueMinimo,
-          custo_unitario: novo.custoUnitario,
-        },
-      ]);
-    } catch {
-      // Ignora erro de gravação mantendo estado local consistente
-    }
   };
 
   // Ajuste rápido de estoque (+ / -)
   const handleAjustarEstoque = (delta: number) => {
     if (!insumoSelecionado) return;
-    const novoEstoque = Math.max(0, insumoSelecionado.quantidadeEstoque + delta);
-    const atualizado = { ...insumoSelecionado, quantidadeEstoque: novoEstoque };
-    setInsumoSelecionado(atualizado);
-    setInsumosList(prev => prev.map(item => item.id === atualizado.id ? atualizado : item));
+    ajustarEstoqueInsumo(insumoSelecionado.id, delta);
   };
 
   // ==========================================================================
@@ -645,19 +276,11 @@ export default function InsumosReceitasScreen() {
         <View style={styles.mainContainer}>
           {/* TOPO: CABEÇALHO E AÇÕES RÁPIDAS */}
           <View style={styles.topHeader}>
-            <View style={styles.headerTitleCol}>
-              <View style={styles.headerBadgeRow}>
-                <View style={styles.activeDot} />
-                <Text style={styles.headerCategoryBadge}>PRODUÇÃO & CONFEITARIA</Text>
-                <View style={styles.systemBluePill}>
-                  <Text style={styles.systemBluePillText}>KIPI ATELIÊ</Text>
-                </View>
-              </View>
-              <Text style={styles.pageTitle}>Insumos & Receitas</Text>
-              <Text style={styles.pageSubtitle}>
-                Gestão completa de ingredientes, embalagens e fichas técnicas para controle de custos do seu ateliê.
-              </Text>
-            </View>
+            <PageHeaderTitulo
+              etiqueta="ATELIÊ · PRODUÇÃO & CONFEITARIA"
+              titulo="Insumos & Receitas"
+              subtitulo="Ingredientes, embalagens e fichas técnicas para controlar seus custos."
+            />
 
             {/* BOTÕES DE AÇÃO NO TOPO */}
             <View style={styles.headerActionsRow}>
@@ -685,7 +308,7 @@ export default function InsumosReceitasScreen() {
                     color={tabPrincipal === 'receitas' ? '#FFFFFF' : '#64748B'}
                   />
                   <Text style={[styles.moduleTabText, tabPrincipal === 'receitas' && styles.moduleTabTextActive]}>
-                    Fichas Técnicas
+                    Receitas
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -995,7 +618,7 @@ export default function InsumosReceitasScreen() {
                               <View style={styles.cardBadgeRow}>
                                 <View style={[styles.typeBadge, item.tipo === 'ingrediente' ? styles.typeBadgeIngrediente : styles.typeBadgeEmbalagem]}>
                                   <Text style={[styles.typeBadgeText, item.tipo === 'ingrediente' ? styles.typeBadgeTextIngrediente : styles.typeBadgeTextEmbalagem]}>
-                                    {item.tipo === 'ingrediente' ? '🥫 Ingrediente' : '📦 Embalagem'}
+                                    {item.tipo === 'ingrediente' ? '🥫 Ingrediente' : item.tipo === 'outro' ? '🧷 Outro' : '📦 Embalagem'}
                                   </Text>
                                 </View>
                                 <View style={styles.storageBadge}>
@@ -1084,7 +707,7 @@ export default function InsumosReceitasScreen() {
                             <Text style={styles.gridEmoji}>{item.emoji}</Text>
                             <View style={[styles.typeBadgeSmall, item.tipo === 'ingrediente' ? styles.typeBadgeIngrediente : styles.typeBadgeEmbalagem]}>
                               <Text style={styles.typeBadgeSmallText}>
-                                {item.tipo === 'ingrediente' ? 'Ingrediente' : 'Embalagem'}
+                                {item.tipo === 'ingrediente' ? 'Ingrediente' : item.tipo === 'outro' ? 'Outro' : 'Embalagem'}
                               </Text>
                             </View>
                           </View>
@@ -1152,7 +775,7 @@ export default function InsumosReceitasScreen() {
                           <View style={[styles.tableTd, { flex: 1.2 }]}>
                             <View style={[styles.typeBadgeSmall, item.tipo === 'ingrediente' ? styles.typeBadgeIngrediente : styles.typeBadgeEmbalagem]}>
                               <Text style={styles.typeBadgeSmallText}>
-                                {item.tipo === 'ingrediente' ? '🥫 Ingrediente' : '📦 Embalagem'}
+                                {item.tipo === 'ingrediente' ? '🥫 Ingrediente' : item.tipo === 'outro' ? '🧷 Outro' : '📦 Embalagem'}
                               </Text>
                             </View>
                           </View>
@@ -1227,73 +850,104 @@ export default function InsumosReceitasScreen() {
               style={styles.contentScrollView}
               contentContainerStyle={styles.contentScrollContent}
               showsVerticalScrollIndicator={false}>
+              {/* Barra compacta: hora trabalhada (vale para todas as fichas) + nova ficha */}
               <View style={styles.recipesBanner}>
-                <View style={styles.recipesBannerCol}>
-                  <Text style={styles.recipesBannerTitle}>Fichas Técnicas & Precificação de Doces</Text>
-                  <Text style={styles.recipesBannerSub}>
-                    O Kipi calcula automaticamente o custo de cada receita somando ingredientes, embalagens e mão de obra a partir dos insumos cadastrados.
-                  </Text>
+                <Text style={styles.recipesBannerSub}>
+                  {fichas.length} receitas · toque numa receita para editar · custo pelo custo médio atual dos insumos
+                </Text>
+                <View style={styles.horaBox}>
+                  <Feather name="clock" size={13} color="#64748B" />
+                  <Text style={styles.horaLabel}>Hora trabalhada R$</Text>
+                  <TextInput
+                    style={styles.horaInput}
+                    value={horaTxt}
+                    keyboardType="numeric"
+                    onChangeText={(v) => {
+                      setHoraTxt(v);
+                      const n = parseFloat(v.replace(',', '.'));
+                      if (!isNaN(n)) definirHoraTrabalhada(n);
+                    }}
+                  />
+                  <Text style={styles.horaLabel}>/h</Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.btnNovaReceita}
-                  onPress={() => {
-                    // Feedback visual elegante
-                    alert('Para cadastrar uma nova receita, selecione os insumos na tabela e defina os pesos da receita.');
-                  }}>
-                  <Feather name="plus-circle" size={16} color="#FFFFFF" />
-                  <Text style={styles.btnNovaReceitaText}>+ Nova Receita</Text>
+                <TouchableOpacity style={styles.btnNovaReceita} onPress={() => setFichaAberta({ produtoId: null })}>
+                  <Feather name="plus-circle" size={15} color="#FFFFFF" />
+                  <Text style={styles.btnNovaReceitaText}>Nova Receita</Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.cardsContainer}>
-                {receitasList.map(rec => (
-                  <View key={rec.id} style={styles.recipeCard}>
-                    <View style={styles.recipeHeaderRow}>
-                      <View style={styles.recipeEmojiBox}>
-                        <Text style={{ fontSize: 24 }}>{rec.emoji}</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View style={styles.recipeBadgeRow}>
-                          <Text style={styles.recipeCategoryBadge}>{rec.categoria}</Text>
-                          <Text style={styles.recipePrepTime}>⏱️ {rec.tempoPreparoMinutos} min</Text>
+                {fichas.map((f) => {
+                  const prod = vitrine.find((p) => p.id === f.produtoId);
+                  if (!prod) return null;
+                  const c = calcularFicha(f, insumosList, horaTrabalhada);
+                  const margem = margemReal(prod.preco, c.custoUnitario);
+                  const atencao = margem < MARGEM_MINIMA;
+                  return (
+                    <TouchableOpacity
+                      key={f.produtoId}
+                      style={[styles.recipeCard, atencao && styles.recipeCardAtencao]}
+                      onPress={() => setFichaAberta({ produtoId: f.produtoId })}>
+                      <View style={styles.recipeHeaderRow}>
+                        <View style={styles.recipeEmojiBox}>
+                          <Text style={{ fontSize: 20 }}>{EMOJI_CATEGORIA[prod.categoria] ?? '🧁'}</Text>
                         </View>
-                        <Text style={styles.recipeTitle}>{rec.nome}</Text>
-                        <Text style={styles.recipeRendimento}>
-                          Rendimento: {rec.rendimento} {rec.rendimentoUnidade}
+                        <View style={{ flex: 1 }}>
+                          <View style={styles.recipeBadgeRow}>
+                            <Text style={styles.recipeCategoryBadge}>{prod.categoria}</Text>
+                            <Text style={styles.recipePrepTime}>⏱️ {f.tempoPreparoMinutos} min</Text>
+                          </View>
+                          <Text style={styles.recipeTitle} numberOfLines={1}>{prod.nome}</Text>
+                          <Text style={styles.recipeRendimento}>
+                            Rende {f.rendimento} un · {c.linhas.length} insumos
+                          </Text>
+                        </View>
+                        <View style={styles.btnEditarReceita}>
+                          <Feather name="edit-2" size={12} color={KIPI_BLUE_ACCENT} />
+                          <Text style={styles.btnEditarReceitaText}>Editar</Text>
+                        </View>
+                      </View>
+
+                      {/* Divisão de custos da receita */}
+                      <View style={styles.recipeCostBreakdown}>
+                        {[
+                          ['Ingredientes', c.ingredientes],
+                          ['Embalagens', c.embalagens],
+                          ['Mão de obra', c.maoDeObra],
+                          ['Extras', c.extras],
+                        ].map(([rotulo, valor]) => (
+                          <View key={rotulo as string} style={styles.recipeCostItem}>
+                            <Text style={styles.recipeCostLabel}>{rotulo}</Text>
+                            <Text style={styles.recipeCostVal}>{formatMoney(valor as number)}</Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Custo, preço e margem real */}
+                      <View style={styles.recipeFinancialFooter}>
+                        <View>
+                          <Text style={styles.recipeTotalCostLabel}>CUSTO/UN</Text>
+                          <Text style={styles.recipeTotalCostVal}>{formatMoney(c.custoUnitario)}</Text>
+                          {Math.abs(c.precoSugerido - prod.preco) >= 0.01 && (
+                            <Text style={styles.recipePrepTime}>sugerido {formatMoney(c.precoSugerido)}</Text>
+                          )}
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <Text style={styles.recipeSuggestedLabel}>PREÇO DE VENDA</Text>
+                          <Text style={styles.recipeSuggestedVal}>{formatMoney(prod.preco)}</Text>
+                          <Text style={[styles.recipeMarginBadge, atencao && { color: '#DC2626' }]}>
+                            {atencao ? '⚠ Atenção · ' : ''}margem {Math.round(margem)}%
+                          </Text>
+                        </View>
+                      </View>
+                      {c.gargalo && (
+                        <Text style={styles.recipeCapacidade}>
+                          📦 Estoque dá para {c.receitasPossiveis} receita(s) · gargalo: {c.gargalo}
                         </Text>
-                      </View>
-                    </View>
-
-                    {/* Divisão de Custos da Receita */}
-                    <View style={styles.recipeCostBreakdown}>
-                      <View style={styles.recipeCostItem}>
-                        <Text style={styles.recipeCostLabel}>Ingredientes</Text>
-                        <Text style={styles.recipeCostVal}>{formatMoney(rec.custoIngredientes)}</Text>
-                      </View>
-                      <View style={styles.recipeCostItem}>
-                        <Text style={styles.recipeCostLabel}>Embalagens</Text>
-                        <Text style={styles.recipeCostVal}>{formatMoney(rec.custoEmbalagens)}</Text>
-                      </View>
-                      <View style={styles.recipeCostItem}>
-                        <Text style={styles.recipeCostLabel}>Mão de Obra</Text>
-                        <Text style={styles.recipeCostVal}>{formatMoney(rec.custoMaoObra)}</Text>
-                      </View>
-                    </View>
-
-                    {/* Resumo Final de Preço e Margem */}
-                    <View style={styles.recipeFinancialFooter}>
-                      <View>
-                        <Text style={styles.recipeTotalCostLabel}>CUSTO POR UNIDADE</Text>
-                        <Text style={styles.recipeTotalCostVal}>{formatMoney(rec.custoUnitario)}</Text>
-                      </View>
-                      <View style={{ alignItems: 'flex-end' }}>
-                        <Text style={styles.recipeSuggestedLabel}>PREÇO DE VENDA</Text>
-                        <Text style={styles.recipeSuggestedVal}>{formatMoney(rec.precoVendaSugerido)}</Text>
-                        <Text style={styles.recipeMarginBadge}>Lucro +{rec.margemLucroPercentual}%</Text>
-                      </View>
-                    </View>
-                  </View>
-                ))}
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </ScrollView>
           )}
@@ -1549,7 +1203,7 @@ export default function InsumosReceitasScreen() {
                     <View style={styles.cardBadgeRow}>
                       <View style={[styles.typeBadge, insumoSelecionado.tipo === 'ingrediente' ? styles.typeBadgeIngrediente : styles.typeBadgeEmbalagem]}>
                         <Text style={[styles.typeBadgeText, insumoSelecionado.tipo === 'ingrediente' ? styles.typeBadgeTextIngrediente : styles.typeBadgeTextEmbalagem]}>
-                          {insumoSelecionado.tipo === 'ingrediente' ? '🥫 Ingrediente' : '📦 Embalagem'}
+                          {insumoSelecionado.tipo === 'ingrediente' ? '🥫 Ingrediente' : insumoSelecionado.tipo === 'outro' ? '🧷 Outro' : '📦 Embalagem'}
                         </Text>
                       </View>
                       <View style={styles.storageBadge}>
@@ -1624,7 +1278,7 @@ export default function InsumosReceitasScreen() {
 
                 {/* Receitas Vinculadas */}
                 <View style={styles.linkedRecipesCard}>
-                  <Text style={styles.linkedRecipesTitle}>Fichas Técnicas que utilizam este insumo:</Text>
+                  <Text style={styles.linkedRecipesTitle}>Receitas que utilizam este insumo:</Text>
                   {insumoSelecionado.receitasOndeUsado && insumoSelecionado.receitasOndeUsado.length > 0 ? (
                     insumoSelecionado.receitasOndeUsado.map((rec, i) => (
                       <View key={i} style={styles.linkedRecipeItem}>
@@ -1661,6 +1315,13 @@ export default function InsumosReceitasScreen() {
           )}
         </View>
       </Modal>
+
+      {/* Editor da ficha técnica (o mesmo do dossiê de Produtos) */}
+      <FichaTecnicaModal
+        visible={fichaAberta !== null}
+        produtoId={fichaAberta?.produtoId ?? null}
+        onClose={() => setFichaAberta(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -1687,64 +1348,7 @@ const styles = StyleSheet.create({
   },
 
   // CABEÇALHO
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  headerTitleCol: {
-    flex: 1,
-    minWidth: 280,
-  },
-  headerBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  activeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: KIPI_BLUE_ACCENT,
-  },
-  headerCategoryBadge: {
-    fontFamily: FONT_SANS,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    color: '#64748B',
-  },
-  systemBluePill: {
-    backgroundColor: KIPI_BLUE_TINT,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  systemBluePillText: {
-    fontFamily: FONT_SANS,
-    fontSize: 10,
-    fontWeight: '800',
-    color: KIPI_BLUE_ACCENT,
-    letterSpacing: 0.5,
-  },
-  pageTitle: {
-    fontFamily: FONT_DISPLAY,
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    fontFamily: FONT_SANS,
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-  },
+  topHeader: TOPO_COMPACTO,
   headerActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2446,41 +2050,81 @@ const styles = StyleSheet.create({
   recipesBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 16,
+    marginBottom: 12,
     flexWrap: 'wrap',
-    gap: 12,
-  },
-  recipesBannerCol: {
-    flex: 1,
-    minWidth: 280,
-  },
-  recipesBannerTitle: {
-    fontFamily: FONT_DISPLAY,
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    marginBottom: 4,
+    gap: 10,
   },
   recipesBannerSub: {
+    flex: 1,
+    minWidth: 200,
     fontFamily: FONT_SANS,
-    fontSize: 13,
+    fontSize: 12,
     color: '#64748B',
-    lineHeight: 18,
+  },
+  horaBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  horaLabel: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  horaInput: {
+    width: 44,
+    fontFamily: FONT_DISPLAY,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'center',
+    paddingVertical: 2,
   },
   btnNovaReceita: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: KIPI_BLUE_DARK,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    gap: 6,
+  },
+  btnEditarReceita: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: KIPI_BLUE_TINT,
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  btnEditarReceitaText: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '700',
+    color: KIPI_BLUE_ACCENT,
+  },
+  recipeCardAtencao: {
+    borderColor: '#FCA5A5',
+  },
+  recipeCapacidade: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 8,
   },
   btnNovaReceitaText: {
     fontFamily: FONT_SANS,

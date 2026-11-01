@@ -12,8 +12,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
+import {
+  useEstoqueVitrine,
+  useEstoqueFreezer,
+  cadastrarProduto,
+  atualizarProduto,
+  alternarAtivoProduto,
+  produtoAtivo,
+  type ProdutoVitrine,
+} from '@/lib/estoqueVitrine';
+import { useInsumos, useFichas, calcularFicha, margemReal, salvarFicha, congelarMassas, MARGEM_MINIMA, type Insumo } from '@/lib/insumos';
+import FichaTecnicaModal from '@/components/FichaTecnicaModal';
+import DescarteModal from '@/components/DescarteModal';
+import ProducaoRapidaModal, { type ModoProducaoRapida } from '@/components/ProducaoRapidaModal';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import Sidebar from '@/components/Sidebar';
+import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -37,7 +51,14 @@ const DANGER_TINT = '#FEE2E2';
 // TIPOS DE DADOS
 // ============================================================================
 export type ViewMode = 'cards' | 'grid' | 'lista';
-export type StatusFilter = 'todos' | 'ativos' | 'inativos' | 'com_ficha' | 'sem_ficha';
+export type StatusFilter = 'todos' | 'ativos' | 'inativos' | 'com_ficha' | 'sem_ficha' | 'encomenda';
+type Disponibilidade = NonNullable<ProdutoVitrine['disponibilidade']>;
+
+const ROTULO_DISPONIBILIDADE: Record<Disponibilidade, string> = {
+  pronta_entrega: '🛍️ Pronta-entrega',
+  sob_encomenda: '📅 Sob encomenda',
+  hibrido: '✨ Híbrido',
+};
 
 export interface IngredienteUtilizado {
   id: string;
@@ -78,6 +99,9 @@ export interface ProdutoCompleto {
   estoqueMinimo: number;
   ativo: boolean;
   temFichaTecnica: boolean;
+  disponibilidade: Disponibilidade;
+  desconto: number; // promoção em R$ por unidade (0 = sem promoção)
+  congelado: number; // massas no freezer, prontas para assar
   // Campos da Ficha Técnica (se houver)
   rendimento?: number;
   unidadeRendimento?: 'unidades' | 'kg' | 'grama' | 'fatia' | 'pote';
@@ -105,151 +129,33 @@ interface InsumoRef {
   emoji: string;
 }
 
-const INSUMOS_DISPONIVEIS: InsumoRef[] = [
-  { id: 'ins-1', nome: 'Chocolate Belga 54% Callebaut', tipo: 'ingrediente', unidade: 'g', custoFracionado: 0.076, emoji: '🍫' },
-  { id: 'ins-2', nome: 'Farinha de Trigo Especial Anaconda', tipo: 'ingrediente', unidade: 'g', custoFracionado: 0.0065, emoji: '🌾' },
-  { id: 'ins-3', nome: 'Manteiga Extra sem Sal President', tipo: 'ingrediente', unidade: 'g', custoFracionado: 0.0489, emoji: '🧈' },
-  { id: 'ins-4', nome: 'Pasta Pura de Pistache Siciliano', tipo: 'ingrediente', unidade: 'g', custoFracionado: 0.145, emoji: '🥜' },
-  { id: 'ins-5', nome: 'Leite Condensado Moça Integral', tipo: 'ingrediente', unidade: 'g', custoFracionado: 0.0225, emoji: '🥛' },
-  { id: 'ins-6', nome: 'Açúcar Mascavo Premium', tipo: 'ingrediente', unidade: 'g', custoFracionado: 0.009, emoji: '🍯' },
-  { id: 'ins-7', nome: 'Frutas Vermelhas Frescas', tipo: 'ingrediente', unidade: 'g', custoFracionado: 0.068, emoji: '🍓' },
-  { id: 'ins-8', nome: 'Creme de Leite Fresco 35%', tipo: 'ingrediente', unidade: 'ml', custoFracionado: 0.0269, emoji: '🍶' },
-  { id: 'ins-9', nome: 'Caixa Cookie Kraft c/ Visor (6 un)', tipo: 'embalagem', unidade: 'un', custoFracionado: 1.298, emoji: '📦' },
-  { id: 'ins-10', nome: 'Fita de Cetim Dourada Champagne 15mm', tipo: 'embalagem', unidade: 'm', custoFracionado: 0.398, emoji: '🎀' },
-  { id: 'ins-11', nome: 'Saco Celofane Transparente 15x25cm', tipo: 'embalagem', unidade: 'un', custoFracionado: 0.185, emoji: '🛍️' },
-  { id: 'ins-12', nome: 'Caixa Bentô Cake Biodegradável', tipo: 'embalagem', unidade: 'un', custoFracionado: 1.96, emoji: '🧁' },
-  { id: 'ins-13', nome: 'Forminha Quatro Pétalas Dourada N°4', tipo: 'embalagem', unidade: 'un', custoFracionado: 0.075, emoji: '✨' },
-];
+// Opções da ficha técnica vêm da lista única de insumos (custo por g, ml ou un)
+const paraInsumoRef = (i: Insumo): InsumoRef => ({
+  id: i.id,
+  nome: i.nome,
+  tipo: i.tipo === 'ingrediente' ? 'ingrediente' : 'embalagem',
+  unidade: i.unidadeFracionada,
+  custoFracionado: i.custoUnitario,
+  emoji: i.emoji,
+});
 
-// PRODUTOS INICIAIS ENRIQUECIDOS (CONFEITARIA FINA)
-const PRODUTOS_INICIAIS: ProdutoCompleto[] = [
-  {
-    id: 'prod-1',
-    nome: 'Cookie Black Nutella & Avelã',
-    categoria: 'Cookies',
-    preco: 18.90,
-    fotoEmoji: '🍪',
-    estoque: 24,
-    estoqueMinimo: 10,
-    ativo: true,
-    temFichaTecnica: true,
-    rendimento: 12,
-    unidadeRendimento: 'unidades',
-    tempoPreparoMinutos: 45,
-    custoIngredientesTotal: 28.40,
-    custoEmbalagensTotal: 4.80,
-    custosIndiretosTotal: 6.00,
-    custoTotalReceita: 39.20,
-    custoUnitario: 3.26,
-    precoSugeridoVenda: 18.90,
-    margemLucroPercentual: 479,
-    lucroLiquidoUnitario: 15.64,
-    ingredientes: [
-      { id: 'i1', insumoId: 'ins-1', nome: 'Chocolate Belga 54%', quantidade: 180, unidade: 'g', custoPorUnidade: 0.076, custoTotal: 13.68 },
-      { id: 'i2', insumoId: 'ins-2', nome: 'Farinha de Trigo Especial', quantidade: 350, unidade: 'g', custoPorUnidade: 0.0065, custoTotal: 2.28 },
-      { id: 'i3', insumoId: 'ins-3', nome: 'Manteiga Extra sem Sal', quantidade: 150, unidade: 'g', custoPorUnidade: 0.0489, custoTotal: 7.34 },
-      { id: 'i4', insumoId: 'ins-6', nome: 'Açúcar Mascavo Premium', quantidade: 120, unidade: 'g', custoPorUnidade: 0.009, custoTotal: 1.08 },
-    ],
-    embalagens: [
-      { id: 'e1', insumoId: 'ins-11', nome: 'Saco Celofane Transparente', quantidade: 12, unidade: 'un', custoUnitario: 0.185, custoTotal: 2.22 },
-      { id: 'e2', insumoId: 'ins-10', nome: 'Fita de Cetim Dourada', quantidade: 6, unidade: 'm', custoUnitario: 0.398, custoTotal: 2.39 },
-    ],
-    custosIndiretos: [
-      { id: 'c1', tipo: 'energia', descricao: 'Forno Elétrico Convector', modo: 'fixo_reais', valor: 2.50, valorCalculado: 2.50 },
-      { id: 'c2', tipo: 'mao_de_obra', descricao: 'Tempo de Confeitaria (45min)', modo: 'fixo_reais', valor: 3.50, valorCalculado: 3.50 },
-    ],
-  },
-  {
-    id: 'prod-2',
-    nome: 'Bento Cake Pistache & Framboesa',
-    categoria: 'Bolos & Bentôs',
-    preco: 65.00,
-    fotoEmoji: '🎂',
-    estoque: 6,
-    estoqueMinimo: 4,
-    ativo: true,
-    temFichaTecnica: true,
-    rendimento: 1,
-    unidadeRendimento: 'pote',
-    tempoPreparoMinutos: 60,
-    custoIngredientesTotal: 18.70,
-    custoEmbalagensTotal: 3.20,
-    custosIndiretosTotal: 10.00,
-    custoTotalReceita: 31.90,
-    custoUnitario: 31.90,
-    precoSugeridoVenda: 65.00,
-    margemLucroPercentual: 103,
-    lucroLiquidoUnitario: 33.10,
-    ingredientes: [
-      { id: 'i5', insumoId: 'ins-4', nome: 'Pasta Pura de Pistache', quantidade: 60, unidade: 'g', custoPorUnidade: 0.145, custoTotal: 8.70 },
-      { id: 'i6', insumoId: 'ins-7', nome: 'Frutas Vermelhas Frescas', quantidade: 80, unidade: 'g', custoPorUnidade: 0.068, custoTotal: 5.44 },
-      { id: 'i7', insumoId: 'ins-8', nome: 'Creme de Leite Fresco', quantidade: 120, unidade: 'ml', custoPorUnidade: 0.0269, custoTotal: 3.23 },
-    ],
-    embalagens: [
-      { id: 'e3', insumoId: 'ins-12', nome: 'Caixa Bentô Cake Biodegradável', quantidade: 1, unidade: 'un', custoUnitario: 1.96, custoTotal: 1.96 },
-      { id: 'e4', insumoId: 'ins-10', nome: 'Fita de Cetim Dourada', quantidade: 2, unidade: 'm', custoUnitario: 0.398, custoTotal: 0.80 },
-    ],
-    custosIndiretos: [
-      { id: 'c3', tipo: 'gas', descricao: 'Gás de Cozinha Fornada', modo: 'fixo_reais', valor: 4.00, valorCalculado: 4.00 },
-      { id: 'c4', tipo: 'mao_de_obra', descricao: 'Decoração e Confeiteira', modo: 'fixo_reais', valor: 6.00, valorCalculado: 6.00 },
-    ],
-  },
-  {
-    id: 'prod-3',
-    nome: 'Cento de Brigadeiros Belga 54%',
-    categoria: 'Doces Finos & Brigadeiros',
-    preco: 160.00,
-    fotoEmoji: '🍬',
-    estoque: 12,
-    estoqueMinimo: 8,
-    ativo: true,
-    temFichaTecnica: true,
-    rendimento: 100,
-    unidadeRendimento: 'unidades',
-    tempoPreparoMinutos: 90,
-    custoIngredientesTotal: 44.50,
-    custoEmbalagensTotal: 12.00,
-    custosIndiretosTotal: 20.00,
-    custoTotalReceita: 76.50,
-    custoUnitario: 0.765,
-    precoSugeridoVenda: 160.00,
-    margemLucroPercentual: 109,
-    lucroLiquidoUnitario: 83.50,
-  },
-  {
-    id: 'prod-4',
-    nome: 'Caixa Macarons Degustação (6 un)',
-    categoria: 'Macarons',
-    preco: 57.00,
-    fotoEmoji: '✨',
-    estoque: 8,
-    estoqueMinimo: 5,
-    ativo: true,
-    temFichaTecnica: false, // Produto cadastrado rápido sem ficha
-  },
-  {
-    id: 'prod-5',
-    nome: 'Torta de Nozes c/ Caramelo Salgado',
-    categoria: 'Tortas & Fatias',
-    preco: 140.00,
-    fotoEmoji: '🥧',
-    estoque: 3,
-    estoqueMinimo: 2,
-    ativo: true,
-    temFichaTecnica: false, // Produto sem ficha
-  },
-  {
-    id: 'prod-6',
-    nome: 'Café Cold Brew com Baunilha 300ml',
-    categoria: 'Bebidas & Cafés',
-    preco: 14.50,
-    fotoEmoji: '☕',
-    estoque: 18,
-    estoqueMinimo: 6,
-    ativo: true,
-    temFichaTecnica: false,
-  },
-];
+// Foto (emoji) de cada produto da vitrine; a ficha técnica vem da lista única em lib/insumos
+const FOTOS_INICIAIS: Record<string, string> = {
+  'prod-1': '🍪',
+  'prod-2': '🍪',
+  'prod-3': '🍪',
+  'prod-4': '🎂',
+  'prod-5': '🎂',
+  'prod-6': '✨',
+  'prod-7': '✨',
+  'prod-8': '🍰',
+  'prod-9': '🍬',
+  'prod-10': '🎁',
+  'prod-11': '🥐',
+  'prod-12': '🍯',
+  'prod-13': '🥧',
+  'prod-14': '☕',
+};
 
 const CATEGORIAS_PADRAO = [
   'Todas',
@@ -270,25 +176,120 @@ export default function ProdutosEstoqueScreen() {
   const isTablet = width >= 768 && width < 1024;
 
   // Estados principais
-  const [produtosList, setProdutosList] = useState<ProdutoCompleto[]>(PRODUTOS_INICIAIS);
-  const [categorias, setCategorias] = useState<string[]>(CATEGORIAS_PADRAO);
+  // Nome, preço e estoque vêm da vitrine compartilhada; aqui ficam só ficha técnica, foto e categoria
+  const vitrine = useEstoqueVitrine();
+  // Ingredientes e embalagens da ficha técnica: a mesma lista de Insumos & Receitas
+  const insumosLista = useInsumos();
+  const insumosDisponiveis = insumosLista.filter((i) => i.status === 'ativo').map(paraInsumoRef);
+  // Ficha técnica única (a mesma de Insumos & Receitas, Produção e Estoque Central)
+  const { fichas: fichasTecnicas, horaTrabalhada } = useFichas();
+  const [fotos, setFotos] = useState<Record<string, string>>(FOTOS_INICIAIS);
+  const [fichaEditandoId, setFichaEditandoId] = useState<string | null>(null);
+  const freezer = useEstoqueFreezer();
+  const router = useRouter();
+  // Atalho Assar: abre o modal aqui mesmo (sai do freezer e entra na vitrine, sem trocar de tela)
+  const [producaoRapida, setProducaoRapida] = useState<{ id: string; modo: ModoProducaoRapida } | null>(null);
+  const irParaAssar = (id: string) => setProducaoRapida({ id, modo: 'assar' });
+  const produtosList: ProdutoCompleto[] = useMemo(
+    () =>
+      vitrine.map((v): ProdutoCompleto => {
+        const base: ProdutoCompleto = {
+          id: v.id,
+          nome: v.nome,
+          categoria: v.categoria,
+          preco: v.preco,
+          fotoEmoji: fotos[v.id] ?? '🧁',
+          estoque: v.estoque,
+          estoqueMinimo: v.estoqueMinimo,
+          ativo: produtoAtivo(v),
+          temFichaTecnica: false,
+          disponibilidade: v.disponibilidade ?? 'pronta_entrega',
+          desconto: v.desconto ?? 0,
+          congelado: freezer[v.id] ?? 0,
+        };
+        const ft = fichasTecnicas.find((f) => f.produtoId === v.id);
+        if (!ft) return base;
+        const c = calcularFicha(ft, insumosLista, horaTrabalhada);
+        const linhasDo = (ingrediente: boolean) => c.linhas.filter((l) => (l.item.tipo === 'ingrediente') === ingrediente);
+        return {
+          ...base,
+          temFichaTecnica: true,
+          rendimento: ft.rendimento,
+          unidadeRendimento: 'unidades',
+          tempoPreparoMinutos: ft.tempoPreparoMinutos,
+          ingredientes: linhasDo(true).map((l) => ({
+            id: l.insumoId,
+            insumoId: l.insumoId,
+            nome: l.item.nome,
+            quantidade: l.quantidade,
+            unidade: l.item.unidadeFracionada,
+            custoPorUnidade: l.item.custoUnitario,
+            custoTotal: l.custo,
+          })),
+          embalagens: linhasDo(false).map((l) => ({
+            id: l.insumoId,
+            insumoId: l.insumoId,
+            nome: l.item.nome,
+            quantidade: l.quantidade,
+            unidade: l.item.unidadeFracionada,
+            custoUnitario: l.item.custoUnitario,
+            custoTotal: l.custo,
+          })),
+          custoIngredientesTotal: c.ingredientes,
+          custoEmbalagensTotal: c.embalagens,
+          custosIndiretosTotal: c.maoDeObra + c.extras,
+          custoTotalReceita: c.custoTotal,
+          custoUnitario: c.custoUnitario,
+          precoSugeridoVenda: c.precoSugerido,
+          margemLucroPercentual: Math.round(margemReal(v.preco, c.custoUnitario)),
+          lucroLiquidoUnitario: v.preco - c.custoUnitario,
+        };
+      }),
+    [vitrine, freezer, fotos, fichasTecnicas, insumosLista, horaTrabalhada]
+  );
+  const [categoriasCriadas, setCategorias] = useState<string[]>(CATEGORIAS_PADRAO);
+  const categorias = useMemo(
+    () => Array.from(new Set([...categoriasCriadas, ...produtosList.filter((p) => p.ativo).map((p) => p.categoria)])),
+    [categoriasCriadas, produtosList]
+  );
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const filtrosAtivos = [searchQuery.trim() !== '', categoriaAtiva !== 'Todas', statusFilter !== 'todos'].filter(Boolean).length;
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
 
   // Modais
   const [modalNovoProdutoVisible, setModalNovoProdutoVisible] = useState(false);
   const [modalDossieVisible, setModalDossieVisible] = useState(false);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<ProdutoCompleto | null>(null);
+  // Guarda só o id: o dossiê acompanha mudanças da ficha, do preço e do estoque
+  const [produtoSelecionadoId, setProdutoSelecionadoId] = useState<string | null>(null);
+  const produtoSelecionado = produtosList.find((p) => p.id === produtoSelecionadoId) ?? null;
+  const [descarteId, setDescarteId] = useState<string | null>(null);
+  const setProdutoSelecionado = (p: ProdutoCompleto | null) => setProdutoSelecionadoId(p?.id ?? null);
+
+  // Atalho "Ver produto" da Estoque Central: chega com ?produto=<id> e já abre o dossiê
+  const { produto: produtoDoAtalho, t: atalhoEm } = useLocalSearchParams<{ produto?: string; t?: string }>();
+  useEffect(() => {
+    const prod = produtoDoAtalho ? produtosList.find((p) => p.id === produtoDoAtalho) : undefined;
+    if (!prod) return;
+    setProdutoSelecionado(prod);
+    setModalDossieVisible(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtoDoAtalho, atalhoEm]);
 
   // Formulário do Produto (Híbrido)
   const [formNome, setFormNome] = useState('');
   const [formFotoEmoji, setFormFotoEmoji] = useState('🍪');
-  const [formCategoria, setFormCategoria] = useState('Cookies');
+  const [formCategoria, setFormCategoria] = useState('');
   const [formPreco, setFormPreco] = useState('');
-  const [formEstoque, setFormEstoque] = useState('10');
-  const [formEstoqueMinimo, setFormEstoqueMinimo] = useState('5');
+  const [formEstoque, setFormEstoque] = useState('');
+  const [formEstoqueMinimo, setFormEstoqueMinimo] = useState('');
+  const [formCongelados, setFormCongelados] = useState('');
+  const [formDisponibilidade, setFormDisponibilidade] = useState<Disponibilidade>('pronta_entrega');
+  const [formDesconto, setFormDesconto] = useState('');
+  // null = cadastro novo; id = edição do produto (a ficha é editada no editor próprio)
+  const [editandoId, setEditandoId] = useState<string | null>(null);
 
   // Nova categoria inline
   const [mostrarInputNovaCategoria, setMostrarInputNovaCategoria] = useState(false);
@@ -296,9 +297,9 @@ export default function ProdutosEstoqueScreen() {
 
   // Toggle de Ficha Técnica / Precificação
   const [habilitarFichaTecnica, setHabilitarFichaTecnica] = useState(false);
-  const [formRendimento, setFormRendimento] = useState('12');
+  const [formRendimento, setFormRendimento] = useState('');
   const [formUnidadeRendimento, setFormUnidadeRendimento] = useState<'unidades' | 'kg' | 'grama' | 'fatia' | 'pote'>('unidades');
-  const [formTempoPreparo, setFormTempoPreparo] = useState('45');
+  const [formTempoPreparo, setFormTempoPreparo] = useState('');
 
   // Ficha Técnica: Ingredientes
   const [ingredientesUsados, setIngredientesUsados] = useState<IngredienteUtilizado[]>([]);
@@ -310,56 +311,19 @@ export default function ProdutosEstoqueScreen() {
   const [embalagemSelecionadaId, setEmbalagemSelecionadaId] = useState('');
   const [quantidadeEmbalagemInput, setQuantidadeEmbalagemInput] = useState('');
 
-  // Ficha Técnica: Custos Indiretos
-  const [custosIndiretos, setCustosIndiretos] = useState<CustoIndireto[]>([
-    { id: 'ci-gas', tipo: 'gas', descricao: 'Gás / Forno', modo: 'fixo_reais', valor: 3.00, valorCalculado: 3.00 },
-    { id: 'ci-energia', tipo: 'energia', descricao: 'Energia Elétrica & Batedeira', modo: 'fixo_reais', valor: 2.00, valorCalculado: 2.00 },
-    { id: 'ci-mao', tipo: 'mao_de_obra', descricao: 'Mão de Obra de Produção', modo: 'fixo_reais', valor: 5.00, valorCalculado: 5.00 },
-  ]);
+  // Ficha Técnica: Custos Indiretos (mão de obra = tempo de preparo × hora trabalhada)
+  // Gás e energia aparecem para preencher, mas começam vazios
+  const CUSTOS_INDIRETOS_VAZIOS: CustoIndireto[] = [
+    { id: 'ci-gas', tipo: 'gas', descricao: 'Gás / Forno', modo: 'fixo_reais', valor: 0, valorCalculado: 0 },
+    { id: 'ci-energia', tipo: 'energia', descricao: 'Energia Elétrica & Batedeira', modo: 'fixo_reais', valor: 0, valorCalculado: 0 },
+  ];
+  const [custosIndiretos, setCustosIndiretos] = useState<CustoIndireto[]>(CUSTOS_INDIRETOS_VAZIOS);
 
   // Modo de Lucro Desejado: % ou R$
   const [modoLucro, setModoLucro] = useState<'porcentagem' | 'reais'>('porcentagem');
-  const [margemLucroDesejada, setMargemLucroDesejada] = useState('200'); // ex: 200% de markup
-  const [lucroReaisDesejado, setLucroReaisDesejado] = useState('15'); // ex: R$ 15,00 por unidade
+  const [margemLucroDesejada, setMargemLucroDesejada] = useState(''); // ex: 200 = 200% de markup
+  const [lucroReaisDesejado, setLucroReaisDesejado] = useState(''); // ex: 15 = R$ 15,00 por unidade
   const [formErro, setFormErro] = useState<string | null>(null);
-
-  // Carregar produtos de Supabase com fallback seguro
-  useEffect(() => {
-    carregarProdutosSupabase();
-  }, []);
-
-  const carregarProdutosSupabase = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('produtos')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) return;
-
-      if (data && data.length > 0) {
-        const formatados: ProdutoCompleto[] = data.map((item: any, idx: number) => {
-          return {
-            id: item.id || `prod-db-${idx}`,
-            nome: item.nome || 'Produto sem nome',
-            categoria: item.categoria || 'Geral',
-            preco: Number(item.preco) || 0,
-            fotoEmoji: '🧁',
-            estoque: Number(item.estoque) || 0,
-            estoqueMinimo: 5,
-            ativo: item.ativo !== false,
-            temFichaTecnica: false,
-          };
-        });
-
-        const nomesDb = new Set(formatados.map(f => f.nome.toLowerCase()));
-        const unicosLocais = PRODUTOS_INICIAIS.filter(loc => !nomesDb.has(loc.nome.toLowerCase()));
-        setProdutosList([...formatados, ...unicosLocais]);
-      }
-    } catch {
-      // Ignora erro mantendo dados locais
-    }
-  };
 
   // ==========================================================================
   // CÁLCULOS FINANCEIROS EM TEMPO REAL DA FICHA TÉCNICA (UX SENIOR)
@@ -379,7 +343,7 @@ export default function ProdutosEstoqueScreen() {
         return acc + valCalc;
       }
       return acc + curr.valor;
-    }, 0);
+    }, 0) + ((parseFloat(formTempoPreparo) || 0) / 60) * horaTrabalhada;
 
     // 4. Soma de todos eles (Custo Total da Receita)
     const custoTotalReceita = totalIngredientes + totalEmbalagens + totalIndiretos;
@@ -416,7 +380,7 @@ export default function ProdutosEstoqueScreen() {
       lucroEstimadoUnitario: Math.max(0, lucroEstimadoUnitario),
       margemCalculadaPercentual,
     };
-  }, [ingredientesUsados, embalagensUsadas, custosIndiretos, formRendimento, modoLucro, margemLucroDesejada, lucroReaisDesejado]);
+  }, [ingredientesUsados, embalagensUsadas, custosIndiretos, formRendimento, formTempoPreparo, horaTrabalhada, modoLucro, margemLucroDesejada, lucroReaisDesejado]);
 
   // Formatador Moeda
   const formatMoney = (val: number) => {
@@ -431,11 +395,11 @@ export default function ProdutosEstoqueScreen() {
         return false;
       }
 
-      // Status
-      if (statusFilter === 'ativos' && !prod.ativo) return false;
-      if (statusFilter === 'inativos' && prod.ativo) return false;
+      // Status: inativos só aparecem no filtro "Inativos"
+      if (statusFilter === 'inativos' ? prod.ativo : !prod.ativo) return false;
       if (statusFilter === 'com_ficha' && !prod.temFichaTecnica) return false;
       if (statusFilter === 'sem_ficha' && prod.temFichaTecnica) return false;
+      if (statusFilter === 'encomenda' && prod.disponibilidade === 'pronta_entrega') return false;
 
       // Busca
       if (searchQuery.trim()) {
@@ -449,11 +413,16 @@ export default function ProdutosEstoqueScreen() {
     });
   }, [produtosList, categoriaAtiva, statusFilter, searchQuery]);
 
-  // Contadores
-  const totalProdutos = produtosList.length;
-  const totalComFicha = produtosList.filter(p => p.temFichaTecnica).length;
-  const totalEstoqueBaixo = produtosList.filter(p => p.estoque <= p.estoqueMinimo).length;
-  const valorEstoqueGeral = produtosList.reduce((acc, curr) => acc + curr.estoque * curr.preco, 0);
+  // Contadores (só produtos ativos)
+  const produtosAtivos = produtosList.filter(p => p.ativo);
+  const totalProdutos = produtosAtivos.length;
+  const totalComFicha = produtosAtivos.filter(p => p.temFichaTecnica).length;
+  const totalEstoqueBaixo = produtosAtivos.filter(p => p.estoque <= p.estoqueMinimo).length;
+  const valorEstoqueGeral = produtosAtivos.reduce((acc, curr) => acc + curr.estoque * curr.preco, 0);
+  const totalProntos = produtosAtivos.reduce((acc, curr) => acc + curr.estoque, 0);
+  const totalCongelados = produtosAtivos.reduce((acc, curr) => acc + curr.congelado, 0);
+  const valorCongelados = produtosAtivos.reduce((acc, curr) => acc + curr.congelado * curr.preco, 0);
+  const totalEncomenda = produtosAtivos.filter(p => p.disponibilidade !== 'pronta_entrega').length;
 
   // Ações de Ficha Técnica: Adicionar Ingrediente
   const handleAdicionarIngrediente = () => {
@@ -461,7 +430,7 @@ export default function ProdutosEstoqueScreen() {
     const qtd = parseFloat(quantidadeInsumoInput.replace(',', '.')) || 0;
     if (qtd <= 0) return;
 
-    const insumo = INSUMOS_DISPONIVEIS.find(i => i.id === insumoSelecionadoId);
+    const insumo = insumosDisponiveis.find(i => i.id === insumoSelecionadoId);
     if (!insumo) return;
 
     const custoTotal = qtd * insumo.custoFracionado;
@@ -491,7 +460,7 @@ export default function ProdutosEstoqueScreen() {
     const qtd = parseFloat(quantidadeEmbalagemInput.replace(',', '.')) || 0;
     if (qtd <= 0) return;
 
-    const emb = INSUMOS_DISPONIVEIS.find(i => i.id === embalagemSelecionadaId);
+    const emb = insumosDisponiveis.find(i => i.id === embalagemSelecionadaId);
     if (!emb) return;
 
     const custoTotal = qtd * emb.custoFracionado;
@@ -531,24 +500,52 @@ export default function ProdutosEstoqueScreen() {
   const handleAbrirNovoProduto = () => {
     setFormNome('');
     setFormFotoEmoji('🍪');
-    setFormCategoria(categorias[1] || 'Cookies');
+    setFormCategoria('');
     setFormPreco('');
-    setFormEstoque('10');
-    setFormEstoqueMinimo('5');
+    setFormEstoque('');
+    setFormEstoqueMinimo('');
     setHabilitarFichaTecnica(false);
-    setFormRendimento('12');
+    setFormRendimento('');
     setFormUnidadeRendimento('unidades');
-    setFormTempoPreparo('45');
+    setFormTempoPreparo('');
     setIngredientesUsados([]);
     setEmbalagensUsadas([]);
+    setFormCongelados('');
+    setFormDisponibilidade('pronta_entrega');
+    setFormDesconto('');
+    setCustosIndiretos(CUSTOS_INDIRETOS_VAZIOS);
+    setModoLucro('porcentagem');
+    setMargemLucroDesejada('');
+    setLucroReaisDesejado('');
+    setEditandoId(null);
     setFormErro(null);
     setModalNovoProdutoVisible(true);
   };
 
-  // Salvar Novo Produto
-  const handleSalvarProduto = async () => {
+  // Editar cadastro: estoque não muda aqui (vem de vendas, produção e ajustes do Estoque Central)
+  const handleAbrirEdicao = (prod: ProdutoCompleto) => {
+    setEditandoId(prod.id);
+    setFormNome(prod.nome);
+    setFormFotoEmoji(prod.fotoEmoji);
+    setFormCategoria(prod.categoria);
+    setFormPreco(prod.preco.toFixed(2).replace('.', ','));
+    setFormEstoqueMinimo(String(prod.estoqueMinimo));
+    setFormDisponibilidade(prod.disponibilidade);
+    setFormDesconto(prod.desconto ? prod.desconto.toFixed(2).replace('.', ',') : '');
+    setHabilitarFichaTecnica(false);
+    setFormErro(null);
+    setModalDossieVisible(false);
+    setModalNovoProdutoVisible(true);
+  };
+
+  // Salvar Novo Produto (ou edição)
+  const handleSalvarProduto = () => {
     if (!formNome.trim()) {
       setFormErro('Por favor, informe o nome do produto.');
+      return;
+    }
+    if (!formCategoria.trim()) {
+      setFormErro('Escolha a categoria do produto.');
       return;
     }
 
@@ -560,54 +557,60 @@ export default function ProdutosEstoqueScreen() {
 
     const estoqueNum = parseFloat(formEstoque) || 0;
     const estoqueMinNum = parseFloat(formEstoqueMinimo) || 0;
+    const descontoNum = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
+    if (descontoNum >= precoNum) {
+      setFormErro('O desconto da promoção precisa ser menor que o preço de venda.');
+      return;
+    }
 
-    const novoProduto: ProdutoCompleto = {
-      id: `prod-${Date.now()}`,
+    if (editandoId) {
+      setFotos(prev => ({ ...prev, [editandoId]: formFotoEmoji }));
+      atualizarProduto(editandoId, {
+        nome: formNome.trim(),
+        categoria: formCategoria,
+        preco: precoNum,
+        estoqueMinimo: estoqueMinNum,
+        disponibilidade: formDisponibilidade,
+        desconto: descontoNum || undefined,
+      });
+      setModalNovoProdutoVisible(false);
+      return;
+    }
+
+    const id = `prod-${Date.now()}`;
+    setFotos(prev => ({ ...prev, [id]: formFotoEmoji }));
+    cadastrarProduto({
+      id,
       nome: formNome.trim(),
+      detalhe: formCategoria,
       categoria: formCategoria,
       preco: precoNum,
-      fotoEmoji: formFotoEmoji,
+      custo: habilitarFichaTecnica ? calculosFinanceiros.custoUnitario : 0,
       estoque: estoqueNum,
       estoqueMinimo: estoqueMinNum,
-      ativo: true,
-      temFichaTecnica: habilitarFichaTecnica,
-      ...(habilitarFichaTecnica && {
-        rendimento: parseFloat(formRendimento) || 1,
-        unidadeRendimento: formUnidadeRendimento,
-        tempoPreparoMinutos: parseInt(formTempoPreparo) || 30,
-        ingredientes: ingredientesUsados,
-        embalagens: embalagensUsadas,
-        custosIndiretos,
-        custoIngredientesTotal: calculosFinanceiros.totalIngredientes,
-        custoEmbalagensTotal: calculosFinanceiros.totalEmbalagens,
-        custosIndiretosTotal: calculosFinanceiros.totalIndiretos,
-        custoTotalReceita: calculosFinanceiros.custoTotalReceita,
-        custoUnitario: calculosFinanceiros.custoUnitario,
-        precoSugeridoVenda: calculosFinanceiros.precoSugerido,
-        margemLucroPercentual: Math.round(calculosFinanceiros.margemCalculadaPercentual),
-        lucroLiquidoUnitario: calculosFinanceiros.lucroEstimadoUnitario,
-      }),
-    };
-
-    setProdutosList(prev => [novoProduto, ...prev]);
-    setModalNovoProdutoVisible(false);
-
-    // Salvar no Supabase
-    try {
-      await supabase.from('produtos').insert([
-        {
-          nome: novoProduto.nome,
-          categoria: novoProduto.categoria,
-          preco: novoProduto.preco,
-          estoque: novoProduto.estoque,
-          ativo: novoProduto.ativo,
-          rendimento_unidades: novoProduto.rendimento || 1,
-          tempo_preparo_minutos: novoProduto.tempoPreparoMinutos || 0,
-        },
-      ]);
-    } catch {
-      // Ignora erro mantendo estado local consistente
+      disponibilidade: formDisponibilidade,
+      desconto: descontoNum || undefined,
+    });
+    // A ficha vai para a lista única: aparece em Receitas, Produção e Estoque Central
+    if (habilitarFichaTecnica) {
+      const subtotalInsumos = calculosFinanceiros.totalIngredientes + calculosFinanceiros.totalEmbalagens;
+      salvarFicha({
+        produtoId: id,
+        rendimento: Math.max(1, parseFloat(formRendimento) || 1),
+        tempoPreparoMinutos: parseInt(formTempoPreparo) || 0,
+        itens: [...ingredientesUsados, ...embalagensUsadas].map((i) => ({ insumoId: i.insumoId, quantidade: i.quantidade })),
+        custosExtras: custosIndiretos.filter((ci) => ci.valor > 0).map((ci) => ({
+          id: ci.id,
+          descricao: ci.descricao,
+          valor: ci.modo === 'porcentagem' ? (subtotalInsumos * ci.valor) / 100 : ci.valor,
+        })),
+        modoLucro: modoLucro,
+        lucroDesejado: parseFloat(modoLucro === 'porcentagem' ? margemLucroDesejada : lucroReaisDesejado) || 0,
+      });
     }
+    // Massas já feitas vão para o freezer consumindo os insumos da ficha (depois da ficha salva)
+    congelarMassas(id, parseInt(formCongelados) || 0, true, 'cadastro do produto');
+    setModalNovoProdutoVisible(false);
   };
 
   // ==========================================================================
@@ -623,19 +626,11 @@ export default function ProdutosEstoqueScreen() {
         <View style={styles.mainContainer}>
           {/* HEADER PRINCIPAL */}
           <View style={styles.topHeader}>
-            <View style={styles.headerTitleCol}>
-              <View style={styles.headerBadgeRow}>
-                <View style={styles.activeDot} />
-                <Text style={styles.headerCategoryBadge}>CATÁLOGO & VITRINE</Text>
-                <View style={styles.systemBluePill}>
-                  <Text style={styles.systemBluePillText}>KIPI ATELIÊ</Text>
-                </View>
-              </View>
-              <Text style={styles.pageTitle}>Produtos & Estoque</Text>
-              <Text style={styles.pageSubtitle}>
-                Cadastre seus doces de forma rápida ou crie fichas técnicas completas com precificação inteligente.
-              </Text>
-            </View>
+            <PageHeaderTitulo
+              etiqueta="ATELIÊ · CATÁLOGO & VITRINE"
+              titulo="Produtos & Estoque"
+              subtitulo="Cadastro rápido ou ficha técnica completa com precificação inteligente."
+            />
 
             {/* BOTÃO NOVO PRODUTO */}
             <TouchableOpacity
@@ -647,165 +642,149 @@ export default function ProdutosEstoqueScreen() {
           </View>
 
           {/* =========================================================================
-              CARDS DE KPIS EM DESTAQUE (AZUL OFICIAL & DESIGN ATELIÊ)
+              INDICADORES COMPACTOS + FILTROS (BOTÃO) + VISUALIZAÇÃO NA MESMA LINHA
           ========================================================================== */}
-          <View style={styles.kpiCardsRow}>
-            {/* KPI 1: Total Produtos */}
-            <View style={styles.kpiCard}>
-              <View style={styles.kpiCardHeader}>
-                <Text style={styles.kpiLabel}>TOTAL DE PRODUTOS</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: KIPI_BLUE_TINT }]}>
-                  <Feather name="package" size={16} color={KIPI_BLUE_ACCENT} />
-                </View>
+          <View style={[styles.topoLinha, { zIndex: 40 }]}>
+            <View style={styles.statsStrip}>
+              <View style={styles.statItem}>
+                <Text style={styles.statLabel}>Produtos</Text>
+                <Text style={styles.statValue}>{totalProdutos}</Text>
               </View>
-              <Text style={styles.kpiValue}>{totalProdutos}</Text>
-              <Text style={styles.kpiSubtext}>Cadastrados no catálogo</Text>
-            </View>
-
-            {/* KPI 2: Com Ficha Técnica */}
-            <TouchableOpacity
-              style={[styles.kpiCard, statusFilter === 'com_ficha' && styles.kpiCardActive]}
-              onPress={() => setStatusFilter(statusFilter === 'com_ficha' ? 'todos' : 'com_ficha')}>
-              <View style={styles.kpiCardHeader}>
-                <Text style={styles.kpiLabel}>FICHAS TÉCNICAS</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: SUCCESS_TINT }]}>
-                  <Feather name="check-circle" size={16} color={SUCCESS_GREEN} />
-                </View>
-              </View>
-              <Text style={styles.kpiValue}>{totalComFicha}</Text>
-              <Text style={styles.kpiSubtext}>Com custo e margem calculados</Text>
-            </TouchableOpacity>
-
-            {/* KPI 3: Estoque Baixo */}
-            <View style={[styles.kpiCard, totalEstoqueBaixo > 0 && styles.kpiCardAlert]}>
-              <View style={styles.kpiCardHeader}>
-                <Text style={[styles.kpiLabel, totalEstoqueBaixo > 0 && { color: DANGER_RED }]}>
-                  ESTOQUE BAIXO
+              <View style={[styles.statItem, styles.statItemDivider]}>
+                <Text style={styles.statLabel}>Prontas · freezer</Text>
+                <Text style={styles.statValue}>
+                  {totalProntos} <Text style={styles.statValueSub}>· ❄ {totalCongelados}</Text>
                 </Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: totalEstoqueBaixo > 0 ? DANGER_TINT : SUCCESS_TINT }]}>
-                  <Feather
-                    name={totalEstoqueBaixo > 0 ? 'alert-triangle' : 'check'}
-                    size={16}
-                    color={totalEstoqueBaixo > 0 ? DANGER_RED : SUCCESS_GREEN}
-                  />
-                </View>
               </View>
-              <Text style={[styles.kpiValue, totalEstoqueBaixo > 0 && { color: DANGER_RED }]}>
-                {totalEstoqueBaixo}
-              </Text>
-              <Text style={styles.kpiSubtext}>
-                {totalEstoqueBaixo > 0 ? 'Produtos precisam de produção' : 'Estoque seguro'}
-              </Text>
-            </View>
-
-            {/* KPI 4: Valor Total em Prateleira */}
-            <View style={styles.kpiCard}>
-              <View style={styles.kpiCardHeader}>
-                <Text style={styles.kpiLabel}>VALOR EM PRATELEIRA</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: KIPI_BLUE_TINT }]}>
-                  <Feather name="dollar-sign" size={16} color={KIPI_BLUE_ACCENT} />
-                </View>
+              <TouchableOpacity
+                style={[styles.statItem, styles.statItemDivider]}
+                onPress={() => setStatusFilter(statusFilter === 'com_ficha' ? 'todos' : 'com_ficha')}>
+                <Text style={styles.statLabel}>Com receita</Text>
+                <Text style={[styles.statValue, { color: SUCCESS_GREEN }]}>{totalComFicha}</Text>
+              </TouchableOpacity>
+              <View style={[styles.statItem, styles.statItemDivider]}>
+                <Text style={styles.statLabel}>Estoque baixo</Text>
+                <Text style={[styles.statValue, { color: totalEstoqueBaixo > 0 ? DANGER_RED : SUCCESS_GREEN }]}>{totalEstoqueBaixo}</Text>
               </View>
-              <Text style={styles.kpiValue}>{formatMoney(valorEstoqueGeral)}</Text>
-              <Text style={styles.kpiSubtext}>Soma do estoque em preço de venda</Text>
-            </View>
-          </View>
-
-          {/* =========================================================================
-              FILTROS & BARRA DE CATEGORIAS
-          ========================================================================== */}
-          <View style={styles.filterSection}>
-            {/* Linha 1: Categorias por Pílulas Deslizantes */}
-            <View style={styles.categoriesRow}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesScroll}>
-                {categorias.map(cat => {
-                  const isActive = categoriaAtiva === cat;
-                  return (
-                    <TouchableOpacity
-                      key={cat}
-                      style={[styles.categoryPill, isActive && styles.categoryPillActive]}
-                      onPress={() => setCategoriaAtiva(cat)}>
-                      <Text style={[styles.categoryPillText, isActive && styles.categoryPillTextActive]}>
-                        {cat}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
+              <View style={[styles.statItem, styles.statItemDivider]}>
+                <Text style={styles.statLabel}>Em prateleira</Text>
+                <Text style={styles.statValue}>{formatMoney(valorEstoqueGeral)}</Text>
+              </View>
+              <View style={[styles.statItem, styles.statItemDivider]}>
+                <Text style={styles.statLabel}>No freezer</Text>
+                <Text style={styles.statValue}>{formatMoney(valorCongelados)}</Text>
+              </View>
             </View>
 
-            {/* Linha 2: Busca, Status e Modos de Visualização */}
-            <View style={styles.filterControlsRow}>
-              {/* Campo de Busca */}
-              <View style={styles.searchBox}>
-                <Feather name="search" size={16} color="#94A3B8" />
-                <TextInput
-                  style={styles.searchInput}
-                  placeholder="Buscar produto por nome ou categoria..."
-                  placeholderTextColor="#94A3B8"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                />
-                {searchQuery.length > 0 && (
-                  <TouchableOpacity onPress={() => setSearchQuery('')}>
-                    <Feather name="x" size={14} color="#94A3B8" />
-                  </TouchableOpacity>
+            {/* Busca, categoria e situação ficam todos dentro de "Filtros" */}
+            <View>
+              <TouchableOpacity
+                style={[styles.filtrosBtn, (filtrosAbertos || filtrosAtivos > 0) && styles.filtrosBtnAtivo]}
+                onPress={() => setFiltrosAbertos((v) => !v)}>
+                <Feather name="sliders" size={14} color={filtrosAtivos > 0 ? KIPI_BLUE_ACCENT : '#475569'} />
+                <Text style={[styles.filtrosBtnTexto, filtrosAtivos > 0 && { color: KIPI_BLUE_ACCENT }]}>Filtros</Text>
+                {filtrosAtivos > 0 && (
+                  <View style={styles.filtrosBadge}>
+                    <Text style={styles.filtrosBadgeTexto}>{filtrosAtivos}</Text>
+                  </View>
                 )}
-              </View>
+                <Feather name={filtrosAbertos ? 'chevron-up' : 'chevron-down'} size={14} color="#94A3B8" />
+              </TouchableOpacity>
 
-              {/* Filtro de Status */}
-              <View style={styles.statusFilterGroup}>
-                <TouchableOpacity
-                  style={[styles.statusFilterBtn, statusFilter === 'todos' && styles.statusFilterBtnActive]}
-                  onPress={() => setStatusFilter('todos')}>
-                  <Text style={[styles.statusFilterBtnText, statusFilter === 'todos' && styles.statusFilterBtnTextActive]}>
-                    Todos
-                  </Text>
-                </TouchableOpacity>
+              {filtrosAbertos && (
+                <View style={styles.filtrosMenu}>
+                  <View style={[styles.searchBox, { flex: 0, minWidth: 0 }]}>
+                    <Feather name="search" size={15} color="#94A3B8" />
+                    <TextInput
+                      style={styles.searchInput}
+                      placeholder="Buscar por nome ou categoria..."
+                      placeholderTextColor="#94A3B8"
+                      value={searchQuery}
+                      onChangeText={setSearchQuery}
+                    />
+                    {searchQuery.length > 0 && (
+                      <TouchableOpacity onPress={() => setSearchQuery('')}>
+                        <Feather name="x" size={14} color="#94A3B8" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
 
-                <TouchableOpacity
-                  style={[styles.statusFilterBtn, statusFilter === 'com_ficha' && styles.statusFilterBtnActive]}
-                  onPress={() => setStatusFilter('com_ficha')}>
-                  <Text style={[styles.statusFilterBtnText, statusFilter === 'com_ficha' && styles.statusFilterBtnTextActive]}>
-                    Com Ficha 🔬
-                  </Text>
-                </TouchableOpacity>
+                  <View>
+                    <Text style={styles.filtrosGrupo}>CATEGORIA</Text>
+                    <View style={styles.filtrosChips}>
+                      {categorias.map((cat) => {
+                        const ativo = categoriaAtiva === cat;
+                        return (
+                          <TouchableOpacity key={cat} style={[styles.filtrosChip, ativo && styles.filtrosChipAtivo]} onPress={() => setCategoriaAtiva(cat)}>
+                            <Text style={[styles.filtrosChipTexto, ativo && styles.filtrosChipTextoAtivo]}>{cat}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
 
-                <TouchableOpacity
-                  style={[styles.statusFilterBtn, statusFilter === 'sem_ficha' && styles.statusFilterBtnActive]}
-                  onPress={() => setStatusFilter('sem_ficha')}>
-                  <Text style={[styles.statusFilterBtnText, statusFilter === 'sem_ficha' && styles.statusFilterBtnTextActive]}>
-                    Rápidos ⚡
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  <View>
+                    <Text style={styles.filtrosGrupo}>SITUAÇÃO</Text>
+                    <View style={styles.filtrosChips}>
+                      {([
+                        { id: 'todos', label: 'Todos' },
+                        { id: 'com_ficha', label: 'Com receita 🔬' },
+                        { id: 'sem_ficha', label: 'Sem receita ⚡' },
+                        { id: 'encomenda', label: `Encomenda 📅 ${totalEncomenda}` },
+                        { id: 'inativos', label: 'Inativos' },
+                      ] as const).map((st) => {
+                        const ativo = statusFilter === st.id;
+                        return (
+                          <TouchableOpacity key={st.id} style={[styles.filtrosChip, ativo && styles.filtrosChipAtivo]} onPress={() => setStatusFilter(st.id)}>
+                            <Text style={[styles.filtrosChipTexto, ativo && styles.filtrosChipTextoAtivo]}>{st.label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
 
-              {/* Seletor de Modo de Exibição (Cards, Grid, Lista) */}
-              <View style={styles.viewSwitcher}>
-                <TouchableOpacity
-                  style={[styles.viewBtn, viewMode === 'cards' && styles.viewBtnActive]}
-                  onPress={() => setViewMode('cards')}
-                  accessibilityLabel="Modo Cards">
-                  <Feather name="credit-card" size={14} color={viewMode === 'cards' ? KIPI_BLUE_ACCENT : '#64748B'} />
-                  <Text style={[styles.viewBtnText, viewMode === 'cards' && styles.viewBtnTextActive]}>Cards</Text>
-                </TouchableOpacity>
+                  <View style={styles.filtrosRodape}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setSearchQuery('');
+                        setCategoriaAtiva('Todas');
+                        setStatusFilter('todos');
+                      }}>
+                      <Text style={styles.filtrosLimpar}>Limpar filtros</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.filtrosPronto} onPress={() => setFiltrosAbertos(false)}>
+                      <Text style={styles.filtrosProntoTexto}>Pronto</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+            </View>
 
-                <TouchableOpacity
-                  style={[styles.viewBtn, viewMode === 'grid' && styles.viewBtnActive]}
-                  onPress={() => setViewMode('grid')}
-                  accessibilityLabel="Modo Grid">
-                  <Feather name="grid" size={14} color={viewMode === 'grid' ? KIPI_BLUE_ACCENT : '#64748B'} />
-                  <Text style={[styles.viewBtnText, viewMode === 'grid' && styles.viewBtnTextActive]}>Grid</Text>
-                </TouchableOpacity>
+            {/* Seletor de Modo de Exibição (Cards, Grid, Lista) */}
+            <View style={styles.viewSwitcher}>
+              <TouchableOpacity
+                style={[styles.viewBtn, viewMode === 'cards' && styles.viewBtnActive]}
+                onPress={() => setViewMode('cards')}
+                accessibilityLabel="Modo Cards">
+                <Feather name="credit-card" size={14} color={viewMode === 'cards' ? KIPI_BLUE_ACCENT : '#64748B'} />
+                <Text style={[styles.viewBtnText, viewMode === 'cards' && styles.viewBtnTextActive]}>Cards</Text>
+              </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.viewBtn, viewMode === 'lista' && styles.viewBtnActive]}
-                  onPress={() => setViewMode('lista')}
-                  accessibilityLabel="Modo Lista">
-                  <Feather name="list" size={14} color={viewMode === 'lista' ? KIPI_BLUE_ACCENT : '#64748B'} />
-                  <Text style={[styles.viewBtnText, viewMode === 'lista' && styles.viewBtnTextActive]}>Lista</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                style={[styles.viewBtn, viewMode === 'grid' && styles.viewBtnActive]}
+                onPress={() => setViewMode('grid')}
+                accessibilityLabel="Modo Grid">
+                <Feather name="grid" size={14} color={viewMode === 'grid' ? KIPI_BLUE_ACCENT : '#64748B'} />
+                <Text style={[styles.viewBtnText, viewMode === 'grid' && styles.viewBtnTextActive]}>Grid</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.viewBtn, viewMode === 'lista' && styles.viewBtnActive]}
+                onPress={() => setViewMode('lista')}
+                accessibilityLabel="Modo Lista">
+                <Feather name="list" size={14} color={viewMode === 'lista' ? KIPI_BLUE_ACCENT : '#64748B'} />
+                <Text style={[styles.viewBtnText, viewMode === 'lista' && styles.viewBtnTextActive]}>Lista</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -866,6 +845,7 @@ export default function ProdutosEstoqueScreen() {
                             )}
                           </View>
                           <Text style={styles.cardTitle} numberOfLines={1}>{prod.nome}</Text>
+                          <Text style={styles.dispoText}>{ROTULO_DISPONIBILIDADE[prod.disponibilidade]}</Text>
                         </View>
                       </View>
 
@@ -874,6 +854,9 @@ export default function ProdutosEstoqueScreen() {
                         <View style={styles.finCol}>
                           <Text style={styles.finLabel}>PREÇO DE VENDA</Text>
                           <Text style={styles.finPrice}>{formatMoney(prod.preco)}</Text>
+                          {prod.desconto > 0 && (
+                            <Text style={styles.promoTag}>🏷️ {formatMoney(prod.preco - prod.desconto)} promo</Text>
+                          )}
                         </View>
 
                         {prod.temFichaTecnica && prod.custoUnitario ? (
@@ -886,7 +869,7 @@ export default function ProdutosEstoqueScreen() {
                             <View style={styles.finDivider} />
                             <View style={styles.finCol}>
                               <Text style={styles.finLabel}>MARGEM</Text>
-                              <Text style={styles.finMargin}>+{prod.margemLucroPercentual}%</Text>
+                              <Text style={[styles.finMargin, (prod.margemLucroPercentual ?? 0) < MARGEM_MINIMA && { color: DANGER_RED }]}>{(prod.margemLucroPercentual ?? 0) < MARGEM_MINIMA ? '⚠ ' : ''}{prod.margemLucroPercentual}%</Text>
                             </View>
                           </>
                         ) : (
@@ -906,17 +889,26 @@ export default function ProdutosEstoqueScreen() {
                           />
                           <Text style={styles.stockStatusText}>
                             Estoque: <Text style={{ fontWeight: '700', color: '#0F172A' }}>{prod.estoque} un</Text>
+                            {isEstoqueBaixo && <Text style={styles.alertNotice}> · mín {prod.estoqueMinimo}</Text>}
                           </Text>
                         </View>
-                        {isEstoqueBaixo && (
-                          <Text style={styles.alertNotice}>Mín: {prod.estoqueMinimo} un</Text>
+                        <Text style={styles.freezerText}>❄ {prod.congelado} p/ assar</Text>
+                        {prod.congelado > 0 && prod.ativo && (
+                          <TouchableOpacity style={styles.btnAssar} onPress={() => irParaAssar(prod.id)}>
+                            <Text style={styles.btnAssarText}>🔥 Assar</Text>
+                          </TouchableOpacity>
+                        )}
+                        {prod.estoque + prod.congelado > 0 && (
+                          <TouchableOpacity style={styles.btnDescartarMini} accessibilityLabel="Descartar" onPress={() => setDescarteId(prod.id)}>
+                            <Feather name="trash-2" size={12} color={DANGER_RED} />
+                          </TouchableOpacity>
                         )}
                       </View>
 
                       {/* Rodapé do Card */}
                       <View style={styles.cardFooter}>
                         <Text style={styles.cardFooterHint}>
-                          {prod.temFichaTecnica ? 'Tempo de preparo: ' + (prod.tempoPreparoMinutos || 30) + 'min' : 'Pronta entrega'}
+                          {prod.temFichaTecnica ? 'Tempo de preparo: ' + (prod.tempoPreparoMinutos || 30) + 'min' : 'Sem ficha técnica'}
                         </Text>
                         <View style={styles.cardActionLink}>
                           <Text style={styles.cardActionLinkText}>Ver Detalhes</Text>
@@ -946,9 +938,9 @@ export default function ProdutosEstoqueScreen() {
                     <Text style={styles.gridTitle} numberOfLines={2}>{prod.nome}</Text>
                     <Text style={styles.gridCat}>{prod.categoria}</Text>
                     <View style={styles.gridStock}>
-                      <Text style={styles.gridStockLabel}>Estoque: {prod.estoque} un</Text>
+                      <Text style={styles.gridStockLabel}>{prod.estoque} un · ❄ {prod.congelado}</Text>
                       {prod.temFichaTecnica && (
-                        <Text style={styles.gridMarginBadge}>+{prod.margemLucroPercentual}%</Text>
+                        <Text style={[styles.gridMarginBadge, (prod.margemLucroPercentual ?? 0) < MARGEM_MINIMA && { color: DANGER_RED }]}>{prod.margemLucroPercentual}%</Text>
                       )}
                     </View>
                   </TouchableOpacity>
@@ -994,6 +986,9 @@ export default function ProdutosEstoqueScreen() {
 
                       <View style={[styles.td, { flex: 1.2 }]}>
                         <Text style={styles.tablePrice}>{formatMoney(prod.preco)}</Text>
+                        {prod.desconto > 0 && (
+                          <Text style={styles.promoTag}>🏷️ {formatMoney(prod.preco - prod.desconto)}</Text>
+                        )}
                       </View>
 
                       <View style={[styles.td, { flex: 1.2 }]}>
@@ -1003,9 +998,9 @@ export default function ProdutosEstoqueScreen() {
                       </View>
 
                       <View style={[styles.td, { flex: 1.1 }]}>
-                        {prod.margemLucroPercentual ? (
+                        {prod.temFichaTecnica ? (
                           <View style={styles.tableMarginPill}>
-                            <Text style={styles.tableMarginText}>+{prod.margemLucroPercentual}%</Text>
+                            <Text style={[styles.tableMarginText, (prod.margemLucroPercentual ?? 0) < MARGEM_MINIMA && { color: DANGER_RED }]}>{prod.margemLucroPercentual}%</Text>
                           </View>
                         ) : (
                           <Text style={{ color: '#94A3B8', fontSize: 11 }}>-</Text>
@@ -1016,6 +1011,7 @@ export default function ProdutosEstoqueScreen() {
                         <Text style={[styles.tableStock, isEstoqueBaixo && { color: DANGER_RED }]}>
                           {prod.estoque} un
                         </Text>
+                        <Text style={styles.freezerText}>❄ {prod.congelado}</Text>
                       </View>
 
                       <View style={[styles.td, { flex: 1.2 }]}>
@@ -1056,7 +1052,7 @@ export default function ProdutosEstoqueScreen() {
             {/* Topo do Modal */}
             <View style={styles.modalHeader}>
               <View>
-                <Text style={styles.modalTitle}>Cadastrar Novo Produto</Text>
+                <Text style={styles.modalTitle}>{editandoId ? 'Editar Produto' : 'Cadastrar Novo Produto'}</Text>
                 <Text style={styles.modalSubtitle}>
                   Cadastre com preço fixo ou elabore a ficha técnica completa para calcular o custo exato.
                 </Text>
@@ -1166,22 +1162,97 @@ export default function ProdutosEstoqueScreen() {
                     </View>
                   </View>
 
+                  {!editandoId && (
+                    <View style={[styles.inputGroup, { flex: 0.9 }]}>
+                      <Text style={styles.inputLabel}>PRONTOS NA VITRINE</Text>
+                      <TextInput
+                        style={styles.inputBox}
+                        placeholder="10"
+                        placeholderTextColor="#94A3B8"
+                        keyboardType="numeric"
+                        value={formEstoque}
+                        onChangeText={setFormEstoque}
+                      />
+                    </View>
+                  )}
+
                   <View style={[styles.inputGroup, { flex: 0.9 }]}>
-                    <Text style={styles.inputLabel}>ESTOQUE INICIAL</Text>
+                    <Text style={styles.inputLabel}>ESTOQUE MÍNIMO</Text>
                     <TextInput
                       style={styles.inputBox}
-                      placeholder="10"
+                      placeholder="5"
                       placeholderTextColor="#94A3B8"
                       keyboardType="numeric"
-                      value={formEstoque}
-                      onChangeText={setFormEstoque}
+                      value={formEstoqueMinimo}
+                      onChangeText={setFormEstoqueMinimo}
                     />
                   </View>
                 </View>
 
+                {/* DISPONIBILIDADE */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>DISPONIBILIDADE</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {(Object.keys(ROTULO_DISPONIBILIDADE) as Disponibilidade[]).map(d => (
+                      <TouchableOpacity
+                        key={d}
+                        style={[styles.catChip, formDisponibilidade === d && styles.catChipActive]}
+                        onPress={() => setFormDisponibilidade(d)}>
+                        <Text style={[styles.catChipText, formDisponibilidade === d && styles.catChipTextActive]}>
+                          {ROTULO_DISPONIBILIDADE[d]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* PROMOÇÃO E CONGELADOS */}
+                <View style={styles.formRow}>
+                  <View style={[styles.inputGroup, { flex: 1.2 }]}>
+                    <Text style={styles.inputLabel}>PROMOÇÃO: DESCONTO (R$/UN)</Text>
+                    <View style={styles.currencyInputRow}>
+                      <Text style={styles.currencySymbol}>- R$</Text>
+                      <TextInput
+                        style={styles.currencyField}
+                        placeholder="0,00"
+                        placeholderTextColor="#94A3B8"
+                        keyboardType="numeric"
+                        value={formDesconto}
+                        onChangeText={setFormDesconto}
+                      />
+                    </View>
+                    {(() => {
+                      const preco = parseFloat(formPreco.replace(/\./g, '').replace(',', '.')) || 0;
+                      const desc = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
+                      return desc > 0 && preco > desc ? (
+                        <Text style={styles.promoHint}>Cliente paga {formatMoney(preco - desc)} na promoção</Text>
+                      ) : null;
+                    })()}
+                  </View>
+
+                  {!editandoId && (
+                    <View style={[styles.inputGroup, { flex: 0.9 }]}>
+                      <Text style={styles.inputLabel}>❄ CONGELADOS P/ ASSAR</Text>
+                      <TextInput
+                        style={styles.inputBox}
+                        placeholder="0"
+                        placeholderTextColor="#94A3B8"
+                        keyboardType="numeric"
+                        value={formCongelados}
+                        onChangeText={setFormCongelados}
+                      />
+                      <Text style={styles.promoHint}>
+                        {habilitarFichaTecnica ? 'Desconta os insumos da ficha' : 'Sem ficha: não desconta insumos'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
                 {/* ===================================================================
                     5. TOGGLE PARA CRIAR FICHA TÉCNICA & PRECIFICAÇÃO DETALHADA
+                    (na edição a ficha tem editor próprio: "Editar ficha" no dossiê)
                 ==================================================================== */}
+                {!editandoId && (
                 <View style={styles.recipeToggleBox}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.recipeToggleTitle}>Ficha Técnica & Cálculo de Custos</Text>
@@ -1195,6 +1266,7 @@ export default function ProdutosEstoqueScreen() {
                     <View style={[styles.toggleDot, habilitarFichaTecnica && styles.toggleDotActive]} />
                   </TouchableOpacity>
                 </View>
+                )}
 
                 {/* SE FICHA TÉCNICA ATIVA, EXIBE OS DETALHES ORGANIZADOS */}
                 {habilitarFichaTecnica && (
@@ -1252,7 +1324,7 @@ export default function ProdutosEstoqueScreen() {
                       {/* Seletor Inline para Adicionar Ingrediente */}
                       <View style={styles.addItemRow}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsInsumosScroll}>
-                          {INSUMOS_DISPONIVEIS.filter(i => i.tipo === 'ingrediente').map(ins => {
+                          {insumosDisponiveis.filter(i => i.tipo === 'ingrediente').map(ins => {
                             const isSelected = insumoSelecionadoId === ins.id;
                             return (
                               <TouchableOpacity
@@ -1311,7 +1383,7 @@ export default function ProdutosEstoqueScreen() {
 
                       <View style={styles.addItemRow}>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsInsumosScroll}>
-                          {INSUMOS_DISPONIVEIS.filter(i => i.tipo === 'embalagem').map(emb => {
+                          {insumosDisponiveis.filter(i => i.tipo === 'embalagem').map(emb => {
                             const isSelected = embalagemSelecionadaId === emb.id;
                             return (
                               <TouchableOpacity
@@ -1374,7 +1446,9 @@ export default function ProdutosEstoqueScreen() {
                             <TextInput
                               style={styles.indirectCostInput}
                               keyboardType="numeric"
-                              value={ci.valor.toString()}
+                              value={ci.valor ? ci.valor.toString() : ''}
+                              placeholder="0,00"
+                              placeholderTextColor="#CBD5E1"
                               onChangeText={text => {
                                 const valNum = parseFloat(text.replace(',', '.')) || 0;
                                 setCustosIndiretos(prev => prev.map((item, i) => i === idx ? { ...item, valor: valNum, valorCalculado: valNum } : item));
@@ -1383,13 +1457,22 @@ export default function ProdutosEstoqueScreen() {
                           </View>
                         </View>
                       ))}
+                      <View style={styles.indirectCostRow}>
+                        <Text style={styles.indirectCostName}>
+                          Mão de obra ({parseFloat(formTempoPreparo) || 0} min × {formatMoney(horaTrabalhada)}/h)
+                        </Text>
+                        <Text style={styles.indirectCostPrefix}>
+                          {formatMoney(((parseFloat(formTempoPreparo) || 0) / 60) * horaTrabalhada)}
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 )}
               </ScrollView>
 
               {/* COLUNA DIREITA: LIVE PRICING & PAINEL DE MARGEM (UX SÊNIOR) */}
-              <View style={styles.modalPricingCol}>
+              {!editandoId && (
+              <ScrollView style={styles.modalPricingCol} showsVerticalScrollIndicator={false}>
                 <View style={styles.pricingCard}>
                   <View style={styles.pricingHeader}>
                     <Feather name="trending-up" size={16} color={KIPI_BLUE_ACCENT} />
@@ -1450,6 +1533,8 @@ export default function ProdutosEstoqueScreen() {
                           style={styles.profitInputField}
                           keyboardType="numeric"
                           value={margemLucroDesejada}
+                          placeholder="Ex: 200"
+                          placeholderTextColor="#94A3B8"
                           onChangeText={setMargemLucroDesejada}
                         />
                         <Text style={styles.profitInputSuffix}>% de Markup</Text>
@@ -1461,6 +1546,8 @@ export default function ProdutosEstoqueScreen() {
                           style={styles.profitInputField}
                           keyboardType="numeric"
                           value={lucroReaisDesejado}
+                          placeholder="Ex: 15,00"
+                          placeholderTextColor="#94A3B8"
                           onChangeText={setLucroReaisDesejado}
                         />
                         <Text style={styles.profitInputSuffix}>lucro por unidade</Text>
@@ -1491,7 +1578,8 @@ export default function ProdutosEstoqueScreen() {
                     </TouchableOpacity>
                   </View>
                 </View>
-              </View>
+              </ScrollView>
+              )}
             </View>
 
             {/* Rodapé do Modal */}
@@ -1506,7 +1594,7 @@ export default function ProdutosEstoqueScreen() {
                 style={styles.modalSaveBtn}
                 onPress={handleSalvarProduto}>
                 <Feather name="check-circle" size={17} color="#FFFFFF" />
-                <Text style={styles.modalSaveBtnText}>Salvar Produto</Text>
+                <Text style={styles.modalSaveBtnText}>{editandoId ? 'Salvar Alterações' : 'Salvar Produto'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1543,6 +1631,10 @@ export default function ProdutosEstoqueScreen() {
                       )}
                     </View>
                     <Text style={styles.modalTitle}>{produtoSelecionado.nome}</Text>
+                    <Text style={styles.dispoText}>
+                      {ROTULO_DISPONIBILIDADE[produtoSelecionado.disponibilidade]}
+                      {!produtoSelecionado.ativo ? ' · INATIVO' : ''}
+                    </Text>
                   </View>
                 </View>
 
@@ -1568,19 +1660,44 @@ export default function ProdutosEstoqueScreen() {
                     </Text>
                   </View>
 
-                  <View style={[styles.dossierFinCard, { backgroundColor: SUCCESS_TINT, borderColor: '#BBF7D0' }]}>
-                    <Text style={[styles.dossierFinLabel, { color: SUCCESS_GREEN }]}>MARGEM REAL</Text>
-                    <Text style={[styles.dossierFinVal, { color: SUCCESS_GREEN }]}>
-                      {produtoSelecionado.margemLucroPercentual ? `+${produtoSelecionado.margemLucroPercentual}%` : '-'}
-                    </Text>
-                  </View>
+                  {(() => {
+                    const margem = produtoSelecionado.margemLucroPercentual;
+                    const atencao = produtoSelecionado.temFichaTecnica && (margem ?? 0) < MARGEM_MINIMA;
+                    const cor = atencao ? DANGER_RED : SUCCESS_GREEN;
+                    return (
+                      <View style={[styles.dossierFinCard, { backgroundColor: atencao ? DANGER_TINT : SUCCESS_TINT, borderColor: atencao ? '#FCA5A5' : '#BBF7D0' }]}>
+                        <Text style={[styles.dossierFinLabel, { color: cor }]}>{atencao ? '⚠ MARGEM BAIXA' : 'MARGEM REAL'}</Text>
+                        <Text style={[styles.dossierFinVal, { color: cor }]}>
+                          {produtoSelecionado.temFichaTecnica ? `${margem}%` : '-'}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                 </View>
+
+                {/* Promoção: preço final e margem com o desconto */}
+                {produtoSelecionado.desconto > 0 && (() => {
+                  const precoPromo = produtoSelecionado.preco - produtoSelecionado.desconto;
+                  const margemPromo = produtoSelecionado.custoUnitario ? Math.round(margemReal(precoPromo, produtoSelecionado.custoUnitario)) : null;
+                  return (
+                    <View style={styles.promoBox}>
+                      <Text style={styles.promoBoxText}>
+                        🏷️ Promoção: -{formatMoney(produtoSelecionado.desconto)}/un → cliente paga <Text style={{ fontWeight: '800' }}>{formatMoney(precoPromo)}</Text>
+                      </Text>
+                      {margemPromo !== null && (
+                        <Text style={[styles.promoBoxText, margemPromo < MARGEM_MINIMA && { color: DANGER_RED, fontWeight: '700' }]}>
+                          {margemPromo < MARGEM_MINIMA ? '⚠ ' : ''}Margem na promoção: {margemPromo}%
+                        </Text>
+                      )}
+                    </View>
+                  );
+                })()}
 
                 {/* Composição da Ficha Técnica se houver */}
                 {produtoSelecionado.temFichaTecnica && produtoSelecionado.ingredientes && (
                   <View style={styles.dossierSection}>
-                    <Text style={styles.dossierSectionTitle}>Ingredientes Utilizados</Text>
-                    {produtoSelecionado.ingredientes.map(i => (
+                    <Text style={styles.dossierSectionTitle}>Insumos da Ficha</Text>
+                    {[...produtoSelecionado.ingredientes, ...(produtoSelecionado.embalagens ?? [])].map(i => (
                       <View key={i.id} style={styles.dossierItemRow}>
                         <Text style={styles.dossierItemName}>{i.nome}</Text>
                         <Text style={styles.dossierItemQtd}>{i.quantidade} {i.unidade}</Text>
@@ -1597,29 +1714,67 @@ export default function ProdutosEstoqueScreen() {
                     {produtoSelecionado.estoque} unidades disponíveis
                   </Text>
                   <Text style={styles.dossierStockSub}>
-                    Estoque mínimo de alerta: {produtoSelecionado.estoqueMinimo} unidades
+                    Estoque mínimo de alerta: {produtoSelecionado.estoqueMinimo} unidades · ❄ {produtoSelecionado.congelado} no freezer p/ assar
                   </Text>
                 </View>
               </ScrollView>
 
-              <View style={styles.modalFooter}>
+              <View style={[styles.modalFooter, { flexWrap: 'wrap' }]}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, { marginRight: 'auto' }]}
+                  onPress={() => alternarAtivoProduto(produtoSelecionado.id)}>
+                  <Text style={[styles.modalCancelBtnText, { color: produtoSelecionado.ativo ? DANGER_RED : SUCCESS_GREEN }]}>
+                    {produtoSelecionado.ativo ? 'Inativar' : 'Reativar'}
+                  </Text>
+                </TouchableOpacity>
+
+                {produtoSelecionado.congelado > 0 && produtoSelecionado.ativo && (
+                  <TouchableOpacity style={styles.btnAssar} onPress={() => irParaAssar(produtoSelecionado.id)}>
+                    <Text style={styles.btnAssarText}>🔥 Assar</Text>
+                  </TouchableOpacity>
+                )}
+
+                {produtoSelecionado.estoque + produtoSelecionado.congelado > 0 && (
+                  <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setDescarteId(produtoSelecionado.id)}>
+                    <Text style={[styles.modalCancelBtnText, { color: DANGER_RED }]}>🗑 Descartar</Text>
+                  </TouchableOpacity>
+                )}
+
                 <TouchableOpacity
                   style={styles.modalCancelBtn}
-                  onPress={() => setModalDossieVisible(false)}>
-                  <Text style={styles.modalCancelBtnText}>Fechar</Text>
+                  onPress={() => handleAbrirEdicao(produtoSelecionado)}>
+                  <Text style={[styles.modalCancelBtnText, { color: KIPI_BLUE_ACCENT }]}>Editar produto</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.modalSaveBtn}
-                  onPress={() => setModalDossieVisible(false)}>
-                  <Feather name="check" size={17} color="#FFFFFF" />
-                  <Text style={styles.modalSaveBtnText}>Concluído</Text>
+                  onPress={() => setFichaEditandoId(produtoSelecionado.id)}>
+                  <Feather name="edit-2" size={15} color="#FFFFFF" />
+                  <Text style={styles.modalSaveBtnText}>
+                    {produtoSelecionado.temFichaTecnica ? 'Editar ficha' : 'Criar ficha'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
         </View>
       </Modal>
+
+      {/* Editor da ficha técnica (o mesmo de Insumos & Receitas) */}
+      <FichaTecnicaModal
+        visible={fichaEditandoId !== null}
+        produtoId={fichaEditandoId}
+        onClose={() => setFichaEditandoId(null)}
+      />
+
+      {/* Descarte (vencido, doado, quebrado...): sai da vitrine ou do freezer e entra como perda */}
+      <DescarteModal visible={descarteId !== null} produtoId={descarteId} onClose={() => setDescarteId(null)} />
+      <ProducaoRapidaModal
+        visible={producaoRapida !== null}
+        produtoId={producaoRapida?.id ?? null}
+        modo={producaoRapida?.modo ?? 'assar'}
+        onClose={() => setProducaoRapida(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -1628,6 +1783,30 @@ export default function ProdutosEstoqueScreen() {
 // ESTILOS VISUAIS COM A MESMA IDENTIDADE DAS TELAS REFINADAS
 // ============================================================================
 const styles = StyleSheet.create({
+  // TOPO: indicadores compactos + Filtros + visualização (mesmo padrão do Estoque Central)
+  topoLinha: { flexDirection: 'row', alignItems: 'stretch', flexWrap: 'wrap', gap: 10 },
+  statsStrip: { flexDirection: 'row', flexWrap: 'wrap', flexGrow: 1, flexShrink: 1, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', paddingVertical: 8 },
+  statItem: { flexGrow: 1, minWidth: 100, paddingHorizontal: 14, justifyContent: 'center' },
+  statItemDivider: { borderLeftWidth: 1, borderLeftColor: '#F1F5F9' },
+  statLabel: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#64748B', letterSpacing: 0.3, textTransform: 'uppercase' },
+  statValue: { fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: '800', color: '#0F172A', marginTop: 1 },
+  statValueSub: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#64748B' },
+  filtrosBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, height: '100%', minHeight: 42, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
+  filtrosBtnAtivo: { borderColor: KIPI_BLUE, backgroundColor: KIPI_BLUE_TINT },
+  filtrosBtnTexto: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '700', color: '#475569' },
+  filtrosBadge: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: KIPI_BLUE, alignItems: 'center', justifyContent: 'center' },
+  filtrosBadgeTexto: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
+  filtrosMenu: { position: 'absolute', top: 50, right: 0, width: 380, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', padding: 14, gap: 14, zIndex: 100, ...Platform.select({ web: { boxShadow: '0 16px 40px rgba(15,23,42,0.16)' } }) },
+  filtrosGrupo: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.5, marginBottom: 7 },
+  filtrosChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  filtrosChip: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
+  filtrosChipAtivo: { backgroundColor: KIPI_BLUE, borderColor: KIPI_BLUE },
+  filtrosChipTexto: { fontFamily: FONT_SANS, fontSize: 11.5, fontWeight: '600', color: '#475569' },
+  filtrosChipTextoAtivo: { color: '#FFFFFF', fontWeight: '800' },
+  filtrosRodape: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  filtrosLimpar: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#64748B' },
+  filtrosPronto: { backgroundColor: KIPI_BLUE, borderRadius: 10, paddingHorizontal: 16, paddingVertical: 7 },
+  filtrosProntoTexto: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -1646,64 +1825,7 @@ const styles = StyleSheet.create({
   },
 
   // CABEÇALHO
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  headerTitleCol: {
-    flex: 1,
-    minWidth: 280,
-  },
-  headerBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  activeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: KIPI_BLUE_ACCENT,
-  },
-  headerCategoryBadge: {
-    fontFamily: FONT_SANS,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    color: '#64748B',
-  },
-  systemBluePill: {
-    backgroundColor: KIPI_BLUE_TINT,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  systemBluePillText: {
-    fontFamily: FONT_SANS,
-    fontSize: 10,
-    fontWeight: '800',
-    color: KIPI_BLUE_ACCENT,
-    letterSpacing: 0.5,
-  },
-  pageTitle: {
-    fontFamily: FONT_DISPLAY,
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    fontFamily: FONT_SANS,
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-  },
+  topHeader: TOPO_COMPACTO,
   btnNovoProduto: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1779,14 +1901,56 @@ const styles = StyleSheet.create({
   },
 
   // FILTROS
-  filterSection: {
+  kpiStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 16,
-    gap: 12,
+    borderRadius: 12,
+    paddingVertical: 6,
+    marginBottom: 10,
+  },
+  kpiStripItem: {
+    flexGrow: 1,
+    minWidth: 130,
+    paddingHorizontal: 14,
+    paddingVertical: 3,
+    borderLeftWidth: 1,
+    borderLeftColor: '#F1F5F9',
+    borderRadius: 8,
+  },
+  kpiStripAtivo: {
+    backgroundColor: KIPI_BLUE_TINT,
+  },
+  kpiStripLabel: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  kpiStripValue: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  kpiStripSub: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    color: '#94A3B8',
+  },
+  filterSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
+    gap: 8,
   },
   categoriesRow: {
     flexDirection: 'row',
@@ -1797,8 +1961,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 11,
+    paddingVertical: 4,
     borderRadius: 20,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
@@ -1823,7 +1987,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
   },
   searchBox: {
     flex: 1,
@@ -1835,7 +1999,7 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 5,
     gap: 8,
   },
   searchInput: {
@@ -1853,7 +2017,7 @@ const styles = StyleSheet.create({
   },
   statusFilterBtn: {
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 8,
   },
   statusFilterBtnActive: {
@@ -1880,7 +2044,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 8,
     gap: 5,
   },
@@ -2024,6 +2188,59 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: SUCCESS_GREEN,
   },
+  dispoText: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  promoTag: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    fontWeight: '700',
+    color: WARNING_AMBER,
+    marginTop: 2,
+  },
+  promoHint: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  promoBox: {
+    backgroundColor: WARNING_TINT,
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    gap: 2,
+  },
+  promoBoxText: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    color: '#92400E',
+  },
+  freezerText: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0369A1',
+  },
+  btnDescartarMini: { width: 26, height: 26, borderRadius: 7, borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  btnAssar: {
+    backgroundColor: WARNING_TINT,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  btnAssarText: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400E',
+  },
   noFichaNotice: {
     fontFamily: FONT_SANS,
     fontSize: 11,
@@ -2032,8 +2249,10 @@ const styles = StyleSheet.create({
   },
   stockStatusRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
     marginBottom: 12,
   },
   stockStatusText: {
@@ -2306,9 +2525,11 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 960,
     maxHeight: '92%',
+    flexDirection: 'column',
+    overflow: 'hidden',
     backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    padding: 24,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
@@ -2354,10 +2575,12 @@ const styles = StyleSheet.create({
     color: DANGER_RED,
     fontWeight: '600',
   },
+  // O corpo encolhe para caber na tela: cabeçalho e botão Salvar ficam sempre visíveis
   modalBodyColumns: {
     flexDirection: 'row',
     gap: 20,
-    maxHeight: 520,
+    flexShrink: 1,
+    minHeight: 0,
   },
   modalFormCol: {
     flex: 1.4,

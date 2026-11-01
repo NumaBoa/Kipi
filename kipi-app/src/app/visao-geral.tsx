@@ -8,17 +8,37 @@ import {
   StyleSheet,
   Platform,
   useWindowDimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
 import NovoPedidoModal from '@/components/NovoPedidoModal';
+import ProducaoRapidaModal, { type ModoProducaoRapida } from '@/components/ProducaoRapidaModal';
+import { usePedidos, useClientes, metricasCliente, encomendasEmAberto, resumoItens, rotuloEntrega } from '@/lib/clientesPedidos';
+import { useEscopoRevendedora, pedidosDoEscopo } from '@/lib/minhaRevenda';
+import { useEstoqueVitrine, useEstoqueFreezer, produtoAtivo } from '@/lib/estoqueVitrine';
+import { useInsumos, useComprasInsumos, demandaDaSemana, custoPorUnidadeEstoque } from '@/lib/insumos';
+import { useRevenda, situacaoEstoqueRevendedoras, descreverComissao, labelFormaPagamento } from '@/lib/revenda';
+import { useHistoricoProducao } from '@/lib/historicoProducao';
+import { useSessao } from '@/lib/acesso';
+import { useConfigLoja } from '@/lib/configuracoes';
+import {
+  calcularKpis,
+  intervaloDoPeriodo,
+  type PeriodoPainel,
+  dadosDoGrafico,
+  funilDeEncomendas,
+  fluxoDeCaixa,
+  topProdutos,
+  vendidoOntem,
+  indicadoresClientes,
+} from '@/lib/indicadores';
 import Sidebar from '@/components/Sidebar';
 
-type Periodo = 'hoje' | 'semana' | 'mes' | 'personalizar';
+type Periodo = PeriodoPainel;
 
 type CardId =
   | 'grafico_vendas'
@@ -26,8 +46,12 @@ type CardId =
   | 'fluxo_caixa'
   | 'revendedoras'
   | 'insumos_alerta'
+  | 'vitrine_zerada'
   | 'top_produtos'
-  | 'clientes_fidelidade';
+  | 'clientes_fidelidade'
+  // Só da revendedora
+  | 'acerto_contas'
+  | 'estoque_comigo';
 
 interface LayoutConfig {
   mainCards: CardId[];
@@ -36,10 +60,68 @@ interface LayoutConfig {
 
 const DEFAULT_LAYOUT: LayoutConfig = {
   mainCards: ['grafico_vendas', 'funil_encomendas', 'fluxo_caixa', 'revendedoras'],
-  sideCards: ['insumos_alerta', 'top_produtos', 'clientes_fidelidade'],
+  sideCards: ['insumos_alerta', 'vitrine_zerada', 'top_produtos', 'clientes_fidelidade'],
 };
 
 const STORAGE_KEY = '@kipi_dashboard_layout_v2';
+
+// Revendedora: as vendas dela, o acerto com o ateliê, o estoque com ela e os clientes dela
+const DEFAULT_LAYOUT_REVENDA: LayoutConfig = {
+  mainCards: ['grafico_vendas', 'acerto_contas'],
+  sideCards: ['estoque_comigo', 'top_produtos', 'clientes_fidelidade'],
+};
+const STORAGE_KEY_REVENDA = '@kipi_dashboard_layout_revenda_v1';
+
+const formatMoney = (val: number) => val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+// CRONOGRAMA DE ENTREGAS (ENCOMENDAS DE HOJE E AMANHÃ, TIRADAS DOS PEDIDOS COMPARTILHADOS)
+interface EncomendaCronograma {
+  id: string;
+  dia: 'hoje' | 'amanha';
+  horario: string;
+  cliente: string;
+  itens: string;
+  observacao?: string;
+  total: number;
+  saldoNaEntrega: number;
+}
+
+
+// LISTA DE COMPRAS: necessário = maior entre a demanda das encomendas da semana e o estoque mínimo
+interface InsumoCompra {
+  id: string;
+  nome: string;
+  unidade: string;
+  estoque: number;
+  minimo: number;
+  demandaSemana: number; // consumo previsto pelas encomendas dos próximos 7 dias
+  custoUnitario: number;
+}
+
+
+const calcularCompra = (i: InsumoCompra) => {
+  const necessario = Math.max(i.demandaSemana, i.minimo);
+  const faltaComprar = Number(Math.max(necessario - i.estoque, 0).toFixed(2));
+  return { necessario, faltaComprar, custoEstimado: faltaComprar * i.custoUnitario };
+};
+
+// EMOJI POR CATEGORIA (CARD DE VITRINE ZERADA)
+const EMOJI_CATEGORIA_VG: Record<string, string> = {
+  Cookies: '🍪',
+  'Bolos & Bentos': '🎂',
+  Macarons: '✨',
+  Sobremesas: '🍮',
+  'Doces Finos': '🍬',
+  Presentes: '🎁',
+  Folhados: '🥐',
+  Bebidas: '☕',
+};
+
+const STATUS_FUNIL = {
+  a_fazer: { titulo: 'CONFIRMADAS', icone: 'check-circle', cor: '#5798D7', fundo: '#EAF3FA' },
+  em_producao: { titulo: 'EM PRODUÇÃO', icone: 'loader', cor: '#708018', fundo: '#F1F6D8' },
+  pronto: { titulo: 'PRONTAS', icone: 'box', cor: '#16A34A', fundo: '#DCFCE7' },
+} as const;
 
 export default function VisaoGeralScreen() {
   const router = useRouter();
@@ -53,32 +135,83 @@ export default function VisaoGeralScreen() {
 
   // FILTRO DE PERÍODO
   const [periodo, setPeriodo] = useState<Periodo>('semana');
+  // PERSONALIZAR: intervalo de datas escolhido (DD/MM/AAAA na tela; AAAA-MM-DD no filtro)
+  const [deTxt, setDeTxt] = useState('');
+  const [ateTxt, setAteTxt] = useState('');
+  const [erroPeriodo, setErroPeriodo] = useState<string | null>(null);
+  const ehPersonalizado = periodo.startsWith('personalizar');
+  const doisDig = (n: number) => String(n).padStart(2, '0');
+  const paraTela = (d: Date) => `${doisDig(d.getDate())}/${doisDig(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const paraFiltro = (d: Date) => `${d.getFullYear()}-${doisDig(d.getMonth() + 1)}-${doisDig(d.getDate())}`;
+  const lerTela = (s: string) => {
+    const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return null;
+    const d = new Date(+m[3], +m[2] - 1, +m[1]);
+    return d.getDate() === +m[1] && d.getMonth() === +m[2] - 1 ? d : null;
+  };
+  const mascaraData = (t: string) => {
+    const d = t.replace(/\D/g, '').slice(0, 8);
+    return d.length <= 2 ? d : d.length <= 4 ? `${d.slice(0, 2)}/${d.slice(2)}` : `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
+  };
+  const aplicarIntervalo = (de: Date, ate: Date) => {
+    setDeTxt(paraTela(de));
+    setAteTxt(paraTela(ate));
+    setErroPeriodo(null);
+    setPeriodo(`personalizar:${paraFiltro(de)}:${paraFiltro(ate)}`);
+  };
+  const aplicarDigitado = () => {
+    const de = lerTela(deTxt);
+    const ate = lerTela(ateTxt);
+    if (!de || !ate) return setErroPeriodo('Use datas no formato DD/MM/AAAA.');
+    if (ate < de) return setErroPeriodo('A data final precisa ser depois da inicial.');
+    aplicarIntervalo(de, ate);
+  };
+  const hojeData = new Date();
+  const atalhosPeriodo = [
+    { rotulo: 'Últimos 15 dias', de: new Date(hojeData.getFullYear(), hojeData.getMonth(), hojeData.getDate() - 14), ate: hojeData },
+    { rotulo: 'Últimos 30 dias', de: new Date(hojeData.getFullYear(), hojeData.getMonth(), hojeData.getDate() - 29), ate: hojeData },
+    { rotulo: 'Mês passado', de: new Date(hojeData.getFullYear(), hojeData.getMonth() - 1, 1), ate: new Date(hojeData.getFullYear(), hojeData.getMonth(), 0) },
+    { rotulo: 'Este ano', de: new Date(hojeData.getFullYear(), 0, 1), ate: hojeData },
+  ];
+  // Rótulo curto do período (chip dos painéis)
+  const rotuloPeriodo = ehPersonalizado
+    ? (() => {
+        const [, de, ate] = periodo.split(':');
+        return de && ate ? `${de.slice(8, 10)}/${de.slice(5, 7)} – ${ate.slice(8, 10)}/${ate.slice(5, 7)}` : 'PERSONALIZADO';
+      })()
+    : periodo.toUpperCase();
 
   // MODO DE PERSONALIZAÇÃO / REORDENAÇÃO DE CARDS
   const [editMode, setEditMode] = useState(false);
-  const [layout, setLayout] = useState<LayoutConfig>(DEFAULT_LAYOUT);
+  // Cada perfil tem seus cards e guarda a sua própria ordem
+  const { sessao } = useSessao();
+  const layoutPadrao = sessao?.perfil === 'revendedora' ? DEFAULT_LAYOUT_REVENDA : DEFAULT_LAYOUT;
+  const chaveLayout = sessao?.perfil === 'revendedora' ? STORAGE_KEY_REVENDA : STORAGE_KEY;
+  const [layout, setLayout] = useState<LayoutConfig>(layoutPadrao);
   const [mensagemSalvo, setMensagemSalvo] = useState(false);
 
   // MODAL DE NOVO PEDIDO E FEEDBACK
   const [modalNovoPedidoAberto, setModalNovoPedidoAberto] = useState(false);
+  const [cronogramaAberto, setCronogramaAberto] = useState(false);
   const [toastSucesso, setToastSucesso] = useState<string | null>(null);
 
-  // USUÁRIO LOGADO (PADRÃO: CAMILA LIMA)
-  const [usuario] = useState({
-    nome: 'Camila Lima',
-    papel: 'Proprietária',
-    email: 'camila.c.lima08@gmail.com',
-  });
+  // USUÁRIO LOGADO (sessão de teste)
+  const usuario = { nome: sessao?.nome ?? 'Camila Lima' };
 
   // CARREGAR LAYOUT SALVO DO ASYNCSTORAGE
   useEffect(() => {
     async function carregarLayout() {
       try {
-        const salvo = await AsyncStorage.getItem(STORAGE_KEY);
+        const salvo = await AsyncStorage.getItem(chaveLayout);
         if (salvo) {
           const parsed = JSON.parse(salvo);
           if (Array.isArray(parsed.mainCards) && Array.isArray(parsed.sideCards)) {
-            setLayout(parsed);
+            // Cards criados depois que o layout foi salvo entram no fim da coluna lateral
+            const salvos = new Set<CardId>([...parsed.mainCards, ...parsed.sideCards]);
+            const novos = [...layoutPadrao.mainCards, ...layoutPadrao.sideCards].filter((c) => !salvos.has(c));
+            // Só os cards do perfil (a revendedora nunca recebe cards do ateliê)
+            const doPerfil = (c: CardId) => novos.includes(c) || [...layoutPadrao.mainCards, ...layoutPadrao.sideCards].includes(c);
+            setLayout({ mainCards: parsed.mainCards.filter(doPerfil), sideCards: [...parsed.sideCards.filter(doPerfil), ...novos] });
           }
         }
       } catch {
@@ -129,7 +262,7 @@ export default function VisaoGeralScreen() {
 
   const salvarLayout = async () => {
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(layout));
+      await AsyncStorage.setItem(chaveLayout, JSON.stringify(layout));
       setMensagemSalvo(true);
       setTimeout(() => {
         setMensagemSalvo(false);
@@ -141,9 +274,9 @@ export default function VisaoGeralScreen() {
   };
 
   const restaurarPadrao = async () => {
-    setLayout(DEFAULT_LAYOUT);
+    setLayout(layoutPadrao);
     try {
-      await AsyncStorage.removeItem(STORAGE_KEY);
+      await AsyncStorage.removeItem(chaveLayout);
     } catch {}
   };
 
@@ -165,114 +298,136 @@ export default function VisaoGeralScreen() {
     return `${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
   }, []);
 
-  // DADOS REATIVOS POR PERÍODO (KPIS)
-  const kpis = useMemo(() => {
-    switch (periodo) {
-      case 'hoje':
-        return {
-          faturamento: 'R$ 2.840,00',
-          faturamentoDiff: '+18% vs ontem',
-          lucroLiquido: 'R$ 1.420,00',
-          margem: '50% margem',
-          ticketMedio: 'R$ 94,60',
-          pedidosQtd: '30 pedidos',
-          aReceber: 'R$ 680,00',
-          pendentes: '3 pendentes',
-          encomendasAtivas: '8 pedidos',
-          encomendasNovas: '+2 novas',
-          metaPct: 84,
-          revendaTotal: 'R$ 820,00',
-          revendaQtd: '48 un. vendidas',
-        };
-      case 'mes':
-        return {
-          faturamento: 'R$ 62.480,00',
-          faturamentoDiff: '+24% vs mês anterior',
-          lucroLiquido: 'R$ 31.240,00',
-          margem: '50% margem',
-          ticketMedio: 'R$ 98,20',
-          pedidosQtd: '636 pedidos',
-          aReceber: 'R$ 4.890,00',
-          pendentes: '12 pendentes',
-          encomendasAtivas: '24 pedidos',
-          encomendasNovas: '+9 novas',
-          metaPct: 92,
-          revendaTotal: 'R$ 18.940,00',
-          revendaQtd: '1.120 un. vendidas',
-        };
-      case 'personalizar':
-        return {
-          faturamento: 'R$ 28.950,00',
-          faturamentoDiff: 'Período customizado',
-          lucroLiquido: 'R$ 14.475,00',
-          margem: '50% margem',
-          ticketMedio: 'R$ 92,50',
-          pedidosQtd: '312 pedidos',
-          aReceber: 'R$ 2.340,00',
-          pendentes: '6 pendentes',
-          encomendasAtivas: '14 pedidos',
-          encomendasNovas: '+4 novas',
-          metaPct: 88,
-          revendaTotal: 'R$ 8.650,00',
-          revendaQtd: '510 un. vendidas',
-        };
-      case 'semana':
-      default:
-        return {
-          faturamento: 'R$ 16.480,00',
-          faturamentoDiff: '+14% vs semana passada',
-          lucroLiquido: 'R$ 8.240,00',
-          margem: '50% margem',
-          ticketMedio: 'R$ 96,40',
-          pedidosQtd: '171 pedidos',
-          aReceber: 'R$ 2.450,00',
-          pendentes: '7 pendentes',
-          encomendasAtivas: '12 pedidos',
-          encomendasNovas: '+5 novas',
-          metaPct: 86,
-          revendaTotal: 'R$ 4.820,00',
-          revendaQtd: '286 un. vendidas',
-        };
-    }
-  }, [periodo]);
+  // DADOS COMPARTILHADOS: pedidos, clientes, vitrine e revenda (os números saem deles).
+  // Revendedora: só os pedidos e clientes dela; nada do ateliê (custos, outras revendedoras, produção)
+  const escopo = useEscopoRevendedora();
+  const ehRevendedora = escopo.ehRevendedora;
+  const { config } = useConfigLoja();
+  const pedidosCompartilhados = pedidosDoEscopo(usePedidos(), escopo.revendedoraId);
+  const todosClientes = useClientes();
+  const clientesCompartilhados = ehRevendedora
+    ? todosClientes
+        .filter((c) => c.revendedoraId === escopo.revendedoraId)
+        .map((c) => ({ ...c, ...metricasCliente(c, pedidosCompartilhados) }))
+    : todosClientes;
+  const vitrine = useEstoqueVitrine();
+  const freezerVG = useEstoqueFreezer();
+  // Produzir lote: abre o modal aqui mesmo (assa se tem massa no freezer; senão prepara)
+  const [producaoRapida, setProducaoRapida] = useState<{ id: string; modo: ModoProducaoRapida } | null>(null);
+  const revendaAtelie = useRevenda();
+  const revendedoras = ehRevendedora ? [] : revendaAtelie.revendedoras;
+  const vendasRevenda = ehRevendedora ? [] : revendaAtelie.vendas;
+  const entregasRevenda = ehRevendedora ? [] : revendaAtelie.entregas;
+  const pagamentosRevenda = ehRevendedora ? [] : revendaAtelie.pagamentos;
+  // Estoque que está com cada revendedora (entregue − vendido), com alerta de reposição
+  const situacaoRevenda = situacaoEstoqueRevendedoras(revendedoras, entregasRevenda, vendasRevenda);
+  const revendedorasEmAlerta = situacaoRevenda.filter((s) => s.emAlerta).length;
 
-  // DADOS DO GRÁFICO DE VENDAS
-  const dadosGrafico = useMemo(() => {
-    switch (periodo) {
-      case 'hoje':
-        return [
-          { label: '08h', valor: 280, pct: 35 },
-          { label: '10h', valor: 640, pct: 65 },
-          { label: '12h', valor: 890, pct: 90, pico: true },
-          { label: '14h', valor: 520, pct: 55 },
-          { label: '16h', valor: 380, pct: 40 },
-          { label: '18h', valor: 130, pct: 20 },
-        ];
-      case 'mes':
-        return [
-          { label: 'Sem 1', valor: 14200, pct: 72 },
-          { label: 'Sem 2', valor: 16800, pct: 85 },
-          { label: 'Sem 3 (Pico)', valor: 19400, pct: 100, pico: true },
-          { label: 'Sem 4', valor: 12080, pct: 62 },
-        ];
-      case 'personalizar':
-        return [
-          { label: 'Bloco A', valor: 7200, pct: 60 },
-          { label: 'Bloco B', valor: 9800, pct: 82 },
-          { label: 'Bloco C', valor: 11950, pct: 100, pico: true },
-        ];
-      case 'semana':
-      default:
-        return [
-          { label: 'Seg', valor: 1980, pct: 58 },
-          { label: 'Ter', valor: 2840, pct: 85, atual: true },
-          { label: 'Qua', valor: 1750, pct: 52 },
-          { label: 'Qui', valor: 2280, pct: 68 },
-          { label: 'Sex (Pico)', valor: 3950, pct: 100, pico: true },
-          { label: 'Sáb', valor: 3680, pct: 92 },
-        ];
+  // KPIS DO PERÍODO
+  const historicoAtelie = useHistoricoProducao();
+  const historicoProducao = ehRevendedora ? [] : historicoAtelie;
+  const kpis = calcularKpis(periodo, pedidosCompartilhados, vendasRevenda, revendedoras, historicoProducao);
+  // O destaque do banner é sempre o dia de hoje, independente do filtro
+  const kpisHoje = calcularKpis('hoje', pedidosCompartilhados, vendasRevenda, revendedoras, historicoProducao);
+
+  // REVENDEDORA: comissão do período e de hoje, acerto com o ateliê e estoque com ela
+  const comissaoNoIntervalo = (p: PeriodoPainel) => {
+    const { atual } = intervaloDoPeriodo(p);
+    return pedidosCompartilhados
+      .filter((x) => !x.deletado && new Date(x.data) >= atual.inicio && new Date(x.data) < atual.fim)
+      .reduce((acc, x) => acc + escopo.comissaoDoPedido(x), 0);
+  };
+  const minhaComissao = ehRevendedora ? comissaoNoIntervalo(periodo) : 0;
+  const minhaComissaoHoje = ehRevendedora ? comissaoNoIntervalo('hoje') : 0;
+  const saborAcabando = escopo.sabores.filter((x) => x.status !== 'abastecido');
+  const unidadesComigo = escopo.sabores.reduce((acc, x) => acc + x.saldo, 0);
+
+  // VENDA DIRETA × REVENDA (divisão do faturamento do período por canal)
+  const canais = useMemo(() => {
+    const diretaTotal = kpis.faturamentoNum - kpis.revendaNum;
+    const diretaPedidos = kpis.diretaPedidos;
+    const pctDireta = kpis.faturamentoNum > 0 ? Math.round((diretaTotal / kpis.faturamentoNum) * 100) : 0;
+    return { diretaTotal, diretaPedidos, pctDireta, pctRevenda: 100 - pctDireta };
+  }, [kpis]);
+
+  // ENTREGAS DE HOJE E AMANHÃ: encomendas em aberto dos pedidos compartilhados
+  const cronograma: EncomendaCronograma[] = encomendasEmAberto(pedidosCompartilhados).flatMap((p): EncomendaCronograma[] => {
+    const rotulo = rotuloEntrega(p.dataEntrega);
+    const dia = rotulo.startsWith('Hoje') ? 'hoje' : rotulo.startsWith('Amanhã') ? 'amanha' : null;
+    if (!dia) return [];
+    return [
+      {
+        id: p.id,
+        dia,
+        horario: rotulo.split(' ')[1],
+        cliente: p.clienteNome,
+        itens: resumoItens(p),
+        observacao: p.observacoes ?? undefined,
+        total: p.total,
+        saldoNaEntrega: p.saldoNaEntrega,
+      },
+    ];
+  });
+  const entregasHoje = cronograma.filter((e) => e.dia === 'hoje');
+  const entregasAmanha = cronograma.filter((e) => e.dia === 'amanha');
+
+  // LISTA DE COMPRAS DA SEMANA
+  const insumosLista = useInsumos();
+  // Compras de insumos com valor pago entram no fluxo de caixa
+  const comprasInsumos = useComprasInsumos();
+  const encomendasDaSemana = encomendasEmAberto(pedidosCompartilhados);
+  const listaCompras = insumosLista
+    .filter((i) => i.status === 'ativo')
+    .map((i) => ({
+      id: i.id,
+      nome: i.nome,
+      unidade: i.unidade,
+      estoque: i.quantidadeEstoque,
+      minimo: i.estoqueMinimo,
+      demandaSemana: Number(demandaDaSemana(i, encomendasDaSemana).toFixed(2)),
+      custoUnitario: custoPorUnidadeEstoque(i),
+    }))
+    .map((i) => ({ ...i, ...calcularCompra(i) }))
+    .filter((i) => i.faltaComprar > 0);
+  const custoTotalCompras = listaCompras.reduce((acc, i) => acc + i.custoEstimado, 0);
+
+  const copiarListaCompras = () => {
+    const texto = [
+      '🛒 *LISTA DE COMPRAS DO ATELIÊ:*',
+      `Data: ${new Date().toLocaleDateString('pt-BR')}`,
+      '',
+      ...listaCompras.map(
+        (i) => `• ${i.nome}: comprar ${i.faltaComprar.toLocaleString('pt-BR')} ${i.unidade} (estoque: ${i.estoque.toLocaleString('pt-BR')} ${i.unidade})`
+      ),
+      '',
+      `💰 Custo estimado total: ${formatMoney(custoTotalCompras)}`,
+    ].join('\n');
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(texto);
     }
-  }, [periodo]);
+    setToastSucesso('✓ Lista de compras copiada para o WhatsApp!');
+    setTimeout(() => setToastSucesso(null), 3500);
+  };
+
+  // DADOS DO GRÁFICO DE VENDAS (faturamento por faixa do período)
+  const dadosGrafico = dadosDoGrafico(periodo, pedidosCompartilhados, vendasRevenda);
+
+  // FUNIL, CAIXA, RANKING, CLIENTES E VITRINE ZERADA (todos calculados dos dados compartilhados)
+  const funil = funilDeEncomendas(pedidosCompartilhados);
+  const caixa = fluxoDeCaixa(periodo, pedidosCompartilhados, revendedoras, vendasRevenda, pagamentosRevenda, comprasInsumos);
+  const ranking = topProdutos(periodo, pedidosCompartilhados, vendasRevenda);
+  const indClientes = indicadoresClientes(periodo, clientesCompartilhados, pedidosCompartilhados);
+  const vitrineZerada = vitrine
+    .filter((p) => produtoAtivo(p) && p.disponibilidade !== 'sob_encomenda' && p.estoque === 0)
+    .map((p) => {
+      const ontem = vendidoOntem(p.nome, pedidosCompartilhados);
+      return {
+        id: p.id,
+        nome: p.nome,
+        emoji: EMOJI_CATEGORIA_VG[p.categoria] ?? '🧁',
+        ultimaVenda: ontem > 0 ? `Vendeu ${ontem} ontem` : 'Sem vendas ontem',
+      };
+    });
 
   // ITENS DO MENU LATERAL
   const navItems = [
@@ -324,7 +479,7 @@ export default function VisaoGeralScreen() {
                   <View style={styles.sectionDot} />
                   <Text style={styles.panelTitle}>Vendas no Período</Text>
                   <View style={styles.panelChip}>
-                    <Text style={styles.panelChipText}>{periodo.toUpperCase()}</Text>
+                    <Text style={styles.panelChipText}>{rotuloPeriodo}</Text>
                   </View>
                 </View>
                 <Text style={styles.panelSubtitle}>
@@ -397,59 +552,42 @@ export default function VisaoGeralScreen() {
                   Status em tempo real das encomendas em fluxo na cozinha
                 </Text>
               </View>
-              <TouchableOpacity style={styles.panelActionBtn} activeOpacity={0.7}>
+              <TouchableOpacity style={styles.panelActionBtn} activeOpacity={0.7} onPress={() => router.push('/producao')}>
                 <Text style={styles.panelActionBtnText}>Ver Cozinha →</Text>
               </TouchableOpacity>
             </View>
 
+            {/* Encomendas em aberto por status de produção (mesmas da tela de Produção) */}
             <View style={styles.funnelRow}>
-              {/* Confirmadas */}
-              <View style={styles.funnelCard}>
-                <View style={styles.funnelCardTop}>
-                  <View style={[styles.funnelBadge, { backgroundColor: '#EAF3FA' }]}>
-                    <Feather name="check-circle" size={14} color="#5798D7" />
-                    <Text style={[styles.funnelBadgeText, { color: '#5798D7' }]}>CONFIRMADAS</Text>
+              {funil.map((etapa) => {
+                const st = STATUS_FUNIL[etapa.status];
+                return (
+                  <View key={etapa.status} style={styles.funnelCard}>
+                    <View style={styles.funnelCardTop}>
+                      <View style={[styles.funnelBadge, { backgroundColor: st.fundo }]}>
+                        <Feather name={st.icone} size={14} color={st.cor} />
+                        <Text style={[styles.funnelBadgeText, { color: st.cor }]}>{st.titulo}</Text>
+                      </View>
+                      <Text style={styles.funnelCount}>
+                        {etapa.quantidade} {etapa.quantidade === 1 ? 'pedido' : 'pedidos'}
+                      </Text>
+                    </View>
+                    <Text style={styles.funnelTotal}>{formatMoney(etapa.total)}</Text>
+                    <View style={styles.funnelOrderSnippet}>
+                      {etapa.primeira ? (
+                        <>
+                          <Text style={styles.funnelCustomerName}>{etapa.primeira.clienteNome}</Text>
+                          <Text style={styles.funnelItemTitle}>
+                            {resumoItens(etapa.primeira)} (Entrega {rotuloEntrega(etapa.primeira.dataEntrega)})
+                          </Text>
+                        </>
+                      ) : (
+                        <Text style={styles.funnelItemTitle}>Nenhuma encomenda nesta etapa.</Text>
+                      )}
+                    </View>
                   </View>
-                  <Text style={styles.funnelCount}>4 pedidos</Text>
-                </View>
-                <Text style={styles.funnelTotal}>R$ 1.480,00</Text>
-                <View style={styles.funnelOrderSnippet}>
-                  <Text style={styles.funnelCustomerName}>Mariana Albuquerque</Text>
-                  <Text style={styles.funnelItemTitle}>Bolo Floral 3 andares (Entrega 14h)</Text>
-                </View>
-              </View>
-
-              {/* Em Produção */}
-              <View style={styles.funnelCard}>
-                <View style={styles.funnelCardTop}>
-                  <View style={[styles.funnelBadge, { backgroundColor: '#F1F6D8' }]}>
-                    <Feather name="loader" size={14} color="#708018" />
-                    <Text style={[styles.funnelBadgeText, { color: '#708018' }]}>EM PRODUÇÃO</Text>
-                  </View>
-                  <Text style={styles.funnelCount}>3 pedidos</Text>
-                </View>
-                <Text style={styles.funnelTotal}>R$ 960,00</Text>
-                <View style={styles.funnelOrderSnippet}>
-                  <Text style={styles.funnelCustomerName}>Ateliê do Chocolate</Text>
-                  <Text style={styles.funnelItemTitle}>100 Brigadeiros Pistache (Montagem)</Text>
-                </View>
-              </View>
-
-              {/* Prontas */}
-              <View style={styles.funnelCard}>
-                <View style={styles.funnelCardTop}>
-                  <View style={[styles.funnelBadge, { backgroundColor: '#DCFCE7' }]}>
-                    <Feather name="box" size={14} color="#16A34A" />
-                    <Text style={[styles.funnelBadgeText, { color: '#16A34A' }]}>PRONTAS</Text>
-                  </View>
-                  <Text style={styles.funnelCount}>2 pedidos</Text>
-                </View>
-                <Text style={styles.funnelTotal}>R$ 400,00</Text>
-                <View style={styles.funnelOrderSnippet}>
-                  <Text style={styles.funnelCustomerName}>Lucas Silveira</Text>
-                  <Text style={styles.funnelItemTitle}>Bento Cake Minimalista (Balcão)</Text>
-                </View>
-              </View>
+                );
+              })}
             </View>
           </View>
         );
@@ -469,75 +607,65 @@ export default function VisaoGeralScreen() {
                   Saúde financeira, disponibilidades e lançamentos futuros
                 </Text>
               </View>
-              <View style={styles.cashStatusBadge}>
-                <Text style={styles.cashStatusBadgeText}>Saldo Positivo</Text>
+              <View style={[styles.cashStatusBadge, caixa.saldoPrevisto < 0 && { backgroundColor: '#FEE2E2' }]}>
+                <Text style={[styles.cashStatusBadgeText, caixa.saldoPrevisto < 0 && { color: '#DC2626' }]}>
+                  {caixa.saldoPrevisto >= 0 ? 'Saldo Positivo' : 'Saldo Negativo'}
+                </Text>
               </View>
             </View>
 
             <View style={styles.cashSummaryRow}>
               <View style={styles.cashBox}>
                 <Text style={styles.cashBoxLabel}>SALDO PREVISTO</Text>
-                <Text style={styles.cashBoxValuePrimary}>R$ 18.450,00</Text>
-                <Text style={styles.cashBoxSub}>Fim do período</Text>
+                <Text style={styles.cashBoxValuePrimary}>{formatMoney(caixa.saldoPrevisto)}</Text>
+                <Text style={styles.cashBoxSub}>
+                  Recebido + a receber − a pagar{caixa.comprasPeriodo > 0 ? ` − ${formatMoney(caixa.comprasPeriodo)} em compras` : ''}
+                </Text>
               </View>
               <View style={styles.cashBox}>
-                <Text style={styles.cashBoxLabel}>HOJE EM CAIXA</Text>
-                <Text style={styles.cashBoxValue}>R$ 4.280,00</Text>
-                <Text style={styles.cashBoxSub}>Disponível agora</Text>
+                <Text style={styles.cashBoxLabel}>RECEBIDO HOJE</Text>
+                <Text style={styles.cashBoxValue}>{formatMoney(caixa.recebidoHoje)}</Text>
+                <Text style={styles.cashBoxSub}>Pagamentos e sinais de hoje</Text>
               </View>
               <View style={styles.cashBox}>
                 <Text style={styles.cashBoxLabel}>A RECEBER</Text>
-                <Text style={[styles.cashBoxValue, { color: '#16A34A' }]}>+ R$ 3.820,00</Text>
-                <Text style={styles.cashBoxSub}>Entregas agendadas</Text>
+                <Text style={[styles.cashBoxValue, { color: '#16A34A' }]}>+ {formatMoney(caixa.aReceber)}</Text>
+                <Text style={styles.cashBoxSub}>Saldos de pedidos pendentes</Text>
               </View>
               <View style={styles.cashBox}>
                 <Text style={styles.cashBoxLabel}>A PAGAR</Text>
-                <Text style={[styles.cashBoxValue, { color: '#DC2626' }]}>- R$ 1.950,00</Text>
-                <Text style={styles.cashBoxSub}>Fornecedores e contas</Text>
+                <Text style={[styles.cashBoxValue, { color: '#DC2626' }]}>- {formatMoney(caixa.aPagar)}</Text>
+                <Text style={styles.cashBoxSub}>Contas + {formatMoney(caixa.comissoesAPagar)} de comissões</Text>
               </View>
             </View>
 
             <View style={styles.cashLaunchesArea}>
               <Text style={styles.cashLaunchesTitle}>PRÓXIMOS LANÇAMENTOS (PRÓXIMOS 7 DIAS)</Text>
               <View style={styles.launchesList}>
-                <View style={styles.launchItem}>
-                  <View style={styles.launchLeft}>
-                    <View style={[styles.launchIconBox, { backgroundColor: '#FEE2E2' }]}>
-                      <Feather name="arrow-up-right" size={15} color="#DC2626" />
+                {caixa.lancamentos.length === 0 && (
+                  <Text style={styles.launchDate}>Nenhum lançamento nos próximos 7 dias.</Text>
+                )}
+                {caixa.lancamentos.map((l) => {
+                  const entrada = l.tipo === 'entrada';
+                  return (
+                    <View key={l.id} style={styles.launchItem}>
+                      <View style={styles.launchLeft}>
+                        <View style={[styles.launchIconBox, { backgroundColor: entrada ? '#DCFCE7' : '#FEE2E2' }]}>
+                          <Feather name={entrada ? 'arrow-down-left' : 'arrow-up-right'} size={15} color={entrada ? '#16A34A' : '#DC2626'} />
+                        </View>
+                        <View>
+                          <Text style={styles.launchDesc}>{l.descricao}</Text>
+                          <Text style={styles.launchDate}>
+                            {rotuloEntrega(l.data).split(' ')[0]} • {l.detalhe}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={entrada ? styles.launchValueIncome : styles.launchValueExpense}>
+                        {entrada ? '+' : '-'} {formatMoney(l.valor)}
+                      </Text>
                     </View>
-                    <View>
-                      <Text style={styles.launchDesc}>Fornecedor Embalagens Kraft & Fitas</Text>
-                      <Text style={styles.launchDate}>Vence amanhã • Pagamento via Boleto</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.launchValueExpense}>- R$ 480,00</Text>
-                </View>
-
-                <View style={styles.launchItem}>
-                  <View style={styles.launchLeft}>
-                    <View style={[styles.launchIconBox, { backgroundColor: '#DCFCE7' }]}>
-                      <Feather name="arrow-down-left" size={15} color="#16A34A" />
-                    </View>
-                    <View>
-                      <Text style={styles.launchDesc}>Casamento Mariana (Saldo Restante 50%)</Text>
-                      <Text style={styles.launchDate}>Quinta-feira • Pix na Entrega</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.launchValueIncome}>+ R$ 1.200,00</Text>
-                </View>
-
-                <View style={styles.launchItem}>
-                  <View style={styles.launchLeft}>
-                    <View style={[styles.launchIconBox, { backgroundColor: '#FEE2E2' }]}>
-                      <Feather name="arrow-up-right" size={15} color="#DC2626" />
-                    </View>
-                    <View>
-                      <Text style={styles.launchDesc}>Morangos e Frutas Vermelhas Orgânicas</Text>
-                      <Text style={styles.launchDate}>Sexta-feira • Fornecedor Sítio da Serra</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.launchValueExpense}>- R$ 180,00</Text>
-                </View>
+                  );
+                })}
               </View>
             </View>
           </View>
@@ -556,14 +684,19 @@ export default function VisaoGeralScreen() {
                   </View>
                   <Text style={styles.panelTitle}>Rede de Revendedoras & Consignação</Text>
                   <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
-                    <Text style={[styles.panelChipText, { color: '#708018' }]}>8 Parceiras Ativas</Text>
+                    <Text style={[styles.panelChipText, { color: '#708018' }]}>
+                      {revendedoras.length} {revendedoras.length === 1 ? 'Parceira Ativa' : 'Parceiras Ativas'}
+                    </Text>
                   </View>
                 </View>
                 <Text style={styles.panelSubtitle}>
                   Desempenho de vendas parceiras e monitoramento de estoque externo
                 </Text>
               </View>
-              <TouchableOpacity style={styles.panelActionBtn} activeOpacity={0.7}>
+              <TouchableOpacity
+                style={styles.panelActionBtn}
+                activeOpacity={0.7}
+                onPress={() => router.push('/acessos')}>
                 <Text style={styles.panelActionBtnText}>Gerenciar Revenda →</Text>
               </TouchableOpacity>
             </View>
@@ -572,8 +705,10 @@ export default function VisaoGeralScreen() {
             <View style={styles.resellerMetricsRow}>
               <View style={styles.resellerMetricBox}>
                 <Text style={styles.resellerMetricLabel}>PARCEIRAS ATIVAS</Text>
-                <Text style={styles.resellerMetricNumber}>8 pontos</Text>
-                <Text style={styles.resellerMetricSub}>+2 cadastradas no mês</Text>
+                <Text style={styles.resellerMetricNumber}>
+                  {revendedoras.length} {revendedoras.length === 1 ? 'ponto' : 'pontos'}
+                </Text>
+                <Text style={styles.resellerMetricSub}>Cadastradas em Acessos</Text>
               </View>
               <View style={styles.resellerMetricBox}>
                 <Text style={styles.resellerMetricLabel}>PRODUTOS VENDIDOS</Text>
@@ -587,67 +722,88 @@ export default function VisaoGeralScreen() {
                 <Text style={[styles.resellerMetricNumber, { color: '#16A34A' }]}>
                   {kpis.revendaTotal}
                 </Text>
-                <Text style={styles.resellerMetricSub}>Comissão média 20%</Text>
+                <Text style={styles.resellerMetricSub}>
+                  {kpis.revendaPedidos} vendas · {formatMoney(kpis.comissoesRevenda)} em comissões
+                </Text>
               </View>
             </View>
 
-            {/* ALERTA DE ESTOQUE DAS REVENDEDORAS */}
+            {/* VENDA DIRETA × REVENDA */}
+            <View style={styles.channelArea}>
+              <Text style={styles.channelTitle}>VENDA DIRETA × REVENDA NO PERÍODO</Text>
+              <View style={styles.channelBarTrack}>
+                <View style={[styles.channelBarFill, { width: `${canais.pctDireta}%`, backgroundColor: KipiPalette.icedDenim }]} />
+                <View style={[styles.channelBarFill, { width: `${canais.pctRevenda}%`, backgroundColor: '#B9C255' }]} />
+              </View>
+              <View style={styles.channelRow}>
+                <View style={styles.channelBox}>
+                  <View style={styles.channelBoxHeader}>
+                    <View style={[styles.channelDot, { backgroundColor: KipiPalette.icedDenim }]} />
+                    <Text style={styles.channelBoxLabel}>Venda direta / balcão</Text>
+                  </View>
+                  <Text style={styles.channelBoxValue}>{formatMoney(canais.diretaTotal)}</Text>
+                  <Text style={styles.channelBoxSub}>
+                    {canais.diretaPedidos} vendas · {canais.pctDireta}% do faturamento
+                  </Text>
+                </View>
+                <View style={styles.channelBox}>
+                  <View style={styles.channelBoxHeader}>
+                    <View style={[styles.channelDot, { backgroundColor: '#B9C255' }]} />
+                    <Text style={styles.channelBoxLabel}>Revendedoras (consignação)</Text>
+                  </View>
+                  <Text style={styles.channelBoxValue}>{formatMoney(kpis.revendaNum)}</Text>
+                  <Text style={styles.channelBoxSub}>
+                    {kpis.revendaPedidos} vendas · {canais.pctRevenda}% do faturamento
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* ALERTA DE ESTOQUE DAS REVENDEDORAS (entregue − vendido de cada uma) */}
             <View style={styles.resellerStockAlertArea}>
               <View style={styles.resellerAlertHeader}>
-                <Feather name="alert-circle" size={15} color="#DC2626" />
+                <Feather name="alert-circle" size={15} color={revendedorasEmAlerta > 0 ? '#DC2626' : '#16A34A'} />
                 <Text style={styles.resellerAlertTitle}>
-                  STATUS DO ESTOQUE NAS REVENDEDORAS (2 EM ALERTA DE REPOSIÇÃO)
+                  STATUS DO ESTOQUE NAS REVENDEDORAS ({revendedorasEmAlerta} EM ALERTA DE REPOSIÇÃO)
                 </Text>
               </View>
 
               <View style={styles.resellerAlertList}>
-                {/* Revendedora 1 */}
-                <View style={styles.resellerAlertItem}>
-                  <View style={styles.resellerAlertLeft}>
-                    <View style={[styles.resellerStatusDot, { backgroundColor: '#DC2626' }]} />
-                    <View>
-                      <Text style={styles.resellerName}>Café & Flor Bistrô (Bancada Central)</Text>
-                      <Text style={styles.resellerAlertDesc}>
-                        Restam apenas 3 Cookies Duo • <Text style={{ color: '#DC2626', fontWeight: '700' }}>Crítico (12% restante)</Text>
-                      </Text>
+                {situacaoRevenda.slice(0, 3).map((s) => (
+                  <View key={s.revendedora.id} style={styles.resellerAlertItem}>
+                    <View style={styles.resellerAlertLeft}>
+                      <View style={[styles.resellerStatusDot, { backgroundColor: s.emAlerta ? '#DC2626' : '#16A34A' }]} />
+                      <View>
+                        <Text style={styles.resellerName}>{s.revendedora.nome}</Text>
+                        {s.emAlerta ? (
+                          <Text style={styles.resellerAlertDesc}>
+                            {s.total === 0
+                              ? 'Estoque zerado'
+                              : `${s.saboresEmFalta} ${s.saboresEmFalta === 1 ? 'sabor precisa' : 'sabores precisam'} de reposição${s.menor ? ` (${s.menor.nome}: ${s.menor.quantidade} un)` : ''}`}
+                            {s.diasSemReposicao !== null && (
+                              <Text style={{ color: '#DC2626', fontWeight: '700' }}>
+                                {' '}• Sem reposição há {s.diasSemReposicao} {s.diasSemReposicao === 1 ? 'dia' : 'dias'}
+                              </Text>
+                            )}
+                          </Text>
+                        ) : (
+                          <Text style={styles.resellerAlertDesc}>
+                            Estoque regular ({s.total} unidades com ela)
+                          </Text>
+                        )}
+                      </View>
                     </View>
+                    {s.emAlerta ? (
+                      <TouchableOpacity style={styles.resellerActionBtn} activeOpacity={0.8} onPress={() => router.push('/acessos')}>
+                        <Text style={styles.resellerActionBtnText}>+ Enviar Remessa</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.resellerOkBadge}>
+                        <Text style={styles.resellerOkBadgeText}>Estoque em dia</Text>
+                      </View>
+                    )}
                   </View>
-                  <TouchableOpacity style={styles.resellerActionBtn} activeOpacity={0.8}>
-                    <Text style={styles.resellerActionBtnText}>+ Enviar Remessa</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Revendedora 2 */}
-                <View style={styles.resellerAlertItem}>
-                  <View style={styles.resellerAlertLeft}>
-                    <View style={[styles.resellerStatusDot, { backgroundColor: '#DC2626' }]} />
-                    <View>
-                      <Text style={styles.resellerName}>Boutique Doce Charme</Text>
-                      <Text style={styles.resellerAlertDesc}>
-                        Estoque zerado de Bento Cakes • <Text style={{ color: '#DC2626', fontWeight: '700' }}>Sem reposição há 5 dias</Text>
-                      </Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.resellerActionBtn} activeOpacity={0.8}>
-                    <Text style={styles.resellerActionBtnText}>+ Enviar Remessa</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Revendedora 3 */}
-                <View style={styles.resellerAlertItem}>
-                  <View style={styles.resellerAlertLeft}>
-                    <View style={[styles.resellerStatusDot, { backgroundColor: '#16A34A' }]} />
-                    <View>
-                      <Text style={styles.resellerName}>Empório dos Sabores Artesanais</Text>
-                      <Text style={styles.resellerAlertDesc}>
-                        Estoque regular (32 unidades disponíveis) • Vendeu 18 ontem
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.resellerOkBadge}>
-                    <Text style={styles.resellerOkBadgeText}>Estoque em dia</Text>
-                  </View>
-                </View>
+                ))}
               </View>
             </View>
           </View>
@@ -663,71 +819,99 @@ export default function VisaoGeralScreen() {
                 <View style={[styles.miniAlertIcon, { backgroundColor: '#FEE2E2' }]}>
                   <Feather name="alert-triangle" size={14} color="#DC2626" />
                 </View>
-                <Text style={styles.panelTitle}>Insumos em Alerta</Text>
+                <Text style={styles.panelTitle}>O que Comprar</Text>
               </View>
-              <Text style={styles.criticalCountBadge}>3 críticos</Text>
+              <Text style={styles.criticalCountBadge}>{listaCompras.length} em falta</Text>
+            </View>
+            <Text style={styles.purchaseIntro}>
+              Calculado pelas encomendas dos próximos 7 dias e pelo estoque mínimo de cada insumo.
+            </Text>
+
+            <View style={styles.purchaseTotalBox}>
+              <Text style={styles.purchaseTotalLabel}>CUSTO ESTIMADO DAS COMPRAS</Text>
+              <Text style={styles.purchaseTotalValue}>{formatMoney(custoTotalCompras)}</Text>
             </View>
 
             <View style={styles.insumosList}>
-              <View style={styles.insumoItem}>
-                <View style={styles.insumoTopRow}>
-                  <Text style={styles.insumoName}>Farinha de Amêndoa Pura (França)</Text>
-                  <View style={styles.insumoPctBadge}>
-                    <Text style={styles.insumoPctText}>15% restante</Text>
+              {listaCompras.map((i) => {
+                const pct = Math.max(0, Math.min(100, Math.round((i.estoque / i.necessario) * 100)));
+                return (
+                  <View key={i.id} style={styles.insumoItem}>
+                    <View style={styles.insumoTopRow}>
+                      <Text style={styles.insumoName}>{i.nome}</Text>
+                      <View style={styles.insumoPctBadge}>
+                        <Text style={styles.insumoPctText}>{pct}% do necessário</Text>
+                      </View>
+                    </View>
+                    <View style={styles.insumoProgressTrack}>
+                      <View
+                        style={[
+                          styles.insumoProgressFill,
+                          { width: `${pct}%`, backgroundColor: pct < 30 ? '#DC2626' : '#F59E0B' },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.insumoStockText}>
+                      Estoque {i.estoque.toLocaleString('pt-BR')} {i.unidade} · Encomendas da semana{' '}
+                      {i.demandaSemana.toLocaleString('pt-BR')} {i.unidade} · Mín. {i.minimo.toLocaleString('pt-BR')} {i.unidade}
+                    </Text>
+                    <View style={styles.insumoBottomRow}>
+                      <Text style={styles.purchaseBuyText}>
+                        Comprar +{i.faltaComprar.toLocaleString('pt-BR')} {i.unidade}
+                      </Text>
+                      <Text style={styles.purchaseCostText}>{formatMoney(i.custoEstimado)}</Text>
+                    </View>
                   </View>
-                </View>
-                <View style={styles.insumoProgressTrack}>
-                  <View style={[styles.insumoProgressFill, { width: '15%', backgroundColor: '#DC2626' }]} />
-                </View>
-                <View style={styles.insumoBottomRow}>
-                  <Text style={styles.insumoStockText}>Restam 1.2 kg (Mín: 5.0 kg)</Text>
-                  <TouchableOpacity style={styles.orderInsumoBtn}>
-                    <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.insumoItem}>
-                <View style={styles.insumoTopRow}>
-                  <Text style={styles.insumoName}>Morangos Orgânicos Selecionados</Text>
-                  <View style={styles.insumoPctBadge}>
-                    <Text style={styles.insumoPctText}>22% restante</Text>
-                  </View>
-                </View>
-                <View style={styles.insumoProgressTrack}>
-                  <View style={[styles.insumoProgressFill, { width: '22%', backgroundColor: '#F59E0B' }]} />
-                </View>
-                <View style={styles.insumoBottomRow}>
-                  <Text style={styles.insumoStockText}>Restam 4 caixas (Mín: 10 cx)</Text>
-                  <TouchableOpacity style={styles.orderInsumoBtn}>
-                    <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <View style={styles.insumoItem}>
-                <View style={styles.insumoTopRow}>
-                  <Text style={styles.insumoName}>Fitas de Cetim Dusty Rose (22mm)</Text>
-                  <View style={styles.insumoPctBadge}>
-                    <Text style={styles.insumoPctText}>10% restante</Text>
-                  </View>
-                </View>
-                <View style={styles.insumoProgressTrack}>
-                  <View style={[styles.insumoProgressFill, { width: '10%', backgroundColor: '#DC2626' }]} />
-                </View>
-                <View style={styles.insumoBottomRow}>
-                  <Text style={styles.insumoStockText}>Restam 1 rolo (Mín: 4 rolos)</Text>
-                  <TouchableOpacity style={styles.orderInsumoBtn}>
-                    <Text style={styles.orderInsumoBtnText}>+ Pedir</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+                );
+              })}
             </View>
 
-            <TouchableOpacity style={styles.buyOrderBtn} activeOpacity={0.85}>
-              <Feather name="shopping-cart" size={15} color="#5798D7" />
-              <Text style={styles.buyOrderBtnText}>Gerar Ordem de Compra Imediata</Text>
+            <TouchableOpacity style={styles.buyOrderBtn} activeOpacity={0.85} onPress={copiarListaCompras}>
+              <Feather name="copy" size={15} color="#5798D7" />
+              <Text style={styles.buyOrderBtnText}>Copiar lista para WhatsApp</Text>
             </TouchableOpacity>
+          </View>
+        );
+
+      // VITRINE ZERADA (PRODUTOS DE PRONTA-ENTREGA SEM ESTOQUE)
+      case 'vitrine_zerada':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View style={styles.panelTitleRow}>
+                <View style={[styles.miniAlertIcon, { backgroundColor: '#FFEDD5' }]}>
+                  <Feather name="package" size={14} color="#EA580C" />
+                </View>
+                <Text style={styles.panelTitle}>Vitrine Zerada</Text>
+              </View>
+              <Text style={[styles.criticalCountBadge, vitrineZerada.length === 0 && { color: '#16A34A' }]}>
+                {vitrineZerada.length} zerados
+              </Text>
+            </View>
+            <Text style={styles.purchaseIntro}>Produtos de pronta-entrega sem estoque para venda.</Text>
+
+            {vitrineZerada.length === 0 ? (
+              <Text style={styles.insumoStockText}>Prateleira abastecida! Nenhum produto zerado.</Text>
+            ) : (
+              <View style={styles.insumosList}>
+                {vitrineZerada.map((p) => (
+                  <View key={p.id} style={styles.vitrineItem}>
+                    <Text style={{ fontSize: 20 }}>{p.emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.insumoName}>{p.nome}</Text>
+                      <Text style={styles.insumoStockText}>{p.ultimaVenda}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.orderInsumoBtn}
+                      onPress={() => setProducaoRapida({ id: p.id, modo: (freezerVG[p.id] ?? 0) > 0 ? 'assar' : 'preparar' })}
+                      activeOpacity={0.8}>
+                      <Text style={styles.orderInsumoBtnText}>{(freezerVG[p.id] ?? 0) > 0 ? 'Assar' : 'Produzir lote'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         );
 
@@ -744,45 +928,33 @@ export default function VisaoGeralScreen() {
               <Text style={styles.panelActionLink}>Ranking</Text>
             </View>
 
+            {/* Ranking do período escolhido (pedidos + vendas das revendedoras) */}
             <View style={styles.rankingList}>
-              <View style={styles.rankingItem}>
-                <View style={styles.rankingMedalBox}>
-                  <Text style={styles.rankingMedal}>🥇</Text>
-                </View>
-                <View style={styles.rankingInfo}>
-                  <Text style={styles.rankingProdName}>Cookie Duo Tradicional</Text>
-                  <Text style={styles.rankingProdMeta}>142 vendidos • R$ 2.400,00</Text>
-                  <View style={styles.rankingBarTrack}>
-                    <View style={[styles.rankingBarFill, { width: '95%', backgroundColor: KipiPalette.icedDenim }]} />
+              {ranking.length === 0 && <Text style={styles.rankingProdMeta}>Nenhuma venda no período.</Text>}
+              {ranking.map((prod, idx) => (
+                <View key={prod.nome} style={styles.rankingItem}>
+                  <View style={styles.rankingMedalBox}>
+                    <Text style={styles.rankingMedal}>{['🥇', '🥈', '🥉'][idx]}</Text>
+                  </View>
+                  <View style={styles.rankingInfo}>
+                    <Text style={styles.rankingProdName}>{prod.nome}</Text>
+                    <Text style={styles.rankingProdMeta}>
+                      {prod.qtd} vendidos • {formatMoney(prod.faturamento)}
+                    </Text>
+                    <View style={styles.rankingBarTrack}>
+                      <View
+                        style={[
+                          styles.rankingBarFill,
+                          {
+                            width: `${Math.max(8, Math.round((prod.qtd / ranking[0].qtd) * 100))}%`,
+                            backgroundColor: [KipiPalette.icedDenim, KipiPalette.pistachio, '#7BAEE0'][idx],
+                          },
+                        ]}
+                      />
+                    </View>
                   </View>
                 </View>
-              </View>
-
-              <View style={styles.rankingItem}>
-                <View style={styles.rankingMedalBox}>
-                  <Text style={styles.rankingMedal}>🥈</Text>
-                </View>
-                <View style={styles.rankingInfo}>
-                  <Text style={styles.rankingProdName}>Bolo Red Velvet Floral</Text>
-                  <Text style={styles.rankingProdMeta}>38 vendidos • R$ 4.560,00</Text>
-                  <View style={styles.rankingBarTrack}>
-                    <View style={[styles.rankingBarFill, { width: '75%', backgroundColor: KipiPalette.pistachio }]} />
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.rankingItem}>
-                <View style={styles.rankingMedalBox}>
-                  <Text style={styles.rankingMedal}>🥉</Text>
-                </View>
-                <View style={styles.rankingInfo}>
-                  <Text style={styles.rankingProdName}>Cento de Brigadeiros Pistache</Text>
-                  <Text style={styles.rankingProdMeta}>26 centos • R$ 3.120,00</Text>
-                  <View style={styles.rankingBarTrack}>
-                    <View style={[styles.rankingBarFill, { width: '58%', backgroundColor: '#7BAEE0' }]} />
-                  </View>
-                </View>
-              </View>
+              ))}
             </View>
           </View>
         );
@@ -798,58 +970,182 @@ export default function VisaoGeralScreen() {
                 <Text style={styles.panelTitle}>Clientes & Fidelidade</Text>
               </View>
               <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
-                <Text style={[styles.panelChipText, { color: '#708018' }]}>68% Recompra</Text>
+                <Text style={[styles.panelChipText, { color: '#708018' }]}>{indClientes.recompra}% Recompra</Text>
               </View>
             </View>
 
+            {/* Mesmos clientes da tela de Clientes; recompra = clientes com 2 ou mais pedidos */}
             <View style={styles.clientsMetricsRow}>
               <View style={styles.clientMetricCard}>
-                <Text style={styles.clientMetricNum}>148</Text>
+                <Text style={styles.clientMetricNum}>{indClientes.ativos}</Text>
                 <Text style={styles.clientMetricLabel}>Ativos</Text>
               </View>
               <View style={styles.clientMetricCard}>
-                <Text style={[styles.clientMetricNum, { color: '#16A34A' }]}>+14</Text>
-                <Text style={styles.clientMetricLabel}>Na Semana</Text>
+                <Text style={[styles.clientMetricNum, { color: '#16A34A' }]}>+{indClientes.novos}</Text>
+                <Text style={styles.clientMetricLabel}>Novos no Período</Text>
               </View>
               <View style={styles.clientMetricCard}>
-                <Text style={[styles.clientMetricNum, { color: KipiPalette.icedDenim }]}>68%</Text>
+                <Text style={[styles.clientMetricNum, { color: KipiPalette.icedDenim }]}>{indClientes.recompra}%</Text>
                 <Text style={styles.clientMetricLabel}>Recompra</Text>
               </View>
             </View>
 
             <View style={styles.bdayArea}>
-              <Text style={styles.bdayTitle}>🎂 ANIVERSARIANTES DE OUTUBRO</Text>
+              <Text style={styles.bdayTitle}>🎂 ANIVERSARIANTES DE {indClientes.nomeMes.toUpperCase()}</Text>
               <View style={styles.bdayList}>
-                <View style={styles.bdayItem}>
-                  <View style={styles.bdayLeft}>
-                    <View style={styles.bdayAvatar}>
-                      <Text style={styles.bdayAvatarText}>CM</Text>
+                {indClientes.aniversariantes.length === 0 && (
+                  <Text style={styles.bdayDate}>Nenhum aniversariante neste mês.</Text>
+                )}
+                {indClientes.aniversariantes.slice(0, 3).map((c) => (
+                  <View key={c.id} style={styles.bdayItem}>
+                    <View style={styles.bdayLeft}>
+                      <View style={styles.bdayAvatar}>
+                        <Text style={styles.bdayAvatarText}>
+                          {c.nome.replace(/^Dra?\.\s*/, '').split(' ').slice(0, 2).map((p) => p[0]).join('').toUpperCase()}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text style={styles.bdayName}>{c.nome}</Text>
+                        <Text style={styles.bdayDate}>
+                          {c.diaAniversario} de {indClientes.nomeMes}
+                          {c.tag ? ` • ${c.tag}` : ''}
+                        </Text>
+                      </View>
                     </View>
-                    <View>
-                      <Text style={styles.bdayName}>Dra. Camila Morales</Text>
-                      <Text style={styles.bdayDate}>24 de Outubro • VIP</Text>
-                    </View>
+                    <TouchableOpacity style={styles.bdayGiftBtn}>
+                      <Text style={styles.bdayGiftBtnText}>Cupom 🎁</Text>
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity style={styles.bdayGiftBtn}>
-                    <Text style={styles.bdayGiftBtnText}>Cupom 🎁</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.bdayItem}>
-                  <View style={styles.bdayLeft}>
-                    <View style={styles.bdayAvatar}>
-                      <Text style={styles.bdayAvatarText}>MA</Text>
-                    </View>
-                    <View>
-                      <Text style={styles.bdayName}>Mariana Albuquerque</Text>
-                      <Text style={styles.bdayDate}>28 de Outubro • Noiva</Text>
-                    </View>
-                  </View>
-                  <TouchableOpacity style={styles.bdayGiftBtn}>
-                    <Text style={styles.bdayGiftBtnText}>Cupom 🎁</Text>
-                  </TouchableOpacity>
-                </View>
+                ))}
               </View>
+            </View>
+          </View>
+        );
+
+      // REVENDEDORA: ACERTO DE CONTAS COM O ATELIÊ (comissão − recebido)
+      case 'acerto_contas': {
+        const resumo = escopo.resumo;
+        const extrato = [
+          ...escopo.minhasVendas
+            .filter((v) => v.status !== 'cancelado')
+            .map((v) => ({ id: v.id, data: v.data, titulo: `Comissão · ${v.cliente || 'Venda sem cliente'}`, valor: escopo.comissao(v) })),
+          ...escopo.meusPagamentos.map((p) => ({
+            id: p.id,
+            data: p.data,
+            titulo: `Recebido do ateliê · ${labelFormaPagamento(p.formaPagamento)}`,
+            valor: -p.valor,
+          })),
+        ]
+          .sort((a, b) => b.data.localeCompare(a.data))
+          .slice(0, 6);
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View>
+                <View style={styles.panelTitleRow}>
+                  <View style={styles.sectionDot} />
+                  <Text style={styles.panelTitle}>Acerto de Contas</Text>
+                </View>
+                <Text style={styles.panelSubtitle}>
+                  {escopo.revendedora ? descreverComissao(escopo.revendedora) : ''} · item em promoção paga metade
+                </Text>
+              </View>
+              <View style={[styles.panelChip, { backgroundColor: (resumo?.saldo ?? 0) > 0 ? '#FEF3C7' : '#DCFCE7' }]}>
+                <Text style={[styles.panelChipText, { color: (resumo?.saldo ?? 0) > 0 ? '#B45309' : '#16A34A' }]}>
+                  {(resumo?.saldo ?? 0) > 0 ? 'A RECEBER' : 'EM DIA'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.clientsMetricsRow}>
+              <View style={styles.clientMetricCard}>
+                <Text style={styles.clientMetricNum}>{formatMoney(resumo?.comissao ?? 0)}</Text>
+                <Text style={styles.clientMetricLabel}>Comissão total</Text>
+              </View>
+              <View style={styles.clientMetricCard}>
+                <Text style={[styles.clientMetricNum, { color: '#16A34A' }]}>{formatMoney(resumo?.pago ?? 0)}</Text>
+                <Text style={styles.clientMetricLabel}>Já recebido</Text>
+              </View>
+              <View style={styles.clientMetricCard}>
+                <Text style={[styles.clientMetricNum, { color: '#D97706' }]}>{formatMoney(Math.max(0, resumo?.saldo ?? 0))}</Text>
+                <Text style={styles.clientMetricLabel}>Ateliê me deve</Text>
+              </View>
+            </View>
+
+            <View style={styles.bdayArea}>
+              <Text style={styles.bdayTitle}>ÚLTIMOS LANÇAMENTOS</Text>
+              <View style={styles.bdayList}>
+                {extrato.length === 0 && <Text style={styles.bdayDate}>Nenhuma venda ainda.</Text>}
+                {extrato.map((e) => (
+                  <View key={e.id} style={styles.bdayItem}>
+                    <View style={styles.bdayLeft}>
+                      <View style={[styles.bdayAvatar, { backgroundColor: e.valor >= 0 ? '#EAF3FA' : '#DCFCE7' }]}>
+                        <Feather name={e.valor >= 0 ? 'arrow-up-right' : 'arrow-down-left'} size={13} color={e.valor >= 0 ? '#2563EB' : '#16A34A'} />
+                      </View>
+                      <View style={{ flexShrink: 1 }}>
+                        <Text style={styles.bdayName} numberOfLines={1}>{e.titulo}</Text>
+                        <Text style={styles.bdayDate}>{new Date(e.data).toLocaleDateString('pt-BR')}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.bdayName, { color: e.valor >= 0 ? '#2563EB' : '#16A34A' }]}>
+                      {e.valor >= 0 ? '+' : '−'}{formatMoney(Math.abs(e.valor))}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        );
+      }
+
+      // REVENDEDORA: ESTOQUE QUE ESTÁ COM ELA (entregue pelo ateliê − vendido)
+      case 'estoque_comigo':
+        return (
+          <View key={cardId} style={[styles.panelCard, editMode && styles.panelCardEdit]}>
+            {editControls}
+            <View style={styles.panelHeader}>
+              <View style={styles.panelTitleRow}>
+                <View style={styles.sectionDot} />
+                <Text style={styles.panelTitle}>Estoque Comigo</Text>
+              </View>
+              <View style={[styles.panelChip, { backgroundColor: saborAcabando.length > 0 ? '#FEF3C7' : '#DCFCE7' }]}>
+                <Text style={[styles.panelChipText, { color: saborAcabando.length > 0 ? '#B45309' : '#16A34A' }]}>
+                  {unidadesComigo} UN
+                </Text>
+              </View>
+            </View>
+            <View style={styles.bdayList}>
+              {escopo.sabores.length === 0 && <Text style={styles.bdayDate}>O ateliê ainda não entregou produtos para você.</Text>}
+              {escopo.sabores.map((x) => {
+                const st =
+                  x.status === 'esgotado'
+                    ? { texto: 'Esgotado', cor: '#DC2626', fundo: '#FEE2E2' }
+                    : x.status === 'baixo'
+                    ? { texto: 'Acabando', cor: '#B45309', fundo: '#FEF3C7' }
+                    : { texto: 'Ok', cor: '#16A34A', fundo: '#DCFCE7' };
+                return (
+                  <View key={x.produtoId || x.nome} style={styles.bdayItem}>
+                    <View style={[styles.bdayLeft, { flexShrink: 1 }]}>
+                      <View style={styles.bdayAvatar}>
+                        <Text style={styles.bdayAvatarText}>{x.saldo}</Text>
+                      </View>
+                      <View style={{ flexShrink: 1 }}>
+                        <Text style={styles.bdayName} numberOfLines={1}>{x.nome}</Text>
+                        <Text style={styles.bdayDate}>
+                          recebi {x.entregue} · vendi {x.vendido} ·{' '}
+                          <Text style={{ fontWeight: '800', color: x.saldo > 0 ? '#0F172A' : '#DC2626' }}>
+                            {x.saldo > 0 ? `${x.saldo} disponíve${x.saldo === 1 ? 'l' : 'is'}` : 'nenhum disponível'}
+                          </Text>
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={[styles.panelChip, { backgroundColor: st.fundo }]}>
+                      <Text style={[styles.panelChipText, { color: st.cor }]}>{st.texto}</Text>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           </View>
         );
@@ -911,7 +1207,7 @@ export default function VisaoGeralScreen() {
 
               <View style={styles.kitchenBadge}>
                 <View style={styles.kitchenDot} />
-                <Text style={styles.kitchenBadgeText}>Cozinha Aberta • 8 entregas hoje</Text>
+                <Text style={styles.kitchenBadgeText}>Cozinha Aberta • {entregasHoje.length} entregas hoje</Text>
               </View>
 
               <TouchableOpacity style={styles.iconCircleBtn} activeOpacity={0.8}>
@@ -924,10 +1220,10 @@ export default function VisaoGeralScreen() {
                 onPress={() => router.replace('/')}
                 activeOpacity={0.85}>
                 <View style={styles.profileAvatar}>
-                  <Text style={styles.profileAvatarText}>CL</Text>
+                  <Text style={styles.profileAvatarText}>{usuario.nome.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase()}</Text>
                 </View>
                 <View style={styles.profileInfo}>
-                  <Text style={styles.profileName}>Camila Lima</Text>
+                  <Text style={styles.profileName}>{usuario.nome}</Text>
                   <Text style={styles.profileRole}>PROPRIETÁRIA</Text>
                 </View>
               </TouchableOpacity>
@@ -966,7 +1262,7 @@ export default function VisaoGeralScreen() {
               </View>
             )}
 
-            {/* 1. BANNER DE SAUDAÇÃO IDÊNTICO À REFERÊNCIA ATELIERQ */}
+            {/* 1. BANNER: SAUDAÇÃO + FILTRO DE PERÍODO À ESQUERDA; VENDAS DE HOJE, DATA E NOVO PEDIDO À DIREITA */}
             <View style={styles.greetingBanner}>
               <View style={styles.greetingLeft}>
                 <View style={styles.chefAvatarBox}>
@@ -985,85 +1281,120 @@ export default function VisaoGeralScreen() {
                     </Text>
                     <View style={styles.ovenBadge}>
                       <View style={styles.ovenDot} />
-                      <Text style={styles.ovenBadgeText}>Fornos aquecidos a 170°C</Text>
+                      <Text style={styles.ovenBadgeText}>
+                        {ehRevendedora
+                          ? `${unidadesComigo} un com você${saborAcabando.length > 0 ? ` · ${saborAcabando.length} acabando` : ''}`
+                          : `${entregasHoje.length} ${entregasHoje.length === 1 ? 'entrega' : 'entregas'} hoje · ${entregasAmanha.length} amanhã`}
+                      </Text>
                     </View>
                   </View>
-                  <Text style={styles.greetingDescription}>
-                    O aroma de cardamomo, flor de laranjeira e baunilha bourbon domina o ateliê.
-                  </Text>
-                  <TouchableOpacity activeOpacity={0.75}>
-                    <Text style={styles.greetingTipLink}>
-                      *Petite dica: O lote de macarons está quase pronto para ganache!*
+
+                  {/* Filtro de período: vale para todos os números da tela */}
+                  <View style={[styles.periodTabs, styles.periodTabsBanner]}>
+                    {(['hoje', 'semana', 'mes', 'personalizar'] as const).map((p) => {
+                      const labels = { hoje: 'Hoje', semana: 'Semana', mes: 'Mês', personalizar: 'Personalizar' };
+                      const active = p === 'personalizar' ? ehPersonalizado : periodo === p;
+                      return (
+                        <TouchableOpacity
+                          key={p}
+                          style={[styles.periodTab, styles.periodTabBanner, active && styles.periodTabActive]}
+                          onPress={() => {
+                            // Personalizar começa nos últimos 30 dias; as datas ficam editáveis na faixa abaixo
+                            if (p === 'personalizar') {
+                              if (!ehPersonalizado) aplicarIntervalo(atalhosPeriodo[1].de, atalhosPeriodo[1].ate);
+                            } else setPeriodo(p);
+                          }}
+                          activeOpacity={0.8}>
+                          <Text style={[styles.periodTabText, styles.periodTabTextBanner, active && styles.periodTabTextActive]}>{labels[p]}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.greetingRight}>
+                {/* Vendas de hoje (independe do filtro): faturamento do dia, % da meta diária e lucro estimado */}
+                <View style={styles.greetingKpiCard}>
+                  <View style={styles.greetingKpiIconBox}>
+                    <Feather name="trending-up" size={18} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.greetingKpiInfo}>
+                    <Text style={styles.greetingKpiTag}>{ehRevendedora ? 'SUAS VENDAS HOJE' : 'VENDAS DE HOJE'}</Text>
+                    <Text style={styles.greetingKpiValue}>
+                      {kpisHoje.faturamento}{' '}
+                      {!ehRevendedora && <Text style={styles.greetingKpiSub}>({kpisHoje.metaPct}% da meta do dia)</Text>}
                     </Text>
+                    <Text style={styles.greetingKpiDesc}>
+                      {ehRevendedora ? `Sua comissão hoje: ${formatMoney(minhaComissaoHoje)}` : `Lucro estimado hoje: ${kpisHoje.lucroLiquido}`}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.greetingAcoes}>
+                  <View style={styles.calendarPill}>
+                    <Feather name="calendar" size={14} color="#64748B" />
+                    <Text style={styles.calendarPillText}>{dataExtenso}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryActionBtn}
+                    onPress={() => setModalNovoPedidoAberto(true)}
+                    activeOpacity={0.85}>
+                    <Feather name="plus" size={16} color="#FFFFFF" />
+                    <Text style={styles.primaryActionBtnText}>Novo Pedido</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-
-              <View style={styles.greetingKpiCard}>
-                <View style={styles.greetingKpiIconBox}>
-                  <Feather name="trending-up" size={18} color="#FFFFFF" />
-                </View>
-                <View style={styles.greetingKpiInfo}>
-                  <Text style={styles.greetingKpiTag}>DESTAQUE FINANCEIRO HOJE</Text>
-                  <Text style={styles.greetingKpiValue}>
-                    {kpis.faturamento} <Text style={styles.greetingKpiSub}>({kpis.metaPct}% da meta)</Text>
-                  </Text>
-                  <Text style={styles.greetingKpiDesc}>
-                    Lucro líquido projetado de {kpis.lucroLiquido} hoje.
-                  </Text>
-                </View>
-                <TouchableOpacity style={styles.greetingKpiBtn} activeOpacity={0.7}>
-                  <Text style={styles.greetingKpiBtnText}>Ver Ficha →</Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
-            {/* 2. LINHA DE FILTROS DE PERÍODO */}
-            <View style={styles.filtersBar}>
-              <View style={styles.periodTabs}>
-                {(['hoje', 'semana', 'mes', 'personalizar'] as Periodo[]).map((p) => {
-                  const labels = {
-                    hoje: 'Hoje',
-                    semana: 'Semana',
-                    mes: 'Mês',
-                    personalizar: 'Personalizar',
-                  };
-                  const active = periodo === p;
-                  return (
-                    <TouchableOpacity
-                      key={p}
-                      style={[styles.periodTab, active && styles.periodTabActive]}
-                      onPress={() => setPeriodo(p)}
-                      activeOpacity={0.8}>
-                      <Text style={[styles.periodTabText, active && styles.periodTabTextActive]}>
-                        {labels[p]}
-                      </Text>
+            {/* PERÍODO PERSONALIZADO: datas de/até e atalhos (vale para todos os números da tela) */}
+            {ehPersonalizado && (
+              <View style={styles.personalizarBar}>
+                <Feather name="calendar" size={15} color={KipiPalette.icedDenim} />
+                <View style={styles.personalizarCampo}>
+                  <Text style={styles.personalizarRotulo}>De</Text>
+                  <TextInput
+                    style={styles.personalizarInput}
+                    value={deTxt}
+                    onChangeText={(t) => setDeTxt(mascaraData(t))}
+                    placeholder="DD/MM/AAAA"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    onSubmitEditing={aplicarDigitado}
+                  />
+                </View>
+                <View style={styles.personalizarCampo}>
+                  <Text style={styles.personalizarRotulo}>Até</Text>
+                  <TextInput
+                    style={styles.personalizarInput}
+                    value={ateTxt}
+                    onChangeText={(t) => setAteTxt(mascaraData(t))}
+                    placeholder="DD/MM/AAAA"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="numeric"
+                    onSubmitEditing={aplicarDigitado}
+                  />
+                </View>
+                <TouchableOpacity style={styles.personalizarAplicar} onPress={aplicarDigitado} activeOpacity={0.85}>
+                  <Text style={styles.personalizarAplicarTexto}>Aplicar</Text>
+                </TouchableOpacity>
+                <View style={styles.personalizarAtalhos}>
+                  {atalhosPeriodo.map((a) => (
+                    <TouchableOpacity key={a.rotulo} style={styles.personalizarChip} onPress={() => aplicarIntervalo(a.de, a.ate)}>
+                      <Text style={styles.personalizarChipTexto}>{a.rotulo}</Text>
                     </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <View style={styles.filterActions}>
-                <View style={styles.calendarPill}>
-                  <Feather name="calendar" size={14} color="#64748B" />
-                  <Text style={styles.calendarPillText}>{dataExtenso}</Text>
+                  ))}
                 </View>
-                <TouchableOpacity
-                  style={styles.primaryActionBtn}
-                  onPress={() => setModalNovoPedidoAberto(true)}
-                  activeOpacity={0.85}>
-                  <Feather name="plus" size={16} color="#FFFFFF" />
-                  <Text style={styles.primaryActionBtnText}>Novo Pedido</Text>
-                </TouchableOpacity>
+                {erroPeriodo && <Text style={styles.personalizarErro}>{erroPeriodo}</Text>}
               </View>
-            </View>
+            )}
 
             {/* 3. CARDS DE KPIS EM LINHA */}
             <View style={styles.kpiRow}>
               {/* Faturamento Geral */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>FATURAMENTO GERAL</Text>
+                  <Text style={styles.kpiLabel}>{ehRevendedora ? 'MINHAS VENDAS' : 'FATURAMENTO GERAL'}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#F1F6D8' }]}>
                     <Feather name="dollar-sign" size={15} color="#708018" />
                   </View>
@@ -1073,24 +1404,28 @@ export default function VisaoGeralScreen() {
                   <View style={styles.kpiDiffPillGreen}>
                     <Text style={styles.kpiDiffPillGreenText}>{kpis.faturamentoDiff}</Text>
                   </View>
-                  <Text style={styles.kpiFooterNote}>{kpis.metaPct}% da meta</Text>
+                  <Text style={styles.kpiFooterNote}>{ehRevendedora ? kpis.pedidosQtd : `${kpis.metaPct}% da meta`}</Text>
                 </View>
               </View>
 
               {/* Lucro Líquido */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>LUCRO LÍQUIDO</Text>
+                  <Text style={styles.kpiLabel}>{ehRevendedora ? 'MINHA COMISSÃO' : 'LUCRO LÍQUIDO'}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
                     <Feather name="pie-chart" size={15} color="#5798D7" />
                   </View>
                 </View>
-                <Text style={styles.kpiMainNumber}>{kpis.lucroLiquido}</Text>
+                <Text style={styles.kpiMainNumber}>{ehRevendedora ? formatMoney(minhaComissao) : kpis.lucroLiquido}</Text>
                 <View style={styles.kpiFooter}>
                   <View style={styles.kpiDiffPillBlue}>
-                    <Text style={styles.kpiDiffPillBlueText}>{kpis.margem}</Text>
+                    <Text style={styles.kpiDiffPillBlueText}>
+                      {ehRevendedora ? `${kpis.faturamentoNum > 0 ? Math.round((minhaComissao / kpis.faturamentoNum) * 100) : 0}% das vendas` : kpis.margem}
+                    </Text>
                   </View>
-                  <Text style={styles.kpiFooterNote}>Estimado no período</Text>
+                  <Text style={[styles.kpiFooterNote, kpis.perdasNum > 0 && { color: '#DC2626' }]}>
+                    {ehRevendedora ? 'Ganho no período' : kpis.perdasNum > 0 ? `🗑 Perdas −${kpis.perdas}` : 'Estimado no período'}
+                  </Text>
                 </View>
               </View>
 
@@ -1105,7 +1440,9 @@ export default function VisaoGeralScreen() {
                 <Text style={styles.kpiMainNumber}>{kpis.ticketMedio}</Text>
                 <View style={styles.kpiFooter}>
                   <Text style={styles.kpiFooterMuted}>{kpis.pedidosQtd}</Text>
-                  <Text style={styles.kpiFooterNote}>Estabilidade alta</Text>
+                  <Text style={styles.kpiFooterNote}>
+                    {ehRevendedora ? 'Por venda' : kpis.revendaPedidos > 0 ? `+ ${kpis.revendaPedidos} da revenda` : 'Vendas diretas'}
+                  </Text>
                 </View>
               </View>
 
@@ -1122,12 +1459,33 @@ export default function VisaoGeralScreen() {
                   <View style={styles.kpiDiffPillYellow}>
                     <Text style={styles.kpiDiffPillYellowText}>{kpis.pendentes}</Text>
                   </View>
-                  <Text style={styles.kpiFooterNote}>Saldos na entrega</Text>
+                  <Text style={styles.kpiFooterNote}>{ehRevendedora ? 'Clientes me devem' : 'Saldos na entrega'}</Text>
                 </View>
               </View>
 
-              {/* Encomendas Ativas */}
-              <View style={styles.kpiCard}>
+              {/* Encomendas Ativas (clique abre o cronograma de entregas) */}
+              {ehRevendedora ? (
+                // Revendedora: quanto o ateliê ainda deve de comissão (acerto de contas)
+                <View style={styles.kpiCard}>
+                  <View style={styles.kpiCardHeader}>
+                    <Text style={styles.kpiLabel}>ATELIÊ ME DEVE</Text>
+                    <View style={[styles.kpiIconWrap, { backgroundColor: '#DCFCE7' }]}>
+                      <Feather name="briefcase" size={15} color="#16A34A" />
+                    </View>
+                  </View>
+                  <Text style={styles.kpiMainNumber}>{formatMoney(Math.max(0, escopo.resumo?.saldo ?? 0))}</Text>
+                  <View style={styles.kpiFooter}>
+                    <View style={styles.kpiDiffPillGreen}>
+                      <Text style={styles.kpiDiffPillGreenText}>Recebido {formatMoney(escopo.resumo?.pago ?? 0)}</Text>
+                    </View>
+                    <Text style={styles.kpiFooterNote}>Acerto de contas</Text>
+                  </View>
+                </View>
+              ) : (
+              <TouchableOpacity
+                style={[styles.kpiCard, styles.kpiCardClickable]}
+                onPress={() => setCronogramaAberto(true)}
+                activeOpacity={0.85}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>ENCOMENDAS ATIVAS</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
@@ -1137,11 +1495,16 @@ export default function VisaoGeralScreen() {
                 <Text style={styles.kpiMainNumber}>{kpis.encomendasAtivas}</Text>
                 <View style={styles.kpiFooter}>
                   <View style={styles.kpiDiffPillBlue}>
-                    <Text style={styles.kpiDiffPillBlueText}>{kpis.encomendasNovas}</Text>
+                    <Text style={styles.kpiDiffPillBlueText}>
+                      {entregasHoje.length} hoje · {entregasAmanha.length} amanhã
+                    </Text>
                   </View>
-                  <Text style={styles.kpiFooterNote}>Produção em dia</Text>
+                  <Text style={[styles.kpiFooterNote, { color: KipiPalette.icedDenim, fontWeight: '700' }]}>
+                    Ver cronograma ›
+                  </Text>
                 </View>
-              </View>
+              </TouchableOpacity>
+              )}
             </View>
 
             {/* =====================================================================
@@ -1177,14 +1540,95 @@ export default function VisaoGeralScreen() {
       </View>
 
       {/* MODAL DE NOVO PEDIDO COMPLETO */}
+      <ProducaoRapidaModal
+        visible={producaoRapida !== null}
+        produtoId={producaoRapida?.id ?? null}
+        modo={producaoRapida?.modo ?? 'preparar'}
+        onClose={() => setProducaoRapida(null)}
+      />
       <NovoPedidoModal
         visible={modalNovoPedidoAberto}
         onClose={() => setModalNovoPedidoAberto(false)}
         onPedidoCriado={(novo) => {
-          setToastSucesso(`✓ Pedido #${novo.id ? novo.id.slice(0, 8) : 'novo'} registrado com sucesso!`);
+          setToastSucesso(`✓ Pedido ${novo.codigoDisplay} registrado com sucesso!`);
           setTimeout(() => setToastSucesso(null), 4000);
         }}
       />
+
+      {/* MODAL: CRONOGRAMA DE ENTREGAS (HOJE E AMANHÃ) */}
+      <Modal
+        visible={cronogramaAberto}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCronogramaAberto(false)}>
+        <View style={styles.scheduleOverlay}>
+          <View style={styles.scheduleBox}>
+            <View style={styles.scheduleHeader}>
+              <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
+                <Feather name="truck" size={15} color="#5798D7" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.scheduleTitle}>Cronograma de entregas</Text>
+                <Text style={styles.scheduleSubtitle}>
+                  Encomendas com horário prometido e situação do pagamento
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setCronogramaAberto(false)}>
+                <Feather name="x" size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={styles.scheduleScroll}>
+              {[
+                { titulo: 'HOJE', lista: entregasHoje },
+                { titulo: 'AMANHÃ', lista: entregasAmanha },
+              ].map((grupo) => (
+                <View key={grupo.titulo} style={{ marginBottom: 16 }}>
+                  <View style={styles.scheduleGroupHeader}>
+                    <Text style={styles.scheduleGroupTitle}>{grupo.titulo}</Text>
+                    <Text style={styles.scheduleGroupCount}>
+                      {grupo.lista.length} {grupo.lista.length === 1 ? 'entrega' : 'entregas'}
+                    </Text>
+                  </View>
+                  {grupo.lista.length === 0 ? (
+                    <Text style={styles.scheduleEmpty}>Nenhuma entrega agendada.</Text>
+                  ) : (
+                    grupo.lista.map((enc) => {
+                      const temSaldo = enc.saldoNaEntrega > 0;
+                      return (
+                        <View key={enc.id} style={styles.scheduleItem}>
+                          <View style={styles.scheduleTimePill}>
+                            <Text style={styles.scheduleTimeText}>{enc.horario}</Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.scheduleClient}>{enc.cliente}</Text>
+                            <Text style={styles.scheduleItems}>{enc.itens}</Text>
+                            {enc.observacao ? (
+                              <Text style={styles.scheduleObs}>"{enc.observacao}"</Text>
+                            ) : null}
+                          </View>
+                          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                            <Text style={[styles.schedulePay, { color: temSaldo ? '#D97706' : '#16A34A' }]}>
+                              {temSaldo ? `Falta ${formatMoney(enc.saldoNaEntrega)}` : '100% pago'}
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                setCronogramaAberto(false);
+                                router.push('/pedidos');
+                              }}>
+                              <Text style={styles.scheduleLink}>Ver pedido ›</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* TOAST DE FEEDBACK DE SUCESSO */}
       {toastSucesso && (
@@ -1787,6 +2231,63 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: KipiPalette.icedDenim,
   },
+  greetingRight: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  greetingAcoes: {
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  periodTabsBanner: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    padding: 3,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+  },
+  periodTabBanner: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  periodTabTextBanner: {
+    fontSize: 12,
+  },
+  personalizarBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  personalizarCampo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  personalizarRotulo: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '800', color: '#64748B' },
+  personalizarInput: {
+    width: 110,
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  personalizarAplicar: { backgroundColor: KipiPalette.icedDenim, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
+  personalizarAplicarTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  personalizarAtalhos: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginLeft: 'auto' },
+  personalizarChip: { backgroundColor: '#F1F5F9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  personalizarChipTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: '#475569' },
+  personalizarErro: { width: '100%', fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: '#DC2626' },
   greetingKpiCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1794,9 +2295,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
     borderRadius: 16,
-    padding: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     gap: 12,
-    minWidth: 320,
+    minWidth: 280,
   },
   greetingKpiIconBox: {
     width: 40,
@@ -2798,6 +3300,246 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748B',
   },
+  // KPI CLICÁVEL (ENCOMENDAS ATIVAS)
+  kpiCardClickable: {
+    borderColor: '#BFDBFE',
+  },
+
+  // VENDA DIRETA × REVENDA
+  channelArea: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 10,
+  },
+  channelTitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  channelBarTrack: {
+    flexDirection: 'row',
+    height: 10,
+    borderRadius: 5,
+    overflow: 'hidden',
+    backgroundColor: '#E2E8F0',
+  },
+  channelBarFill: {
+    height: '100%',
+  },
+  channelRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  channelBox: {
+    flex: 1,
+    minWidth: 180,
+    gap: 2,
+  },
+  channelBoxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  channelDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  channelBoxLabel: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  channelBoxValue: {
+    fontFamily: Fonts.sans,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  channelBoxSub: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: '#64748B',
+  },
+
+  // O QUE COMPRAR / VITRINE ZERADA
+  purchaseIntro: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: -4,
+  },
+  purchaseTotalBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  purchaseTotalLabel: {
+    fontFamily: Fonts.sans,
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#92400E',
+    letterSpacing: 0.5,
+  },
+  purchaseTotalValue: {
+    fontFamily: Fonts.sans,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  purchaseBuyText: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  purchaseCostText: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  vitrineItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 10,
+  },
+
+  // MODAL CRONOGRAMA DE ENTREGAS
+  scheduleOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  scheduleBox: {
+    width: '100%',
+    maxWidth: 680,
+    maxHeight: '90%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+  },
+  scheduleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  scheduleTitle: {
+    fontFamily: Fonts.display,
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  scheduleSubtitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  scheduleScroll: {
+    padding: 18,
+  },
+  scheduleGroupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  scheduleGroupTitle: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#3E7BB8',
+    letterSpacing: 0.8,
+  },
+  scheduleGroupCount: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  scheduleEmpty: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  scheduleItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  scheduleTimePill: {
+    backgroundColor: '#EAF3FA',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  scheduleTimeText: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#2563EB',
+  },
+  scheduleClient: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  scheduleItems: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    color: '#475569',
+    marginTop: 2,
+  },
+  scheduleObs: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  schedulePay: {
+    fontFamily: Fonts.sans,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  scheduleLink: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#5798D7',
+  },
+
   toastSuccess: {
     position: 'absolute',
     bottom: 24,

@@ -12,7 +12,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import Svg, { Path } from 'react-native-svg';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { entrar, sessaoAtual, ROTAS_DO_PERFIL, SENHA_PADRAO_REVENDEDORA } from '@/lib/acesso';
+import { bancoLigado } from '@/lib/supabase';
+import { useStatusBanco } from '@/lib/sincronizacao';
+
+// Usuários de teste: um de cada perfil (e dois ateliês, para conferir que um não vê o outro)
+const ATALHOS_TESTE = [
+  { rotulo: 'Kipi (administração)', email: 'admin@kipi.app', senha: 'kipi123' },
+  { rotulo: 'AtelierQ (responsável)', email: 'camila.c.lima08@gmail.com', senha: 'P&ix1nh0!' },
+  { rotulo: 'Doce Encanto (responsável)', email: 'patricia@doceencanto.com', senha: '123456' },
+  { rotulo: 'Juliana (revendedora)', email: 'juliana.martins@gmail.com', senha: SENHA_PADRAO_REVENDEDORA },
+];
 import { KipiPalette, Fonts } from '@/constants/theme';
 
 function GoogleIcon({ size = 18 }: { size?: number }) {
@@ -45,7 +55,9 @@ export default function LoginScreen() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [usuarioLogado, setUsuarioLogado] = useState<any | null>(null);
+  // Banco ligado: atalhos com os dados reais (aparecem quando o banco termina de carregar)
+  const { atalhos: atalhosBanco } = useStatusBanco();
+  const atalhos = bancoLigado ? atalhosBanco : ATALHOS_TESTE; // banco ligado: sem atalhos (cada um usa o próprio login)
 
   const [emailFocado, setEmailFocado] = useState(false);
   const [senhaFocada, setSenhaFocada] = useState(false);
@@ -66,34 +78,15 @@ export default function LoginScreen() {
     setCarregando(true);
     setErro(null);
 
-    try {
-      const { data, error: dbError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('email', loginEmail)
-        .maybeSingle();
-
-      if (dbError) throw new Error(dbError.message);
-
-      if (!data) {
-        setErro('E-mail não encontrado no sistema');
-        setCarregando(false);
-        return;
-      }
-
-      if (data.senha && data.senha !== loginSenha) {
-        setErro('Senha incorreta');
-        setCarregando(false);
-        return;
-      }
-
-      setUsuarioLogado(data);
-      router.push('/visao-geral');
-    } catch (e: any) {
-      setErro(e.message || 'Erro ao realizar login');
-    } finally {
-      setCarregando(false);
+    // Fase de testes: confere os usuários de exemplo (nada é lido do banco)
+    const falha = await entrar(loginEmail, loginSenha);
+    setCarregando(false);
+    if (falha) {
+      setErro(falha);
+      return;
     }
+    const s = sessaoAtual();
+    if (s) router.replace(ROTAS_DO_PERFIL[s.perfil].inicio as any);
   };
 
   const preencherRapido = (uEmail: string, uSenha: string) => {
@@ -102,41 +95,6 @@ export default function LoginScreen() {
     setErro(null);
     handleLogin(uEmail, uSenha);
   };
-
-  if (usuarioLogado) {
-    return (
-      <View style={styles.viewport}>
-        <View style={styles.card}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarLetter}>
-              {usuarioLogado.nome?.[0]?.toUpperCase() || 'K'}
-            </Text>
-          </View>
-          <Text style={styles.title}>{usuarioLogado.nome}</Text>
-          <Text style={styles.subtitle}>{usuarioLogado.email}</Text>
-
-          <View style={styles.sessionBox}>
-            <Text style={styles.sessionLabel}>Perfil: <Text style={styles.sessionValue}>{usuarioLogado.papel}</Text></Text>
-            <Text style={styles.sessionLabel}>Status: <Text style={styles.sessionValue}>Conectado</Text></Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => router.push('/visao-geral')}
-            activeOpacity={0.85}>
-            <Text style={styles.primaryBtnText}>Acessar Visão Geral →</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: '#F1F5F9', marginTop: 10 }]}
-            onPress={() => setUsuarioLogado(null)}
-            activeOpacity={0.85}>
-            <Text style={[styles.primaryBtnText, { color: '#64748B' }]}>Sair da Conta</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.viewport}>
@@ -275,20 +233,17 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* ATALHO DISCRETO DE TESTE (HOMOLOGAÇÃO) */}
+        {/* ATALHO DISCRETO DE TESTE: só com os dados de exemplo (sem banco) */}
+        {atalhos.length > 0 && (
         <View style={styles.devBar}>
-          <Text style={styles.devBarTitle}>Atalhos:</Text>
-          <TouchableOpacity
-            style={styles.devChip}
-            onPress={() => preencherRapido('camila.c.lima08@gmail.com', 'P&ix1nh0!')}>
-            <Text style={styles.devChipText}>Camila (Proprietária)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.devChip, { backgroundColor: '#EAF3FA' }]}
-            onPress={() => router.push('/visao-geral')}>
-            <Text style={[styles.devChipText, { color: KipiPalette.icedDenim }]}>Visão Geral →</Text>
-          </TouchableOpacity>
+          <Text style={styles.devBarTitle}>Entrar como:</Text>
+          {atalhos.map((a) => (
+            <TouchableOpacity key={a.email} style={styles.devChip} onPress={() => preencherRapido(a.email, a.senha)}>
+              <Text style={styles.devChipText}>{a.rotulo}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -485,7 +440,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    opacity: 0.75,
+    opacity: 0.85,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: 420,
   },
   devBarTitle: {
     fontFamily: Fonts.sans,

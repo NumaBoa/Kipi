@@ -1,4 +1,8 @@
-import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { Stack, usePathname, useRouter } from 'expo-router';
+import { useSessao, destinoPermitido } from '@/lib/acesso';
+import '@/lib/sincronizacao'; // liga as telas ao banco quando o .env existe
+import StatusBanco from '@/components/StatusBanco';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet, Platform } from 'react-native';
 import '../global.css';
@@ -48,6 +52,21 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
   }
 }
 
+// Cada perfil só abre as telas dele: sem sessão volta ao login, revendedora não
+// abre telas da dona, dona não abre o painel do Kipi (e vice-versa)
+function GuardaDeRotas() {
+  const { sessao, carregada } = useSessao();
+  const rota = usePathname();
+  const router = useRouter();
+  const destino = carregada ? destinoPermitido(sessao, rota) : null;
+  useEffect(() => {
+    if (destino) router.replace(destino as any);
+  }, [destino]);
+  // Enquanto confere ou redireciona, cobre a tela para não mostrar dados de outro perfil
+  if (carregada && !destino) return null;
+  return <View style={styles.cobertura} />;
+}
+
 export default function RootLayout() {
   return (
     <View style={styles.container}>
@@ -57,12 +76,17 @@ export default function RootLayout() {
         <Stack.Screen name="visao-geral" options={{ headerShown: false }} />
         <Stack.Screen name="pedidos" options={{ headerShown: false }} />
         <Stack.Screen name="clientes" options={{ headerShown: false }} />
+        <Stack.Screen name="acessos" options={{ headerShown: false }} />
+        <Stack.Screen name="configuracoes" options={{ headerShown: false }} />
         <Stack.Screen name="insumos-receitas" options={{ headerShown: false }} />
         <Stack.Screen name="produtos-estoque" options={{ headerShown: false }} />
         <Stack.Screen name="producao" options={{ headerShown: false }} />
         <Stack.Screen name="estoque" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
+        <Stack.Screen name="admin" options={{ headerShown: false }} />
       </Stack>
+      <GuardaDeRotas />
+      <StatusBanco />
     </View>
   );
 }
@@ -71,5 +95,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#E6F1FA',
+  },
+  cobertura: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#F3F6FB',
+    zIndex: 1000,
   },
 });

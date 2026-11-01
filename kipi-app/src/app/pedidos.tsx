@@ -14,10 +14,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
 import { KipiPalette, Fonts } from '@/constants/theme';
 import NovoPedidoModal from '@/components/NovoPedidoModal';
 import Sidebar from '@/components/Sidebar';
+import { PageHeaderTitulo } from '@/components/PageHeader';
+import { useConfigLoja } from '@/lib/configuracoes';
+import { useEscopoRevendedora, pedidosDoEscopo } from '@/lib/minhaRevenda';
+import { useEstoqueVitrine, custoUnitarioProduto, produtoAtivo } from '@/lib/estoqueVitrine';
+import {
+  usePedidos,
+  useClientes,
+  atualizarPedido as salvarPedidoNaLista,
+  cancelarPedido,
+  chaveDoDia,
+  pedidoBaixouEstoque,
+  mensagemWhatsAppDoPedido,
+  type Pedido,
+  type PedidoItem,
+} from '@/lib/clientesPedidos';
 
 // ============================================================================
 // TIPOS E MODELOS
@@ -26,43 +40,6 @@ import Sidebar from '@/components/Sidebar';
 export type Periodo = 'hoje' | '7dias' | 'mes' | 'personalizar';
 export type TipoPedido = 'todos' | 'pronta_entrega' | 'sob_encomenda';
 export type StatusPagamento = 'todos' | 'pendentes' | 'pagos';
-
-export interface PedidoItem {
-  id: string;
-  nome: string;
-  categoria: string;
-  quantidade: number;
-  precoUnitario: number;
-  desconto?: number;
-  comDesconto?: boolean;
-  totalItem: number;
-}
-
-export interface Pedido {
-  id: string;
-  codigoDisplay: string;
-  clienteNome: string;
-  clienteTelefone?: string | null;
-  clienteEmail?: string | null;
-  tag: string;
-  tipoPedido: 'pronta_entrega' | 'sob_encomenda';
-  data: string;
-  dataDisplay: string;
-  horaDisplay: string;
-  diaChave: string; // YYYY-MM-DD
-  diaTitulo: string; // Ex: Sábado, 17 de Outubro
-  vendedor: string;
-  vendedorCargo: string;
-  formaPagamento: 'pix' | 'cartao_credito' | 'cartao_debito' | 'dinheiro' | 'pendente';
-  status: 'pago' | 'pendente' | 'cancelado';
-  total: number;
-  valorSinalPago: number;
-  saldoNaEntrega: number;
-  statusProducao: 'a_fazer' | 'em_producao' | 'pronto' | 'entregue';
-  itens: PedidoItem[];
-  observacoes?: string | null;
-  deletado?: boolean;
-}
 
 export interface EstoqueItem {
   id: string;
@@ -74,305 +51,29 @@ export interface EstoqueItem {
   status: 'normal' | 'baixo' | 'zerado';
 }
 
-// ============================================================================
-// DADOS MOCK INICIAIS (ATELIERQ PÂTISSERIE)
-// ============================================================================
-
-const MOCK_PEDIDOS: Pedido[] = [
-  // SEGUNDA-FEIRA (HOJE - 19/10)
-  {
-    id: 'ped-1048',
-    codigoDisplay: '#PED-1048',
-    clienteNome: 'Mariana Albuquerque',
-    clienteTelefone: '(21) 98844-3321',
-    clienteEmail: 'mariana.alb@gmail.com',
-    tag: 'WhatsApp VIP',
-    tipoPedido: 'sob_encomenda',
-    data: '2026-10-19T14:35:00.000Z',
-    dataDisplay: '19/10/2026',
-    horaDisplay: '14:35',
-    diaChave: '2026-10-19',
-    diaTitulo: 'Hoje • Segunda-feira, 19 de Outubro',
-    vendedor: 'Camila Lima',
-    vendedorCargo: 'Proprietária',
-    formaPagamento: 'pix',
-    status: 'pendente',
-    total: 143.90,
-    valorSinalPago: 0,
-    saldoNaEntrega: 143.90,
-    statusProducao: 'em_producao',
-    itens: [
-      { id: 'it-1', nome: 'Bento Cake Pistache & Framboesa', categoria: 'Bolos & Bentos', quantidade: 2, precoUnitario: 65.00, totalItem: 130.00 },
-      { id: 'it-2', nome: 'Cookie Duo Red Velvet c/ Ninho', categoria: 'Cookies', quantidade: 1, precoUnitario: 13.90, totalItem: 13.90 },
-    ],
-    observacoes: 'Escrever no topo: "Feliz 30 Anos Ju!" com laço verde pistache.',
-  },
-  {
-    id: 'ped-1047',
-    codigoDisplay: '#PED-1047',
-    clienteNome: 'Dra. Camila Morales',
-    clienteTelefone: '(21) 99122-4411',
-    clienteEmail: 'morales.camila@clinicavita.com',
-    tag: 'Cliente Assídua',
-    tipoPedido: 'pronta_entrega',
-    data: '2026-10-19T11:20:00.000Z',
-    dataDisplay: '19/10/2026',
-    horaDisplay: '11:20',
-    diaChave: '2026-10-19',
-    diaTitulo: 'Hoje • Segunda-feira, 19 de Outubro',
-    vendedor: 'Juliana Carvalho',
-    vendedorCargo: 'Atendimento Balcão',
-    formaPagamento: 'cartao_credito',
-    status: 'pago',
-    total: 89.50,
-    valorSinalPago: 89.50,
-    saldoNaEntrega: 0,
-    statusProducao: 'entregue',
-    itens: [
-      { id: 'it-3', nome: 'Caixa Macarons Degustação (6 un)', categoria: 'Macarons', quantidade: 1, precoUnitario: 57.00, totalItem: 57.00 },
-      { id: 'it-4', nome: 'Fatia Cheesecake Frutas Silvestres', categoria: 'Sobremesas', quantidade: 1, precoUnitario: 32.50, totalItem: 32.50 },
-    ],
-    observacoes: 'Embalagem de presente com fita de cetim.',
-  },
-  {
-    id: 'ped-1046',
-    codigoDisplay: '#PED-1046',
-    clienteNome: 'Venda Avulsa (Balcão)',
-    clienteTelefone: null,
-    clienteEmail: null,
-    tag: 'Balcão Rápido',
-    tipoPedido: 'pronta_entrega',
-    data: '2026-10-19T09:45:00.000Z',
-    dataDisplay: '19/10/2026',
-    horaDisplay: '09:45',
-    diaChave: '2026-10-19',
-    diaTitulo: 'Hoje • Segunda-feira, 19 de Outubro',
-    vendedor: 'Juliana Carvalho',
-    vendedorCargo: 'Atendimento Balcão',
-    formaPagamento: 'pix',
-    status: 'pago',
-    total: 41.70,
-    valorSinalPago: 41.70,
-    saldoNaEntrega: 0,
-    statusProducao: 'entregue',
-    itens: [
-      { id: 'it-5', nome: 'Cookie Tradicional Gotas Belga', categoria: 'Cookies', quantidade: 3, precoUnitario: 13.90, totalItem: 41.70 },
-    ],
-    observacoes: 'Consumo imediato no bistrô.',
-  },
-
-  // DOMINGO (ONTEM - 18/10)
-  {
-    id: 'ped-1045',
-    codigoDisplay: '#PED-1045',
-    clienteNome: 'Fernanda Montenegro Santos',
-    clienteTelefone: '(21) 98711-2299',
-    clienteEmail: 'fernanda.m@globo.com',
-    tag: 'Festa Infantil',
-    tipoPedido: 'sob_encomenda',
-    data: '2026-10-18T16:10:00.000Z',
-    dataDisplay: '18/10/2026',
-    horaDisplay: '16:10',
-    diaChave: '2026-10-18',
-    diaTitulo: 'Domingo, 18 de Outubro (Ontem)',
-    vendedor: 'Camila Lima',
-    vendedorCargo: 'Proprietária',
-    formaPagamento: 'pix',
-    status: 'pago',
-    total: 480.00,
-    valorSinalPago: 480.00,
-    saldoNaEntrega: 0,
-    statusProducao: 'entregue',
-    itens: [
-      { id: 'it-6', nome: 'Bolo Decorado Flores de Açúcar 20 fatias', categoria: 'Bolos & Bentos', quantidade: 1, precoUnitario: 320.00, totalItem: 320.00 },
-      { id: 'it-7', nome: 'Cento de Brigadeiros Gourmet Belga', categoria: 'Doces Finos', quantidade: 1, precoUnitario: 160.00, totalItem: 160.00 },
-    ],
-    observacoes: 'Entregue com sucesso no salão de festas.',
-  },
-  {
-    id: 'ped-1044',
-    codigoDisplay: '#PED-1044',
-    clienteNome: 'Café & Flor Bistrô',
-    clienteTelefone: '(21) 97654-1100',
-    clienteEmail: 'compras@cafeflor.com.br',
-    tag: 'Revendedora',
-    tipoPedido: 'pronta_entrega',
-    data: '2026-10-18T10:15:00.000Z',
-    dataDisplay: '18/10/2026',
-    horaDisplay: '10:15',
-    diaChave: '2026-10-18',
-    diaTitulo: 'Domingo, 18 de Outubro (Ontem)',
-    vendedor: 'Café & Flor Bistrô',
-    vendedorCargo: 'Revenda',
-    formaPagamento: 'pix',
-    status: 'pendente',
-    total: 390.00,
-    valorSinalPago: 0,
-    saldoNaEntrega: 390.00,
-    statusProducao: 'pronto',
-    itens: [
-      { id: 'it-8', nome: 'Cookie Tradicional Gotas Belga', categoria: 'Cookies', quantidade: 15, precoUnitario: 12.00, totalItem: 180.00 },
-      { id: 'it-9', nome: 'Bento Cake Red Velvet', categoria: 'Bolos & Bentos', quantidade: 3, precoUnitario: 70.00, totalItem: 210.00 },
-    ],
-    observacoes: 'Remessa de consignação do fim de semana.',
-  },
-
-  // SÁBADO (17/10)
-  {
-    id: 'ped-1043',
-    codigoDisplay: '#PED-1043',
-    clienteNome: 'Guilherme Peixoto',
-    clienteTelefone: '(21) 99876-5432',
-    clienteEmail: 'guilherme.px@yahoo.com',
-    tag: 'Noivado',
-    tipoPedido: 'sob_encomenda',
-    data: '2026-10-17T17:40:00.000Z',
-    dataDisplay: '17/10/2026',
-    horaDisplay: '17:40',
-    diaChave: '2026-10-17',
-    diaTitulo: 'Sábado, 17 de Outubro',
-    vendedor: 'Sofia Ramos',
-    vendedorCargo: 'Confeitaria Artística',
-    formaPagamento: 'cartao_credito',
-    status: 'pago',
-    total: 340.00,
-    valorSinalPago: 340.00,
-    saldoNaEntrega: 0,
-    statusProducao: 'entregue',
-    itens: [
-      { id: 'it-10', nome: 'Torre de Macarons 24 unidades', categoria: 'Macarons', quantidade: 1, precoUnitario: 220.00, totalItem: 220.00 },
-      { id: 'it-11', nome: 'Cinquenta Doces Finos Pistache', categoria: 'Doces Finos', quantidade: 1, precoUnitario: 120.00, totalItem: 120.00 },
-    ],
-    observacoes: 'Mesa de noivado entregue e montada às 17h.',
-  },
-  {
-    id: 'ped-1042',
-    codigoDisplay: '#PED-1042',
-    clienteNome: 'Boutique Doce Charme',
-    clienteTelefone: '(21) 98111-7788',
-    clienteEmail: 'contato@docecharme.com',
-    tag: 'Revendedora',
-    tipoPedido: 'pronta_entrega',
-    data: '2026-10-17T14:10:00.000Z',
-    dataDisplay: '17/10/2026',
-    horaDisplay: '14:10',
-    diaChave: '2026-10-17',
-    diaTitulo: 'Sábado, 17 de Outubro',
-    vendedor: 'Boutique Doce Charme',
-    vendedorCargo: 'Revenda',
-    formaPagamento: 'pix',
-    status: 'pendente',
-    total: 546.00,
-    valorSinalPago: 0,
-    saldoNaEntrega: 546.00,
-    statusProducao: 'entregue',
-    itens: [
-      { id: 'it-12', nome: 'Cookie Duo Red Velvet c/ Ninho', categoria: 'Cookies', quantidade: 20, precoUnitario: 13.90, totalItem: 278.00 },
-      { id: 'it-13', nome: 'Fatia Torta Ópera Café & Ganache', categoria: 'Sobremesas', quantidade: 8, precoUnitario: 33.50, totalItem: 268.00 },
-    ],
-    observacoes: 'Aguardando fechamento semanal da boutique.',
-  },
-  {
-    id: 'ped-1041',
-    codigoDisplay: '#PED-1041',
-    clienteNome: 'Larissa Manoela Vasconcelos',
-    clienteTelefone: '(21) 98455-1234',
-    clienteEmail: 'larissa.v@outlook.com',
-    tag: 'Maternidade',
-    tipoPedido: 'sob_encomenda',
-    data: '2026-10-17T11:00:00.000Z',
-    dataDisplay: '17/10/2026',
-    horaDisplay: '11:00',
-    diaChave: '2026-10-17',
-    diaTitulo: 'Sábado, 17 de Outubro',
-    vendedor: 'Camila Lima',
-    vendedorCargo: 'Proprietária',
-    formaPagamento: 'dinheiro',
-    status: 'pago',
-    total: 260.00,
-    valorSinalPago: 260.00,
-    saldoNaEntrega: 0,
-    statusProducao: 'entregue',
-    itens: [
-      { id: 'it-14', nome: 'Lembrancinhas Bem-Nascidos (30 un)', categoria: 'Doces Finos', quantidade: 1, precoUnitario: 260.00, totalItem: 260.00 },
-    ],
-    observacoes: 'Fitas personalizadas com tag "Clara".',
-  },
-
-  // SEXTA-FEIRA (16/10)
-  {
-    id: 'ped-1040',
-    codigoDisplay: '#PED-1040',
-    clienteNome: 'Rodrigo Santoro Silva',
-    clienteTelefone: '(21) 99321-7890',
-    clienteEmail: 'rodrigo.silva@advocacia.com',
-    tag: 'Corporativo',
-    tipoPedido: 'pronta_entrega',
-    data: '2026-10-16T15:30:00.000Z',
-    dataDisplay: '16/10/2026',
-    horaDisplay: '15:30',
-    diaChave: '2026-10-16',
-    diaTitulo: 'Sexta-feira, 16 de Outubro',
-    vendedor: 'Juliana Carvalho',
-    vendedorCargo: 'Atendimento Balcão',
-    formaPagamento: 'cartao_debito',
-    status: 'pago',
-    total: 185.00,
-    valorSinalPago: 185.00,
-    saldoNaEntrega: 0,
-    statusProducao: 'entregue',
-    itens: [
-      { id: 'it-15', nome: 'Caixa Degustação Doces Franceses', categoria: 'Doces Finos', quantidade: 2, precoUnitario: 92.50, totalItem: 185.00 },
-    ],
-    observacoes: 'Nota fiscal corporativa emitida.',
-  },
-  {
-    id: 'ped-1039',
-    codigoDisplay: '#PED-1039',
-    clienteNome: 'Renata Fraga',
-    clienteTelefone: '(21) 98777-6655',
-    clienteEmail: 'renata.fraga@design.com',
-    tag: 'Instagram',
-    tipoPedido: 'sob_encomenda',
-    data: '2026-10-16T10:00:00.000Z',
-    dataDisplay: '16/10/2026',
-    horaDisplay: '10:00',
-    diaChave: '2026-10-16',
-    diaTitulo: 'Sexta-feira, 16 de Outubro',
-    vendedor: 'Camila Lima',
-    vendedorCargo: 'Proprietária',
-    formaPagamento: 'pix',
-    status: 'pendente',
-    total: 400.00,
-    valorSinalPago: 0,
-    saldoNaEntrega: 400.00,
-    statusProducao: 'a_fazer',
-    itens: [
-      { id: 'it-16', nome: 'Bolo Casamento Boho 3 Andares (Maquete)', categoria: 'Bolos & Bentos', quantidade: 1, precoUnitario: 400.00, totalItem: 400.00 },
-    ],
-    observacoes: 'Aguardando confirmação do pagamento do sinal.',
-  },
+// STATUS DE PRODUÇÃO (ORDEM DO FLUXO DA COZINHA)
+type StatusProducao = Pedido['statusProducao'];
+const STATUS_PRODUCAO: { id: StatusProducao; label: string; cor: string; fundo: string; icon: 'circle' | 'loader' | 'package' | 'check-circle' }[] = [
+  { id: 'a_fazer', label: 'A fazer', cor: '#64748B', fundo: '#F1F5F9', icon: 'circle' },
+  { id: 'em_producao', label: 'Em produção', cor: '#B45309', fundo: '#FEF3C7', icon: 'loader' },
+  { id: 'pronto', label: 'Pronto p/ retirada', cor: '#2563EB', fundo: '#EAF3FA', icon: 'package' },
+  { id: 'entregue', label: 'Entregue', cor: '#16A34A', fundo: '#DCFCE7', icon: 'check-circle' },
 ];
+const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const infoStatusProducao =(s: StatusProducao) => STATUS_PRODUCAO.find((x) => x.id === s) || STATUS_PRODUCAO[0];
 
-const MOCK_ESTOQUE: EstoqueItem[] = [
-  { id: 'est-1', nome: 'Cookie Duo Red Velvet c/ Ninho', categoria: 'Cookies', preco: 13.90, estoque: 48, estoqueMinimo: 20, status: 'normal' },
-  { id: 'est-2', nome: 'Cookie Tradicional Gotas Belga', categoria: 'Cookies', preco: 13.90, estoque: 55, estoqueMinimo: 20, status: 'normal' },
-  { id: 'est-3', nome: 'Bento Cake Pistache & Framboesa', categoria: 'Bolos & Bentos', preco: 65.00, estoque: 8, estoqueMinimo: 5, status: 'normal' },
-  { id: 'est-4', nome: 'Bento Cake Red Velvet', categoria: 'Bolos & Bentos', preco: 70.00, estoque: 4, estoqueMinimo: 5, status: 'baixo' },
-  { id: 'est-5', nome: 'Caixa Macarons Degustação (6 un)', categoria: 'Macarons', preco: 57.00, estoque: 16, estoqueMinimo: 10, status: 'normal' },
-  { id: 'est-6', nome: 'Torre de Macarons 24 unidades', categoria: 'Macarons', preco: 220.00, estoque: 3, estoqueMinimo: 4, status: 'baixo' },
-  { id: 'est-7', nome: 'Fatia Torta Ópera Café & Ganache', categoria: 'Sobremesas', preco: 33.50, estoque: 12, estoqueMinimo: 8, status: 'normal' },
-  { id: 'est-8', nome: 'Fatia Cheesecake Frutas Silvestres', categoria: 'Sobremesas', preco: 32.50, estoque: 9, estoqueMinimo: 6, status: 'normal' },
-  { id: 'est-9', nome: 'Cento de Brigadeiros Gourmet Belga', categoria: 'Doces Finos', preco: 160.00, estoque: 22, estoqueMinimo: 10, status: 'normal' },
-  { id: 'est-10', nome: 'Farinha de Amêndoas Pura (França)', categoria: 'Insumos', preco: 98.00, estoque: 0, estoqueMinimo: 5, status: 'zerado' },
+const FORMAS_PAGAMENTO_PEDIDO: { id: Pedido['formaPagamento']; label: string; icon: string }[] = [
+  { id: 'pix', label: 'Pix', icon: 'zap' },
+  { id: 'cartao_credito', label: 'Crédito', icon: 'credit-card' },
+  { id: 'cartao_debito', label: 'Débito', icon: 'credit-card' },
+  { id: 'dinheiro', label: 'Dinheiro', icon: 'dollar-sign' },
+  { id: 'pendente', label: 'Pendente', icon: 'clock' },
 ];
-
-const CHAVE_PIX_ATELIE = '21974162007';
-const TITULAR_PIX = 'Camila Lima (Kipi Ateliê)';
-const BANCO_PIX = 'Nubank';
 
 export default function PedidosScreen() {
   const router = useRouter();
+  // Nome da loja e chave PIX da mensagem de WhatsApp vêm de Configurações
+  const { config } = useConfigLoja();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
@@ -382,15 +83,49 @@ export default function PedidosScreen() {
   const menuExpanded = isDesktop ? (menuPinned || menuHovered) : false;
 
   // ESTADOS DE DADOS
-  const [pedidos, setPedidos] = useState<Pedido[]>(MOCK_PEDIDOS);
-  const [estoque] = useState<EstoqueItem[]>(MOCK_ESTOQUE);
+  // Pedidos compartilhados: criar, editar ou cancelar aqui reflete em Clientes, Produção e Visão Geral
+  // Revendedora vê só os pedidos que ela lançou; o estoque é o que está com ela
+  const escopo = useEscopoRevendedora();
+  const pedidos = pedidosDoEscopo(usePedidos(), escopo.revendedoraId);
+  const clientes = useClientes();
+  // Tag do cadastro do cliente (ex.: "Bloco 1 AP 807"): diferencia clientes com o mesmo nome
+  const tagDoCliente = (p: Pedido) => (p.clienteId ? clientes.find((c) => c.id === p.clienteId)?.tag || null : null);
+  const vitrine = useEstoqueVitrine();
+  const estoque = useMemo<EstoqueItem[]>(
+    () =>
+      escopo.ehRevendedora
+        ? // Revendedora: o que o ateliê entregou para ela e ela ainda não vendeu
+          escopo.sabores.map((x) => {
+            const v = vitrine.find((p) => p.id === x.produtoId);
+            return {
+              id: x.produtoId || x.nome,
+              nome: x.nome,
+              categoria: v?.categoria ?? 'Revenda',
+              preco: v?.preco ?? 0,
+              estoque: x.saldo,
+              estoqueMinimo: escopo.minimoPorSabor,
+              status: x.status === 'esgotado' ? 'zerado' : x.status === 'baixo' ? 'baixo' : 'normal',
+            };
+          })
+        : vitrine.filter(produtoAtivo).map((p) => ({
+            id: p.id,
+            nome: p.nome,
+            categoria: p.categoria,
+            preco: p.preco,
+            estoque: p.estoque,
+            estoqueMinimo: p.estoqueMinimo,
+            status: p.estoque === 0 ? 'zerado' : p.estoque <= p.estoqueMinimo ? 'baixo' : 'normal',
+          })),
+    [vitrine, escopo.ehRevendedora, escopo.sabores, escopo.minimoPorSabor]
+  );
 
   // FILTROS (MESMA LÓGICA E DESIGN SYSTEM DA VISÃO GERAL)
   const [periodo, setPeriodo] = useState<Periodo>('7dias');
   const [filtroTipo, setFiltroTipo] = useState<TipoPedido>('todos');
   const [filtroPagamento, setFiltroPagamento] = useState<StatusPagamento>('todos');
   const [filtroVendedor, setFiltroVendedor] = useState<string>('todos');
-  const [termoBusca, setTermoBusca] = useState('');
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
+  const filtrosAtivos = [filtroTipo !== 'todos', filtroPagamento !== 'todos', filtroVendedor !== 'todos'].filter(Boolean).length;
 
   // FILTRO PERSONALIZADO DE DATAS
   const [dataInicioPersonalizada, setDataInicioPersonalizada] = useState('2026-10-01');
@@ -411,9 +146,8 @@ export default function PedidosScreen() {
   const [buscaEstoque, setBuscaEstoque] = useState('');
   const [categoriaEstoque, setCategoriaEstoque] = useState('Todas');
 
-  const [modalEditarAberto, setModalEditarAberto] = useState(false);
-  const [pedidoParaEditar, setPedidoParaEditar] = useState<Pedido | null>(null);
-  const [editObservacoes, setEditObservacoes] = useState('');
+  // PEDIDO EM EDIÇÃO (abre o mesmo modal do Novo Pedido)
+  const [pedidoEmEdicao, setPedidoEmEdicao] = useState<Pedido | null>(null);
 
   const [modalExcluirAberto, setModalExcluirAberto] = useState(false);
   const [pedidoParaExcluir, setPedidoParaExcluir] = useState<Pedido | null>(null);
@@ -462,16 +196,6 @@ export default function PedidosScreen() {
     return pedidos.filter((p) => {
       if (p.deletado) return false;
 
-      // Busca por texto
-      if (termoBusca.trim() !== '') {
-        const b = termoBusca.toLowerCase().trim();
-        const noCod = p.codigoDisplay.toLowerCase().includes(b);
-        const noCli = p.clienteNome.toLowerCase().includes(b);
-        const noVend = p.vendedor.toLowerCase().includes(b);
-        const nosItens = p.itens.some((i) => i.nome.toLowerCase().includes(b));
-        if (!noCod && !noCli && !noVend && !nosItens) return false;
-      }
-
       // Tipo de Pedido
       if (filtroTipo !== 'todos' && p.tipoPedido !== filtroTipo) return false;
 
@@ -485,16 +209,21 @@ export default function PedidosScreen() {
       }
 
       // Período
+      const hoje = new Date();
       if (periodo === 'hoje') {
-        const hojeStr = new Date().toISOString().split('T')[0];
-        if (p.diaChave !== hojeStr && !p.diaChave.includes('2026-10-19')) return false;
+        if (p.diaChave !== chaveDoDia(hoje)) return false;
+      } else if (periodo === '7dias') {
+        const inicio = chaveDoDia(new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() - 6));
+        if (p.diaChave < inicio) return false;
+      } else if (periodo === 'mes') {
+        if (!p.diaChave.startsWith(chaveDoDia(hoje).slice(0, 7))) return false;
       } else if (periodo === 'personalizar') {
         if (p.diaChave < dataInicioPersonalizada || p.diaChave > dataFimPersonalizada) return false;
       }
 
       return true;
     });
-  }, [pedidos, termoBusca, filtroTipo, filtroPagamento, filtroVendedor, periodo, dataInicioPersonalizada, dataFimPersonalizada]);
+  }, [pedidos, filtroTipo, filtroPagamento, filtroVendedor, periodo, dataInicioPersonalizada, dataFimPersonalizada]);
 
   // AGRUPAMENTO DE PEDIDOS POR DIA (EX: SÁBADO 17/10)
   const pedidosAgrupadosPorDia = useMemo(() => {
@@ -551,8 +280,10 @@ export default function PedidosScreen() {
       qtdPendentes,
       totalEstoque: `${totalEstoque} un.`,
       produtosEstoqueBaixo,
+      // Revendedora: comissão dos pedidos filtrados (item em promoção paga metade)
+      comissao: `R$ ${pedidosFiltrados.filter((p) => !p.deletado).reduce((acc, p) => acc + escopo.comissaoDoPedido(p), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
     };
-  }, [pedidosFiltrados, estoque]);
+  }, [pedidosFiltrados, estoque, escopo]);
 
   // TOP 3 PRODUTOS
   const top3Produtos = useMemo(() => {
@@ -572,14 +303,17 @@ export default function PedidosScreen() {
   }, [pedidos]);
 
   // TOP 3 CLIENTES
+  // Agrupa pelo cadastro (há clientes diferentes com o mesmo nome); a tag ajuda a distinguir
   const top3Clientes = useMemo(() => {
-    const mapa = new Map<string, { nome: string; qtdItens: number; totalGasto: number; pedidosCount: number }>();
+    const mapa = new Map<string, { chave: string; nome: string; tag: string | null; qtdItens: number; totalGasto: number; pedidosCount: number }>();
     pedidos.forEach((p) => {
       if (p.deletado || p.clienteNome.toLowerCase().includes('venda avulsa')) return;
-      if (!mapa.has(p.clienteNome)) {
-        mapa.set(p.clienteNome, { nome: p.clienteNome, qtdItens: 0, totalGasto: 0, pedidosCount: 0 });
+      const chave = p.clienteId ?? `nome:${p.clienteNome.toLowerCase()}`;
+      if (!mapa.has(chave)) {
+        const tag = p.clienteId ? clientes.find((c) => c.id === p.clienteId)?.tag ?? null : null;
+        mapa.set(chave, { chave, nome: p.clienteNome, tag, qtdItens: 0, totalGasto: 0, pedidosCount: 0 });
       }
-      const cli = mapa.get(p.clienteNome)!;
+      const cli = mapa.get(chave)!;
       cli.pedidosCount += 1;
       cli.totalGasto += p.total;
       p.itens.forEach((it) => {
@@ -587,73 +321,46 @@ export default function PedidosScreen() {
       });
     });
     return Array.from(mapa.values()).sort((a, b) => b.qtdItens - a.qtdItens).slice(0, 3);
-  }, [pedidos]);
+  }, [pedidos, clientes]);
 
   // AÇÕES
   const abrirModalBaixa = (pedido: Pedido) => {
     setPedidoParaBaixa(pedido);
-    setBaixaValor(pedido.saldoNaEntrega > 0 ? pedido.saldoNaEntrega.toFixed(2) : pedido.total.toFixed(2));
+    setBaixaValor((pedido.saldoNaEntrega > 0 ? pedido.saldoNaEntrega : pedido.total).toFixed(2).replace('.', ','));
     setBaixaFormaPagamento('pix');
     setModalBaixaAberto(true);
   };
 
+  // Recebimento parcial soma ao já pago; só quita quando cobre o saldo
   const confirmarBaixa = () => {
     if (!pedidoParaBaixa) return;
-    setPedidos((prev) =>
-      prev.map((p) => {
-        if (p.id === pedidoParaBaixa.id) {
-          return {
-            ...p,
-            status: 'pago',
-            formaPagamento: baixaFormaPagamento,
-            valorSinalPago: p.total,
-            saldoNaEntrega: 0,
-          };
-        }
-        return p;
-      })
-    );
-
-    if (pedidoSelecionado && pedidoSelecionado.id === pedidoParaBaixa.id) {
-      setPedidoSelecionado({
-        ...pedidoSelecionado,
-        status: 'pago',
-        formaPagamento: baixaFormaPagamento,
-        valorSinalPago: pedidoSelecionado.total,
-        saldoNaEntrega: 0,
-      });
+    const atual = pedidos.find((p) => p.id === pedidoParaBaixa.id) || pedidoParaBaixa;
+    const recebido = parseFloat(baixaValor.replace(',', '.')) || 0;
+    if (recebido <= 0) {
+      exibirToast('Informe o valor recebido.');
+      return;
     }
+    const pago = Math.min(atual.valorSinalPago + recebido, atual.total);
+    const quitado = pago >= atual.total - 0.005;
+    atualizarPedido({
+      ...atual,
+      status: quitado ? 'pago' : 'pendente',
+      formaPagamento: baixaFormaPagamento,
+      valorSinalPago: pago,
+      saldoNaEntrega: quitado ? 0 : atual.total - pago,
+    });
 
     setModalBaixaAberto(false);
-    exibirToast(`✓ Pagamento do pedido ${pedidoParaBaixa.codigoDisplay} quitado com sucesso!`);
+    exibirToast(
+      quitado
+        ? `✓ Pedido ${pedidoParaBaixa.codigoDisplay} quitado!`
+        : `✓ Recebido ${brl(recebido)} de ${pedidoParaBaixa.codigoDisplay} · faltam ${brl(atual.total - pago)}`
+    );
     setPedidoParaBaixa(null);
   };
 
-  const gerarTextoWhatsApp = (pedido: Pedido): string => {
-    const itensTexto = pedido.itens
-      .map((it) => `• ${it.quantidade}x ${it.nome} (R$ ${it.precoUnitario.toFixed(2)} un) = R$ ${it.totalItem.toFixed(2)}`)
-      .join('\n');
-
-    return `🧁 *KIPI ATELIÊ • COMPROVANTE DE PEDIDO*
-Número: *${pedido.codigoDisplay}*
-Data: ${pedido.dataDisplay} às ${pedido.horaDisplay}
-Cliente: *${pedido.clienteNome}*
-Atendente: ${pedido.vendedor}
-
-📦 *ITENS DO PEDIDO:*
-${itensTexto}
-
-💰 *TOTAL:* R$ ${pedido.total.toFixed(2)}
-Status: ${pedido.status === 'pago' ? '✅ Pago' : '⏳ Pendente de Pagamento'}
-
-🔑 *CHAVE PIX PARA PAGAMENTO:*
-Chave (Celular): *${CHAVE_PIX_ATELIE}*
-Favorecido: ${TITULAR_PIX}
-Banco: ${BANCO_PIX}
-
-Agradecemos imensamente a sua preferência e carinho! ✨
-_Kipi Ateliê de Confeitaria Artesanal_`;
-  };
+  // Mesma mensagem da tela de sucesso do Novo Pedido
+  const gerarTextoWhatsApp = (pedido: Pedido): string => mensagemWhatsAppDoPedido(pedido, config);
 
   const copiarWhatsApp = (pedido: Pedido) => {
     const texto = gerarTextoWhatsApp(pedido);
@@ -676,66 +383,51 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
 
   const confirmarExclusao = () => {
     if (!pedidoParaExcluir) return;
-    setPedidos((prev) =>
-      prev.map((p) => {
-        if (p.id === pedidoParaExcluir.id) {
-          return { ...p, deletado: true, status: 'cancelado' };
-        }
-        return p;
-      })
-    );
+    // Os itens do pedido cancelado voltam para o estoque da vitrine
+    cancelarPedido(pedidoParaExcluir.id);
     if (pedidoSelecionado?.id === pedidoParaExcluir.id) {
       setPedidoSelecionado(null);
     }
     setModalExcluirAberto(false);
-    exibirToast(`🗑 Pedido ${pedidoParaExcluir.codigoDisplay} cancelado logicamente.`);
+    exibirToast(
+      `🗑 Pedido ${pedidoParaExcluir.codigoDisplay} cancelado.${pedidoBaixouEstoque(pedidoParaExcluir) ? ' Os itens voltaram ao estoque.' : ''}`
+    );
     setPedidoParaExcluir(null);
   };
 
-  const lidarComPedidoCriado = (novaVenda: any) => {
-    const hoje = new Date();
-    const dataDisplay = hoje.toLocaleDateString('pt-BR');
-    const horaDisplay = hoje.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    const diaChave = hoje.toISOString().split('T')[0];
+  // CUSTO PELA FICHA TÉCNICA (o mesmo cálculo do sistema antigo)
+  const custoDoItem = (it: PedidoItem) => it.custoUnitario ?? custoUnitarioProduto({ produtoId: it.produtoId, nome: it.nome, quantidade: 0 });
+  const custoDoPedido = (p: Pedido) => p.custoTotal ?? p.itens.reduce((acc, it) => acc + it.quantidade * custoDoItem(it), 0);
 
-    const novoPedido: Pedido = {
-      id: novaVenda.id || `ped_${Date.now()}`,
-      codigoDisplay: `#PED-${1050 + pedidos.length}`,
-      clienteNome: novaVenda.cliente_id ? 'Cliente Cadastrado' : 'Venda Avulsa (Balcão)',
-      clienteTelefone: null,
-      clienteEmail: null,
-      tag: novaVenda.tipo_pedido === 'sob_encomenda' ? 'Encomenda' : 'Pronta Entrega',
-      tipoPedido: novaVenda.tipo_pedido === 'sob_encomenda' ? 'sob_encomenda' : 'pronta_entrega',
-      data: hoje.toISOString(),
-      dataDisplay,
-      horaDisplay,
-      diaChave,
-      diaTitulo: `Hoje • ${hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}`,
-      vendedor: 'Camila Lima',
-      vendedorCargo: 'Proprietária',
-      formaPagamento: novaVenda.pagamento || 'pix',
-      status: novaVenda.status === 'pago' ? 'pago' : 'pendente',
-      total: Number(novaVenda.total) || 0,
-      valorSinalPago: novaVenda.status === 'pago' ? Number(novaVenda.total) || 0 : 0,
-      saldoNaEntrega: novaVenda.status === 'pago' ? 0 : Number(novaVenda.total) || 0,
-      statusProducao: novaVenda.tipo_pedido === 'sob_encomenda' ? 'a_fazer' : 'pronto',
-      itens: [
-        {
-          id: `it_${Date.now()}`,
-          nome: 'Produto Registrado no Balcão',
-          categoria: 'Confeitaria',
-          quantidade: 1,
-          precoUnitario: Number(novaVenda.total) || 0,
-          totalItem: Number(novaVenda.total) || 0,
-        },
-      ],
-      observacoes: novaVenda.observacoes || null,
-    };
-
-    setPedidos((prev) => [novoPedido, ...prev]);
-    exibirToast(`🎉 Pedido ${novoPedido.codigoDisplay} registrado com sucesso!`);
+  // Aplica uma alteração ao pedido na lista e no painel de detalhes
+  const atualizarPedido = (atualizado: Pedido) => {
+    salvarPedidoNaLista(atualizado);
+    if (pedidoSelecionado?.id === atualizado.id) setPedidoSelecionado(atualizado);
   };
 
+  const avancarStatusProducao = (pedido: Pedido) => {
+    const idx = STATUS_PRODUCAO.findIndex((s) => s.id === pedido.statusProducao);
+    if (idx >= STATUS_PRODUCAO.length - 1) return;
+    const proximo = STATUS_PRODUCAO[idx + 1];
+    atualizarPedido({ ...pedido, statusProducao: proximo.id });
+    exibirToast(`${pedido.codigoDisplay} agora está: ${proximo.label}`);
+  };
+
+  // Editar abre o mesmo modal do Novo Pedido, já preenchido
+  const abrirEdicao = (pedido: Pedido) => {
+    setPedidoEmEdicao(pedido);
+    setModalNovoPedidoAberto(true);
+  };
+
+  // O modal já registra/atualiza na lista compartilhada e mexe na vitrine; aqui só avisa
+  const lidarComPedidoCriado = (pedido: Pedido) => {
+    if (pedidoEmEdicao?.id === pedido.id) {
+      if (pedidoSelecionado?.id === pedido.id) setPedidoSelecionado(pedido);
+      exibirToast(`✓ Pedido ${pedido.codigoDisplay} atualizado!`);
+      return;
+    }
+    exibirToast(`🎉 Pedido ${pedido.codigoDisplay} registrado com sucesso!`);
+  };
   return (
     <SafeAreaView style={styles.viewport}>
       <View style={styles.mainLayout}>
@@ -753,137 +445,149 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
         ========================================================================== */}
         <View style={styles.contentArea}>
 
-          {/* BARRA SUPERIOR IDÊNTICA À VISÃO GERAL */}
-          <View style={styles.topBar}>
-            <View style={styles.topBarSearchBox}>
-              <Feather name="search" size={16} color="#94A3B8" />
-              <TextInput
-                style={styles.topBarSearchInput}
-                placeholder="Buscar por #PED, cliente, produto..."
-                placeholderTextColor="#94A3B8"
-                value={termoBusca}
-                onChangeText={setTermoBusca}
-              />
-              <View style={styles.searchShortcutBadge}>
-                <Text style={styles.searchShortcutText}>⌘K</Text>
-              </View>
-            </View>
-
-            <View style={styles.topBarRight}>
-              <View style={styles.kitchenBadge}>
-                <View style={styles.kitchenDot} />
-                <Text style={styles.kitchenBadgeText}>
-                  {pedidosFiltrados.length} pedidos no filtro
-                </Text>
-              </View>
-
-              <TouchableOpacity style={styles.iconCircleBtn} activeOpacity={0.8}>
-                <Feather name="bell" size={17} color="#475569" />
-                <View style={styles.bellAlertDot} />
-              </TouchableOpacity>
-
-              <View style={styles.profileBadge}>
-                <View style={styles.profileAvatar}>
-                  <Text style={styles.profileAvatarText}>CL</Text>
-                </View>
-                <View style={styles.profileInfo}>
-                  <Text style={styles.profileName}>Camila Lima</Text>
-                  <Text style={styles.profileRole}>PROPRIETÁRIA</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
           {/* SCROLL DO CONTEÚDO PRINCIPAL */}
           <ScrollView
             style={styles.scrollContainer}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}>
 
-            {/* 1. BANNER DE SAUDAÇÃO IDÊNTICO À REFERÊNCIA ATELIERQ */}
-            <View style={styles.greetingBanner}>
-              <View style={styles.greetingLeft}>
-                <View style={styles.chefAvatarBox}>
-                  <View style={styles.chefAvatarInner}>
-                    <Text style={styles.chefEmoji}>🧁</Text>
-                  </View>
-                  <View style={styles.chefStatusDot}>
-                    <Text style={styles.chefStatusPlus}>✓</Text>
-                  </View>
-                </View>
+            {/* 1. CABEÇALHO PADRÃO DO SISTEMA */}
+            <View style={styles.pageHeader}>
+              <PageHeaderTitulo
+                etiqueta={escopo.ehRevendedora ? "REVENDA · MEUS PEDIDOS" : "ATELIÊ · PEDIDOS & VENDAS"}
+                titulo="Pedidos"
+                subtitulo={escopo.ehRevendedora ? "Suas vendas, com o estoque que está com você: recebimentos, WhatsApp e comissão." : "Histórico por data, recebimentos, WhatsApp e baixa ágil."}
+              />
 
-                <View style={styles.greetingTextCol}>
-                  <View style={styles.greetingTitleRow}>
-                    <Text style={styles.greetingTitle}>
-                      Gestão de Pedidos & Vendas
-                    </Text>
-                    <View style={styles.ovenBadge}>
-                      <View style={styles.ovenDot} />
-                      <Text style={styles.ovenBadgeText}>
-                        {kpis.qtdPendentes > 0 ? `${kpis.qtdPendentes} aguardam baixa` : 'Caixa em dia'}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.greetingDescription}>
-                    Histórico detalhado por data, controle de recebimentos, emissão de WhatsApp e baixa ágil.
-                  </Text>
-                  <TouchableOpacity activeOpacity={0.75} onPress={() => setModalAReceberAberto(true)}>
-                    <Text style={styles.greetingTipLink}>
-                      *Petite dica: {kpis.totalAReceber} pendentes para recebimento na entrega hoje. Clique para conferir ↗*
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* CARD DE DESTAQUE DENTRO DO BANNER */}
-              <View style={styles.greetingKpiCard}>
-                <View style={styles.greetingKpiIconBox}>
-                  <Feather name="shopping-bag" size={18} color="#FFFFFF" />
-                </View>
-                <View style={styles.greetingKpiInfo}>
-                  <Text style={styles.greetingKpiTag}>FATURAMENTO DO PERÍODO</Text>
-                  <Text style={styles.greetingKpiValue}>
-                    {kpis.totalVendido} <Text style={styles.greetingKpiSub}>({kpis.totalItens})</Text>
-                  </Text>
-                  <Text style={styles.greetingKpiDesc}>
-                    Média de {kpis.mediaItensPorPedido} itens por pedido registrado.
-                  </Text>
-                </View>
+              {kpis.qtdPendentes > 0 && (
                 <TouchableOpacity
-                  style={styles.greetingKpiBtn}
-                  onPress={() => setModalNovoPedidoAberto(true)}
-                  activeOpacity={0.7}>
-                  <Text style={styles.greetingKpiBtnText}>+ Vender</Text>
+                  style={styles.pageHeaderAlertBtn}
+                  onPress={() => setModalAReceberAberto(true)}
+                  activeOpacity={0.8}>
+                  <Feather name="clock" size={15} color="#DC2626" />
+                  <Text style={styles.pageHeaderAlertText}>
+                    {kpis.qtdPendentes} {kpis.qtdPendentes === 1 ? 'pedido aguarda' : 'pedidos aguardam'} baixa!
+                  </Text>
                 </TouchableOpacity>
-              </View>
+              )}
             </View>
 
-            {/* 2. LINHA DE FILTROS IDÊNTICA À VISÃO GERAL */}
-            <View style={styles.filtersBar}>
-              <View style={styles.periodTabs}>
-                {(['hoje', '7dias', 'mes', 'personalizar'] as Periodo[]).map((p) => {
-                  const labels = {
-                    hoje: 'Hoje',
-                    '7dias': '7 dias',
-                    mes: 'Mês',
-                    personalizar: 'Personalizar 📅',
-                  };
-                  const active = periodo === p;
-                  return (
-                    <TouchableOpacity
-                      key={p}
-                      style={[styles.periodTab, active && styles.periodTabActive]}
-                      onPress={() => setPeriodo(p)}
-                      activeOpacity={0.8}>
-                      <Text style={[styles.periodTabText, active && styles.periodTabTextActive]}>
-                        {labels[p]}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            {/* 2. TOPO: PERÍODO + FILTROS (DROPDOWN) À ESQUERDA; DATA + NOVO PEDIDO À DIREITA */}
+            <View style={[styles.filtersBar, { zIndex: 50 }]}>
+              <View style={styles.filtrosEsq}>
+                <View style={styles.periodTabs}>
+                  {(['hoje', '7dias', 'mes', 'personalizar'] as Periodo[]).map((p) => {
+                    const labels = { hoje: 'Hoje', '7dias': '7 dias', mes: 'Mês', personalizar: 'Personalizar' };
+                    const active = periodo === p;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        style={[styles.periodTab, active && styles.periodTabActive]}
+                        onPress={() => setPeriodo(p)}
+                        activeOpacity={0.8}>
+                        <Text style={[styles.periodTabText, active && styles.periodTabTextActive]}>{labels[p]}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Tipo, pagamento e vendedor ficam num só botão (revendedora vê só pagamento) */}
+                <View>
+                  <TouchableOpacity
+                    style={[styles.filtrosBtn, (filtrosAbertos || filtrosAtivos > 0) && styles.filtrosBtnAtivo]}
+                    onPress={() => setFiltrosAbertos((v) => !v)}
+                    activeOpacity={0.85}>
+                    <Feather name="sliders" size={14} color={filtrosAtivos > 0 ? KipiPalette.icedDenim : '#475569'} />
+                    <Text style={[styles.filtrosBtnTexto, filtrosAtivos > 0 && { color: KipiPalette.icedDenim }]}>Filtros</Text>
+                    {filtrosAtivos > 0 && (
+                      <View style={styles.filtrosBadge}>
+                        <Text style={styles.filtrosBadgeTexto}>{filtrosAtivos}</Text>
+                      </View>
+                    )}
+                    <Feather name={filtrosAbertos ? 'chevron-up' : 'chevron-down'} size={14} color="#94A3B8" />
+                  </TouchableOpacity>
+
+                  {filtrosAbertos && (
+                    <View style={styles.filtrosMenu}>
+                      {!escopo.ehRevendedora && (
+                        <View>
+                          <Text style={styles.filtrosGrupoLabel}>TIPO</Text>
+                          <View style={styles.mdChips}>
+                            {[
+                              { id: 'todos', label: 'Todos' },
+                              { id: 'pronta_entrega', label: 'Pronta entrega' },
+                              { id: 'sob_encomenda', label: 'Sob encomenda' },
+                            ].map((t) => {
+                              const ativo = filtroTipo === t.id;
+                              return (
+                                <TouchableOpacity key={t.id} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setFiltroTipo(t.id as TipoPedido)}>
+                                  <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{t.label}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      )}
+
+                      <View>
+                        <Text style={styles.filtrosGrupoLabel}>PAGAMENTO</Text>
+                        <View style={styles.mdChips}>
+                          {[
+                            { id: 'todos', label: 'Todos' },
+                            { id: 'pendentes', label: 'Pendentes' },
+                            { id: 'pagos', label: 'Pagos' },
+                          ].map((p) => {
+                            const ativo = filtroPagamento === p.id;
+                            return (
+                              <TouchableOpacity key={p.id} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setFiltroPagamento(p.id as StatusPagamento)}>
+                                <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{p.label}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+
+                      {!escopo.ehRevendedora && (
+                        <View>
+                          <Text style={styles.filtrosGrupoLabel}>VENDEDOR</Text>
+                          <View style={styles.mdChips}>
+                            {[
+                              { id: 'todos', label: 'Todos' },
+                              { id: 'Camila Lima', label: 'Camila Lima' },
+                              { id: 'Juliana Carvalho', label: 'Juliana Carvalho' },
+                              { id: 'Sofia Ramos', label: 'Sofia Ramos' },
+                              { id: 'Café & Flor', label: 'Café & Flor' },
+                            ].map((v) => {
+                              const ativo = filtroVendedor === v.id;
+                              return (
+                                <TouchableOpacity key={v.id} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setFiltroVendedor(v.id)}>
+                                  <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{v.label}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      )}
+
+                      <View style={styles.filtrosRodape}>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setFiltroTipo('todos');
+                            setFiltroPagamento('todos');
+                            setFiltroVendedor('todos');
+                          }}>
+                          <Text style={[styles.mdLink, { marginBottom: 0, color: '#64748B' }]}>Limpar filtros</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.mdBtnPri, { paddingVertical: 7 }]} onPress={() => setFiltrosAbertos(false)}>
+                          <Text style={styles.mdBtnPriTexto}>Pronto</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
+                </View>
               </View>
 
-              <View style={styles.filterActions}>
+              <View style={styles.filtrosDir}>
                 <View style={styles.calendarPill}>
                   <Feather name="calendar" size={14} color="#64748B" />
                   <Text style={styles.calendarPillText}>{dataExtenso}</Text>
@@ -895,83 +599,6 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                   <Feather name="plus" size={16} color="#FFFFFF" />
                   <Text style={styles.primaryActionBtnText}>Novo Pedido</Text>
                 </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* BARRA SECUNDÁRIA DE FILTROS REFINADOS */}
-            <View style={styles.subFiltersStrip}>
-              {/* FILTRO TIPO */}
-              <View style={styles.subFilterGroup}>
-                <Text style={styles.subFilterLabel}>TIPO:</Text>
-                <View style={styles.subFilterPills}>
-                  {[
-                    { id: 'todos', label: 'Todos' },
-                    { id: 'pronta_entrega', label: 'Pronta Entrega' },
-                    { id: 'sob_encomenda', label: 'Sob Encomenda' },
-                  ].map((t) => (
-                    <TouchableOpacity
-                      key={t.id}
-                      style={[styles.subPill, filtroTipo === t.id && styles.subPillActive]}
-                      onPress={() => setFiltroTipo(t.id as any)}>
-                      <Text style={[styles.subPillText, filtroTipo === t.id && styles.subPillTextActive]}>
-                        {t.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* FILTRO PAGAMENTO */}
-              <View style={styles.subFilterGroup}>
-                <Text style={styles.subFilterLabel}>PAGAMENTO:</Text>
-                <View style={styles.subFilterPills}>
-                  {[
-                    { id: 'todos', label: 'Todos' },
-                    { id: 'pendentes', label: 'Pendentes' },
-                    { id: 'pagos', label: 'Pagos' },
-                  ].map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={[
-                        styles.subPill,
-                        filtroPagamento === p.id && styles.subPillActive,
-                        p.id === 'pendentes' && filtroPagamento === 'pendentes' && { backgroundColor: '#DC2626' },
-                      ]}
-                      onPress={() => setFiltroPagamento(p.id as any)}>
-                      <Text
-                        style={[
-                          styles.subPillText,
-                          filtroPagamento === p.id && styles.subPillTextActive,
-                          p.id === 'pendentes' && filtroPagamento !== 'pendentes' && { color: '#DC2626' },
-                        ]}>
-                        {p.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* FILTRO VENDEDOR */}
-              <View style={styles.subFilterGroup}>
-                <Text style={styles.subFilterLabel}>VENDEDOR:</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                  {[
-                    { id: 'todos', label: 'Todos' },
-                    { id: 'Camila Lima', label: 'Camila Lima (Dona)' },
-                    { id: 'Juliana Carvalho', label: 'Juliana Carvalho (Balcão)' },
-                    { id: 'Sofia Ramos', label: 'Sofia Ramos' },
-                    { id: 'Café & Flor', label: 'Café & Flor' },
-                  ].map((v) => (
-                    <TouchableOpacity
-                      key={v.id}
-                      style={[styles.subPill, filtroVendedor === v.id && styles.subPillActive]}
-                      onPress={() => setFiltroVendedor(v.id)}>
-                      <Text style={[styles.subPillText, filtroVendedor === v.id && styles.subPillTextActive]}>
-                        {v.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
               </View>
             </View>
 
@@ -1025,17 +652,17 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
               {/* 2. TOTAL DE ITENS VENDIDOS */}
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>ITENS VENDIDOS</Text>
+                  <Text style={styles.kpiLabel}>{escopo.ehRevendedora ? 'MINHA COMISSÃO' : 'ITENS VENDIDOS'}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
                     <Feather name="shopping-bag" size={15} color="#5798D7" />
                   </View>
                 </View>
-                <Text style={styles.kpiMainNumber}>{kpis.totalItens}</Text>
+                <Text style={styles.kpiMainNumber}>{escopo.ehRevendedora ? kpis.comissao : kpis.totalItens}</Text>
                 <View style={styles.kpiFooter}>
                   <View style={styles.kpiDiffPillBlue}>
-                    <Text style={styles.kpiDiffPillBlueText}>Média {kpis.mediaItensPorPedido}/ped</Text>
+                    <Text style={styles.kpiDiffPillBlueText}>{escopo.ehRevendedora ? `${kpis.totalItens} vendidos` : `Média ${kpis.mediaItensPorPedido}/ped`}</Text>
                   </View>
-                  <Text style={styles.kpiFooterNote}>Volume de produção</Text>
+                  <Text style={styles.kpiFooterNote}>{escopo.ehRevendedora ? 'Pelas vendas do período' : 'Volume de produção'}</Text>
                 </View>
               </View>
 
@@ -1069,7 +696,7 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                 onPress={() => setModalEstoqueAberto(true)}
                 activeOpacity={0.8}>
                 <View style={styles.kpiCardHeader}>
-                  <Text style={styles.kpiLabel}>ESTOQUE GERAL (CLIQUE ↗)</Text>
+                  <Text style={styles.kpiLabel}>{escopo.ehRevendedora ? 'ESTOQUE COMIGO (CLIQUE ↗)' : 'ESTOQUE GERAL (CLIQUE ↗)'}</Text>
                   <View style={[styles.kpiIconWrap, { backgroundColor: '#E0F2FE' }]}>
                     <Feather name="package" size={15} color="#0284C7" />
                   </View>
@@ -1167,7 +794,7 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                                           ? { color: '#B45309' }
                                           : { color: KipiPalette.icedDenim },
                                       ]}>
-                                      {ped.tipoPedido === 'sob_encomenda' ? 'Sob Encomenda' : 'Pronta Entrega'}
+                                      {ped.revendedoraId ? '🤝 Revenda' : ped.tipoPedido === 'sob_encomenda' ? 'Sob Encomenda' : 'Pronta Entrega'}
                                     </Text>
                                   </View>
 
@@ -1184,6 +811,23 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                                       <Text style={styles.statusPendingPillText}>Pendente</Text>
                                     </View>
                                   )}
+
+                                  {/* STATUS DE PRODUÇÃO: clique avança para a próxima etapa (venda da revendedora já sai entregue) */}
+                                  {!ped.revendedoraId && (() => {
+                                    const st = infoStatusProducao(ped.statusProducao);
+                                    const ultimo = ped.statusProducao === 'entregue';
+                                    return (
+                                      <TouchableOpacity
+                                        style={[styles.prodStatusPill, { backgroundColor: st.fundo }]}
+                                        onPress={() => avancarStatusProducao(ped)}
+                                        disabled={ultimo}
+                                        activeOpacity={0.75}>
+                                        <Feather name={st.icon} size={11} color={st.cor} />
+                                        <Text style={[styles.prodStatusPillText, { color: st.cor }]}>{st.label}</Text>
+                                        {!ultimo && <Feather name="chevron-right" size={11} color={st.cor} />}
+                                      </TouchableOpacity>
+                                    );
+                                  })()}
                                 </View>
 
                                 <View style={styles.orderSellerInfoRow}>
@@ -1202,9 +846,9 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                                 <View style={{ flex: 1, gap: 2 }}>
                                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                     <Text style={styles.orderClientTitle}>{ped.clienteNome}</Text>
-                                    {ped.tag && (
+                                    {!!tagDoCliente(ped) && (
                                       <View style={styles.clientTagBadge}>
-                                        <Text style={styles.clientTagBadgeText}>{ped.tag}</Text>
+                                        <Text style={styles.clientTagBadgeText}>🏷️ {tagDoCliente(ped)}</Text>
                                       </View>
                                     )}
                                   </View>
@@ -1278,11 +922,7 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                                 <View style={styles.orderActionsRight}>
                                   <TouchableOpacity
                                     style={styles.btnMiniAction}
-                                    onPress={() => {
-                                      setPedidoParaEditar(ped);
-                                      setEditObservacoes(ped.observacoes || '');
-                                      setModalEditarAberto(true);
-                                    }}>
+                                    onPress={() => abrirEdicao(ped)}>
                                     <Feather name="edit-2" size={14} color="#64748B" />
                                   </TouchableOpacity>
 
@@ -1344,7 +984,14 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                         </Text>
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.sideDetailClientName}>{pedidoSelecionado.clienteNome}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                          <Text style={styles.sideDetailClientName}>{pedidoSelecionado.clienteNome}</Text>
+                          {!!tagDoCliente(pedidoSelecionado) && (
+                            <View style={styles.clientTagBadge}>
+                              <Text style={styles.clientTagBadgeText}>🏷️ {tagDoCliente(pedidoSelecionado)}</Text>
+                            </View>
+                          )}
+                        </View>
                         <Text style={styles.sideDetailClientSub}>
                           {pedidoSelecionado.clienteTelefone || 'Telefone não cadastrado'}
                         </Text>
@@ -1353,6 +1000,29 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                         </Text>
                       </View>
                     </View>
+
+                    {/* STATUS DE PRODUÇÃO (LINHA DO TEMPO) */}
+                    {!pedidoSelecionado.revendedoraId && (
+                    <View style={{ gap: 8 }}>
+                      <Text style={styles.sideDetailSectionLabel}>STATUS DE PRODUÇÃO</Text>
+                      <View style={styles.prodTimeline}>
+                        {STATUS_PRODUCAO.map((s, idx) => {
+                          const atualIdx = STATUS_PRODUCAO.findIndex((x) => x.id === pedidoSelecionado.statusProducao);
+                          const feito = idx <= atualIdx;
+                          return (
+                            <TouchableOpacity
+                              key={s.id}
+                              style={[styles.prodTimelineStep, feito && { backgroundColor: s.fundo, borderColor: s.cor }]}
+                              onPress={() => atualizarPedido({ ...pedidoSelecionado, statusProducao: s.id })}
+                              activeOpacity={0.75}>
+                              <Feather name={s.icon} size={12} color={feito ? s.cor : '#CBD5E1'} />
+                              <Text style={[styles.prodTimelineText, feito && { color: s.cor }]}>{s.label}</Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                    )}
 
                     {/* ITENS DETALHADOS */}
                     <View style={{ gap: 8 }}>
@@ -1365,6 +1035,11 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                             </Text>
                             <Text style={styles.sideDetailItemSub}>
                               {it.categoria} • R$ {it.precoUnitario.toFixed(2)} un.
+                              {it.comDesconto && it.desconto ? (
+                                <Text style={{ color: '#B45309', fontWeight: '700' }}>
+                                  {'  '}🏷️ Promoção (-R$ {it.desconto.toFixed(2)}/un)
+                                </Text>
+                              ) : null}
                             </Text>
                           </View>
                           <Text style={styles.sideDetailItemTotal}>
@@ -1382,6 +1057,24 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                           R$ {pedidoSelecionado.total.toFixed(2)}
                         </Text>
                       </View>
+                      {(() => {
+                        const custo = custoDoPedido(pedidoSelecionado);
+                        const lucro = pedidoSelecionado.total - custo;
+                        const margem = pedidoSelecionado.total > 0 ? Math.round((lucro / pedidoSelecionado.total) * 100) : 0;
+                        return (
+                          <View style={styles.sideDetailProfitRow}>
+                            <Text style={styles.sideDetailProfitText}>Custo (ficha técnica): R$ {custo.toFixed(2)}</Text>
+                            <Text style={[styles.sideDetailProfitText, { color: '#16A34A', fontWeight: '800' }]}>
+                              Lucro est.: R$ {lucro.toFixed(2)} ({margem}%)
+                            </Text>
+                          </View>
+                        );
+                      })()}
+                      {pedidoSelecionado.valorSinalPago > 0 && pedidoSelecionado.saldoNaEntrega > 0 && (
+                        <Text style={styles.sideDetailProfitText}>
+                          Sinal pago: R$ {pedidoSelecionado.valorSinalPago.toFixed(2)}
+                        </Text>
+                      )}
                       {pedidoSelecionado.status === 'pendente' && (
                         <Text style={styles.sideDetailPendingAlert}>
                           ⏳ R$ {pedidoSelecionado.saldoNaEntrega.toFixed(2)} pendente de pagamento
@@ -1393,7 +1086,9 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                     <View style={styles.sideDetailWppBox}>
                       <Text style={styles.sideDetailWppTitle}>📱 COMPROVANTE FORMATADO COM PIX</Text>
                       <Text style={styles.sideDetailWppPreview}>
-                        Chave Pix: {CHAVE_PIX_ATELIE} ({TITULAR_PIX})
+                        {config.chavePix?.trim()
+                          ? `Chave Pix: ${config.chavePix}`
+                          : 'Cadastre a chave PIX em Configurações'}
                       </Text>
                       <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                         <TouchableOpacity
@@ -1480,13 +1175,16 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
                       const iniciais = cli.nome.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
                       return (
-                        <View key={cli.nome} style={styles.sideTopRow}>
+                        <View key={cli.chave} style={styles.sideTopRow}>
                           <Text style={{ fontSize: 16 }}>{medalhas[idx]}</Text>
                           <View style={styles.sideClientAvatarMini}>
                             <Text style={styles.sideClientAvatarText}>{iniciais}</Text>
                           </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={styles.sideTopName}>{cli.nome}</Text>
+                            <Text style={styles.sideTopName} numberOfLines={1}>
+                              {cli.nome}
+                              {!!cli.tag && <Text style={styles.sideTopTag}>  {cli.tag}</Text>}
+                            </Text>
                             <Text style={styles.sideTopCat}>{cli.pedidosCount} pedidos realizados</Text>
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
@@ -1528,69 +1226,97 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
       {/* 1. MODAL DAR BAIXA */}
       <Modal visible={modalBaixaAberto} transparent animationType="fade" onRequestClose={() => setModalBaixaAberto(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalCardHeader}>
-              <View>
-                <View style={styles.modalTagBadge}>
-                  <Text style={styles.modalTagBadgeText}>FINANCEIRO • BAIXA</Text>
-                </View>
-                <Text style={styles.modalCardTitle}>Dar Baixa de Pagamento</Text>
+          <View style={[styles.md, { maxWidth: 440 }]}>
+            <View style={styles.mdHeader}>
+              <View style={[styles.mdHeaderIcon, { backgroundColor: '#DCFCE7' }]}>
+                <Feather name="dollar-sign" size={16} color="#16A34A" />
               </View>
-              <TouchableOpacity onPress={() => setModalBaixaAberto(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mdTitle}>Receber pagamento</Text>
+                <Text style={styles.mdSub} numberOfLines={1}>
+                  {pedidoParaBaixa?.codigoDisplay} · {pedidoParaBaixa?.clienteNome}
+                  {pedidoParaBaixa && tagDoCliente(pedidoParaBaixa) ? ` · ${tagDoCliente(pedidoParaBaixa)}` : ''}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalBaixaAberto(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="x" size={18} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            {pedidoParaBaixa && (
-              <View style={{ gap: 12, marginTop: 14 }}>
-                <View style={styles.modalSummaryBox}>
-                  <Text style={{ fontWeight: '700', color: '#0F172A', fontSize: 14 }}>
-                    {pedidoParaBaixa.codigoDisplay} • {pedidoParaBaixa.clienteNome}
-                  </Text>
-                  <Text style={{ color: '#DC2626', fontWeight: '800', fontSize: 16, marginTop: 2 }}>
-                    Valor a Receber: R$ {pedidoParaBaixa.saldoNaEntrega.toFixed(2)}
-                  </Text>
-                </View>
+            {pedidoParaBaixa && (() => {
+              const recebido = parseFloat(baixaValor.replace(',', '.')) || 0;
+              const restante = Math.max(pedidoParaBaixa.saldoNaEntrega - recebido, 0);
+              return (
+                <View style={{ gap: 14 }}>
+                  {/* Quanto falta, com o que já foi pago */}
+                  <View style={styles.mdBaixaHero}>
+                    <Text style={styles.mdBaixaHeroRotulo}>FALTA RECEBER</Text>
+                    <Text style={styles.mdBaixaHeroValor}>{brl(pedidoParaBaixa.saldoNaEntrega)}</Text>
+                    <View style={styles.mdBaixaHeroLinha}>
+                      <Text style={styles.mdBaixaHeroInfo}>Total {brl(pedidoParaBaixa.total)}</Text>
+                      <View style={styles.mdBaixaHeroPonto} />
+                      <Text style={styles.mdBaixaHeroInfo}>Já pago {brl(pedidoParaBaixa.valorSinalPago)}</Text>
+                    </View>
+                  </View>
 
-                <Text style={styles.modalInputLabel}>FORMA DE PAGAMENTO:</Text>
-                <View style={styles.modalPayGrid}>
-                  {[
-                    { id: 'pix', label: 'Pix', icon: 'zap' },
-                    { id: 'cartao_credito', label: 'Cartão Crédito', icon: 'credit-card' },
-                    { id: 'cartao_debito', label: 'Cartão Débito', icon: 'credit-card' },
-                    { id: 'dinheiro', label: 'Dinheiro', icon: 'dollar-sign' },
-                  ].map((opt) => (
-                    <TouchableOpacity
-                      key={opt.id}
-                      style={[styles.modalPayBtn, baixaFormaPagamento === opt.id && styles.modalPayBtnActive]}
-                      onPress={() => setBaixaFormaPagamento(opt.id as any)}>
-                      <Feather name={opt.icon as any} size={15} color={baixaFormaPagamento === opt.id ? KipiPalette.icedDenim : '#64748B'} />
-                      <Text style={[styles.modalPayBtnText, baixaFormaPagamento === opt.id && styles.modalPayBtnTextActive]}>
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                  <View>
+                    <Text style={styles.mdLabel}>COMO RECEBEU?</Text>
+                    <View style={styles.mdFormas}>
+                      {[
+                        { id: 'pix', label: 'Pix', icon: 'zap' },
+                        { id: 'dinheiro', label: 'Dinheiro', icon: 'dollar-sign' },
+                        { id: 'cartao_credito', label: 'Crédito', icon: 'credit-card' },
+                        { id: 'cartao_debito', label: 'Débito', icon: 'credit-card' },
+                      ].map((opt) => {
+                        const ativo = baixaFormaPagamento === opt.id;
+                        return (
+                          <TouchableOpacity
+                            key={opt.id}
+                            style={[styles.mdForma, ativo && styles.mdFormaAtiva]}
+                            onPress={() => setBaixaFormaPagamento(opt.id as any)}>
+                            <Feather name={opt.icon as any} size={16} color={ativo ? '#16A34A' : '#64748B'} />
+                            <Text style={[styles.mdFormaTexto, ativo && styles.mdFormaTextoAtivo]}>{opt.label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
 
-                <Text style={styles.modalInputLabel}>VALOR RECEBIDO (R$):</Text>
-                <TextInput
-                  style={styles.modalTextInput}
-                  value={baixaValor}
-                  onChangeText={setBaixaValor}
-                  keyboardType="numeric"
-                />
-
-                <View style={styles.modalActionsRow}>
-                  <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setModalBaixaAberto(false)}>
-                    <Text style={styles.modalBtnCancelText}>Cancelar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.modalBtnConfirm} onPress={confirmarBaixa}>
-                    <Feather name="check" size={16} color="#FFFFFF" />
-                    <Text style={styles.modalBtnConfirmText}>Confirmar Recebimento</Text>
-                  </TouchableOpacity>
+                  <View>
+                    <View style={styles.mdLabelLinha}>
+                      <Text style={styles.mdLabel}>VALOR RECEBIDO</Text>
+                      <TouchableOpacity onPress={() => setBaixaValor(pedidoParaBaixa.saldoNaEntrega.toFixed(2).replace('.', ','))}>
+                        <Text style={styles.mdLink}>Valor total</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={[styles.mdInputIcone, { paddingVertical: 4 }]}>
+                      <Text style={styles.mdPrefixo}>R$</Text>
+                      <TextInput
+                        style={[styles.mdInputSemBorda, { fontSize: 18, fontFamily: Fonts.display, fontWeight: '800' }]}
+                        value={baixaValor}
+                        onChangeText={(t) => setBaixaValor(t.replace(/[^\d,.]/g, ''))}
+                        keyboardType="decimal-pad"
+                      />
+                    </View>
+                    <Text style={[styles.mdDica, restante > 0 && { color: '#B45309' }]}>
+                      {restante > 0
+                        ? `Pagamento parcial: continuam faltando ${brl(restante)}.`
+                        : 'O pedido fica quitado.'}
+                    </Text>
+                  </View>
                 </View>
-              </View>
-            )}
+              );
+            })()}
+
+            <View style={styles.mdFooter}>
+              <TouchableOpacity style={styles.mdBtnSec} onPress={() => setModalBaixaAberto(false)}>
+                <Text style={styles.mdBtnSecTexto}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.mdBtnPri, { backgroundColor: '#16A34A' }]} onPress={confirmarBaixa}>
+                <Feather name="check" size={14} color="#FFFFFF" />
+                <Text style={styles.mdBtnPriTexto}>Confirmar recebimento</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1598,121 +1324,209 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
       {/* 2. MODAL A RECEBER */}
       <Modal visible={modalAReceberAberto} transparent animationType="fade" onRequestClose={() => setModalAReceberAberto(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { maxWidth: 640 }]}>
-            <View style={styles.modalCardHeader}>
-              <View>
-                <View style={[styles.modalTagBadge, { backgroundColor: '#FEE2E2' }]}>
-                  <Text style={[styles.modalTagBadgeText, { color: '#DC2626' }]}>CONTAS A RECEBER</Text>
-                </View>
-                <Text style={styles.modalCardTitle}>Clientes com Pedidos Pendentes</Text>
-                <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                  Total a receber: <Text style={{ color: '#DC2626', fontWeight: '800' }}>{kpis.totalAReceber}</Text>
+          <View style={[styles.md, { maxWidth: 600 }]}>
+            <View style={styles.mdHeader}>
+              <View style={[styles.mdHeaderIcon, { backgroundColor: '#FEF3C7' }]}>
+                <Feather name="clock" size={16} color="#B45309" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mdTitle}>A receber</Text>
+                <Text style={styles.mdSub}>
+                  {escopo.ehRevendedora ? 'Clientes que ainda te devem' : 'Pedidos com pagamento pendente'}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setModalAReceberAberto(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+              <TouchableOpacity onPress={() => setModalAReceberAberto(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="x" size={18} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 380, marginTop: 12 }}>
-              {pedidos.filter((p) => !p.deletado && p.status === 'pendente').map((ped) => (
-                <View key={ped.id} style={styles.modalPendingLine}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#0F172A' }}>
-                      {ped.clienteNome} ({ped.codigoDisplay})
-                    </Text>
-                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                      {ped.dataDisplay} • Vendedor: {ped.vendedor}
-                    </Text>
-                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#DC2626', marginTop: 2 }}>
-                      R$ {ped.saldoNaEntrega.toFixed(2)} devido
-                    </Text>
+            {(() => {
+              const pendentes = pedidos
+                .filter((p) => !p.deletado && p.status === 'pendente')
+                .sort((a, b) => b.saldoNaEntrega - a.saldoNaEntrega);
+              const totalDevido = pendentes.reduce((acc, p) => acc + p.saldoNaEntrega, 0);
+              const clientesDevendo = new Set(pendentes.map((p) => p.clienteId ?? p.clienteNome)).size;
+              return (
+                <>
+                  <View style={styles.mdResumo}>
+                    <View style={[styles.mdResumoCard, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+                      <Text style={[styles.mdResumoRotulo, { color: '#B45309' }]}>TOTAL A RECEBER</Text>
+                      <Text style={[styles.mdResumoValor, { color: '#B45309' }]}>{brl(totalDevido)}</Text>
+                    </View>
+                    <View style={styles.mdResumoCard}>
+                      <Text style={styles.mdResumoRotulo}>PEDIDOS</Text>
+                      <Text style={styles.mdResumoValor}>{pendentes.length}</Text>
+                    </View>
+                    <View style={styles.mdResumoCard}>
+                      <Text style={styles.mdResumoRotulo}>CLIENTES</Text>
+                      <Text style={styles.mdResumoValor}>{clientesDevendo}</Text>
+                    </View>
                   </View>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    <TouchableOpacity
-                      style={styles.modalMiniBtnWpp}
-                      onPress={() => copiarWhatsApp(ped)}>
-                      <Feather name="message-circle" size={13} color="#16A34A" />
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#16A34A' }}>WPP</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.modalMiniBtnBaixa}
-                      onPress={() => {
-                        setModalAReceberAberto(false);
-                        abrirModalBaixa(ped);
-                      }}>
-                      <Feather name="check" size={13} color="#FFFFFF" />
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFFFFF' }}>Dar Baixa</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </ScrollView>
+
+                  <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 8 }} showsVerticalScrollIndicator={false}>
+                    {pendentes.length === 0 ? (
+                      <View style={styles.mdVazio}>
+                        <Text style={{ fontSize: 26 }}>🎉</Text>
+                        <Text style={styles.mdVazioTitulo}>Nada a receber</Text>
+                        <Text style={styles.mdDica}>Todos os pedidos estão pagos.</Text>
+                      </View>
+                    ) : (
+                      pendentes.map((ped) => (
+                        <View key={ped.id} style={styles.mdDevedor}>
+                          <View style={styles.mdAvatar}>
+                            <Text style={styles.mdAvatarTexto}>{(ped.clienteNome || '?').charAt(0).toUpperCase()}</Text>
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <View style={styles.mdLinhaNome}>
+                              <Text style={styles.mdItemNome} numberOfLines={1}>{ped.clienteNome}</Text>
+                              {!!tagDoCliente(ped) && (
+                                <View style={styles.clientTagBadge}>
+                                  <Text style={styles.clientTagBadgeText}>🏷️ {tagDoCliente(ped)}</Text>
+                                </View>
+                              )}
+                              <View style={styles.mdCodigo}>
+                                <Text style={styles.mdCodigoTexto}>{ped.codigoDisplay}</Text>
+                              </View>
+                            </View>
+                            <Text style={styles.mdItemSub} numberOfLines={1}>
+                              {ped.dataDisplay}
+                              {!escopo.ehRevendedora ? ` · ${ped.vendedor}` : ''}
+                              {ped.valorSinalPago > 0 ? ` · já pagou ${brl(ped.valorSinalPago)}` : ''}
+                            </Text>
+                          </View>
+                          <Text style={styles.mdDevedorValor}>{brl(ped.saldoNaEntrega)}</Text>
+                          <TouchableOpacity style={styles.mdIconeBtnWpp} onPress={() => abrirWhatsAppWeb(ped)}>
+                            <Feather name="message-circle" size={14} color="#16A34A" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.mdBtnBaixa}
+                            onPress={() => {
+                              setModalAReceberAberto(false);
+                              abrirModalBaixa(ped);
+                            }}>
+                            <Feather name="check" size={12} color="#FFFFFF" />
+                            <Text style={styles.mdBtnBaixaTexto}>Receber</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ))
+                    )}
+                  </ScrollView>
+                </>
+              );
+            })()}
           </View>
         </View>
       </Modal>
 
-      {/* 3. MODAL ESTOQUE */}
+      {/* 3. MODAL ESTOQUE (CONSULTAR CARDÁPIO) */}
       <Modal visible={modalEstoqueAberto} transparent animationType="fade" onRequestClose={() => setModalEstoqueAberto(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { maxWidth: 660 }]}>
-            <View style={styles.modalCardHeader}>
-              <View>
-                <View style={[styles.modalTagBadge, { backgroundColor: '#E0F2FE' }]}>
-                  <Text style={[styles.modalTagBadgeText, { color: '#0284C7' }]}>INVENTÁRIO DO ATELIÊ</Text>
-                </View>
-                <Text style={styles.modalCardTitle}>Estoque por Produto & Categoria</Text>
+          <View style={[styles.md, { maxWidth: 620 }]}>
+            <View style={styles.mdHeader}>
+              <View style={[styles.mdHeaderIcon, { backgroundColor: '#EAF3FA' }]}>
+                <Feather name="box" size={16} color={KipiPalette.icedDenim} />
               </View>
-              <TouchableOpacity onPress={() => setModalEstoqueAberto(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mdTitle}>{escopo.ehRevendedora ? 'Estoque com você' : 'Cardápio e estoque'}</Text>
+                <Text style={styles.mdSub}>
+                  {escopo.ehRevendedora ? 'O que o ateliê te entregou e ainda não foi vendido' : 'O que está disponível na vitrine para vender agora'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalEstoqueAberto(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Feather name="x" size={18} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <View style={{ marginVertical: 12, gap: 8 }}>
-              <TextInput
-                style={styles.modalSearchField}
-                placeholder="Buscar produto no estoque..."
-                placeholderTextColor="#94A3B8"
-                value={buscaEstoque}
-                onChangeText={setBuscaEstoque}
-              />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-                {['Todas', 'Cookies', 'Bolos & Bentos', 'Macarons', 'Sobremesas', 'Doces Finos', 'Insumos'].map((c) => (
-                  <TouchableOpacity
-                    key={c}
-                    style={[styles.modalCatChip, categoriaEstoque === c && styles.modalCatChipActive]}
-                    onPress={() => setCategoriaEstoque(c)}>
-                    <Text style={[styles.modalCatChipText, categoriaEstoque === c && styles.modalCatChipTextActive]}>
-                      {c}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            <ScrollView style={{ maxHeight: 380 }}>
-              {estoque
+            {(() => {
+              const categorias = ['Todas', ...Array.from(new Set(estoque.map((p) => p.categoria)))];
+              const ordemStatus = { zerado: 0, baixo: 1, normal: 2 } as const;
+              const lista = estoque
                 .filter((p) => {
                   const mBusca = !buscaEstoque || p.nome.toLowerCase().includes(buscaEstoque.toLowerCase());
                   const mCat = categoriaEstoque === 'Todas' || p.categoria === categoriaEstoque;
                   return mBusca && mCat;
                 })
-                .map((prod) => (
-                  <View key={prod.id} style={styles.modalStockLine}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>{prod.nome}</Text>
-                      <Text style={{ fontSize: 11, color: '#64748B' }}>
-                        {prod.categoria} • R$ {prod.preco.toFixed(2)}
-                      </Text>
+                .sort((a, b) => ordemStatus[a.status] - ordemStatus[b.status] || a.nome.localeCompare(b.nome));
+              const totalUn = estoque.reduce((acc, p) => acc + p.estoque, 0);
+              const baixos = estoque.filter((p) => p.status === 'baixo').length;
+              const zerados = estoque.filter((p) => p.status === 'zerado').length;
+              return (
+                <>
+                  <View style={styles.mdResumo}>
+                    <View style={styles.mdResumoCard}>
+                      <Text style={styles.mdResumoRotulo}>UNIDADES</Text>
+                      <Text style={styles.mdResumoValor}>{totalUn}</Text>
                     </View>
-                    <View style={[styles.stockStatusBadge, prod.status === 'zerado' ? { backgroundColor: '#FEE2E2' } : prod.status === 'baixo' ? { backgroundColor: '#FEF3C7' } : { backgroundColor: '#DCFCE7' }]}>
-                      <Text style={[styles.stockStatusBadgeText, prod.status === 'zerado' ? { color: '#DC2626' } : prod.status === 'baixo' ? { color: '#D97706' } : { color: '#16A34A' }]}>
-                        {prod.estoque} un. disponíveis
-                      </Text>
+                    <View style={styles.mdResumoCard}>
+                      <Text style={styles.mdResumoRotulo}>PRODUTOS</Text>
+                      <Text style={styles.mdResumoValor}>{estoque.length}</Text>
+                    </View>
+                    <View style={[styles.mdResumoCard, baixos > 0 && { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
+                      <Text style={[styles.mdResumoRotulo, baixos > 0 && { color: '#B45309' }]}>ACABANDO</Text>
+                      <Text style={[styles.mdResumoValor, baixos > 0 && { color: '#B45309' }]}>{baixos}</Text>
+                    </View>
+                    <View style={[styles.mdResumoCard, zerados > 0 && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+                      <Text style={[styles.mdResumoRotulo, zerados > 0 && { color: '#DC2626' }]}>ESGOTADOS</Text>
+                      <Text style={[styles.mdResumoValor, zerados > 0 && { color: '#DC2626' }]}>{zerados}</Text>
                     </View>
                   </View>
-                ))}
-            </ScrollView>
+
+                  <View style={{ gap: 8, marginBottom: 10 }}>
+                    <View style={styles.mdInputIcone}>
+                      <Feather name="search" size={13} color="#94A3B8" />
+                      <TextInput
+                        style={styles.mdInputSemBorda}
+                        placeholder="Buscar produto..."
+                        placeholderTextColor="#94A3B8"
+                        value={buscaEstoque}
+                        onChangeText={setBuscaEstoque}
+                      />
+                    </View>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                      {categorias.map((c) => {
+                        const ativo = categoriaEstoque === c;
+                        return (
+                          <TouchableOpacity key={c} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setCategoriaEstoque(c)}>
+                            <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{c}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+
+                  <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 6 }} showsVerticalScrollIndicator={false}>
+                    {lista.length === 0 ? (
+                      <View style={styles.mdVazio}>
+                        <Feather name="search" size={22} color="#CBD5E1" />
+                        <Text style={styles.mdDica}>Nenhum produto encontrado.</Text>
+                      </View>
+                    ) : (
+                      lista.map((prod) => {
+                        const cor = prod.status === 'zerado' ? '#DC2626' : prod.status === 'baixo' ? '#B45309' : '#16A34A';
+                        const fundo = prod.status === 'zerado' ? '#FEF2F2' : prod.status === 'baixo' ? '#FFFBEB' : '#F0FDF4';
+                        const rotulo = prod.status === 'zerado' ? 'Esgotado' : prod.status === 'baixo' ? 'Acabando' : 'Disponível';
+                        return (
+                          <View key={prod.id} style={styles.mdProduto}>
+                            <View style={[styles.mdProdutoBarra, { backgroundColor: cor }]} />
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <Text style={styles.mdItemNome} numberOfLines={1}>{prod.nome}</Text>
+                              <Text style={styles.mdItemSub}>{prod.categoria} · {brl(prod.preco)}</Text>
+                            </View>
+                            <View style={[styles.mdStatus, { backgroundColor: fundo }]}>
+                              <Text style={[styles.mdStatusTexto, { color: cor }]}>{rotulo}</Text>
+                            </View>
+                            <Text style={[styles.mdProdutoQtd, { color: prod.status === 'normal' ? '#0F172A' : cor }]}>
+                              {prod.estoque}
+                              <Text style={styles.mdProdutoUn}> un</Text>
+                            </Text>
+                          </View>
+                        );
+                      })
+                    )}
+                  </ScrollView>
+                </>
+              );
+            })()}
           </View>
         </View>
       </Modal>
@@ -1751,13 +1565,16 @@ _Kipi Ateliê de Confeitaria Artesanal_`;
         </View>
       </Modal>
 
-      {/* MODAL NOVO PEDIDO COMPLETO */}
+      {/* MODAL NOVO PEDIDO / EDITAR PEDIDO (O MESMO) */}
       <NovoPedidoModal
         visible={modalNovoPedidoAberto}
-        onClose={() => setModalNovoPedidoAberto(false)}
+        pedidoEditando={pedidoEmEdicao}
+        onClose={() => {
+          setModalNovoPedidoAberto(false);
+          setPedidoEmEdicao(null);
+        }}
         onPedidoCriado={lidarComPedidoCriado}
       />
-
       {/* TOAST DE FEEDBACK DE SUCESSO (IDÊNTICO À VISÃO GERAL) */}
       {toastSucesso && (
         <View style={styles.toastSuccess}>
@@ -2133,177 +1950,30 @@ const styles = StyleSheet.create({
     gap: 20,
   },
 
-  // BANNER DE SAUDAÇÃO
-  greetingBanner: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    padding: 20,
+  // CABEÇALHO PADRÃO DO SISTEMA
+  pageHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 16,
-    shadowColor: '#5798D7',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 2,
   },
-  greetingLeft: {
+  pageHeaderAlertBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    flex: 1,
-    minWidth: 320,
-  },
-  chefAvatarBox: {
-    position: 'relative',
-  },
-  chefAvatarInner: {
-    width: 58,
-    height: 58,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chefEmoji: {
-    fontSize: 28,
-  },
-  chefStatusDot: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#84CC16',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chefStatusPlus: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '900',
-    lineHeight: 12,
-  },
-  greetingTextCol: {
-    gap: 3,
-    flex: 1,
-  },
-  greetingTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  greetingTitle: {
-    fontFamily: Fonts.sans,
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.4,
-  },
-  ovenBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
     gap: 6,
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
   },
-  ovenDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#84CC16',
-  },
-  ovenBadgeText: {
-    fontFamily: Fonts.sans,
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#708018',
-  },
-  greetingDescription: {
-    fontFamily: Fonts.sans,
-    fontSize: 13,
-    color: '#475569',
-  },
-  greetingTipLink: {
+  pageHeaderAlertText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    fontWeight: '600',
-    color: KipiPalette.icedDenim,
-  },
-  greetingKpiCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
-    borderColor: '#E2E8F0',
-    borderRadius: 16,
-    padding: 14,
-    gap: 12,
-    minWidth: 320,
-  },
-  greetingKpiIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: KipiPalette.icedDenim,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  greetingKpiInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  greetingKpiTag: {
-    fontFamily: Fonts.sans,
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#64748B',
-    letterSpacing: 0.5,
-  },
-  greetingKpiValue: {
-    fontFamily: Fonts.sans,
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#0F172A',
-  },
-  greetingKpiSub: {
-    fontFamily: Fonts.sans,
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#16A34A',
-  },
-  greetingKpiDesc: {
-    fontFamily: Fonts.sans,
-    fontSize: 11,
-    color: '#64748B',
-  },
-  greetingKpiBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-  },
-  greetingKpiBtnText: {
-    fontFamily: Fonts.sans,
-    fontSize: 11,
     fontWeight: '700',
-    color: KipiPalette.icedDenim,
+    color: '#DC2626',
   },
 
   // FILTROS
@@ -2725,6 +2395,141 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#DC2626',
   },
+
+  // CUSTO E LUCRO NO DETALHE
+  sideDetailProfitRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 6,
+    marginTop: 4,
+  },
+  sideDetailProfitText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: '#64748B',
+  },
+
+  // STATUS DE PRODUÇÃO
+  prodStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  prodStatusPillText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  prodTimeline: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  prodTimelineStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  prodTimelineText: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+
+  // MODAL DE EDIÇÃO DO PEDIDO
+  modalEditCard: {
+    maxWidth: 640,
+    maxHeight: '92%',
+  },
+  editRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  editItemsBox: {
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  editItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  editItemName: {
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  editItemSub: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    color: '#64748B',
+  },
+  editStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+  },
+  editStepperBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  editStepperQtd: {
+    minWidth: 24,
+    textAlign: 'center',
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  editItemTotal: {
+    minWidth: 76,
+    textAlign: 'right',
+    fontFamily: Fonts.sans,
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  editTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F8FAFC',
+  },
+  editTotalLabel: {
+    fontFamily: Fonts.sans,
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+  editTotalValue: {
+    fontFamily: Fonts.sans,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
   orderSellerInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -3024,6 +2829,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0F172A',
   },
+  sideTopTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#708018',
+  },
   sideTopCat: {
     fontSize: 10,
     color: '#64748B',
@@ -3290,6 +3100,97 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
+  // MODAIS NO PADRÃO DO SISTEMA (cabeçalho com ícone, seções em cartão, rodapé fixo)
+  md: { width: '100%', maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E2E8F0', ...Platform.select({ web: { boxShadow: '0 20px 50px rgba(15,23,42,0.18)' } }) },
+  mdHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  mdHeaderIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  mdTitle: { fontFamily: Fonts.display, fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.2 },
+  mdSub: { fontFamily: Fonts.sans, fontSize: 11, color: '#64748B', marginTop: 1 },
+  mdSecao: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', padding: 12 },
+  mdLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.5, marginBottom: 8 },
+  mdLabelLinha: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  mdMiniLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '700', color: '#64748B', marginBottom: 4 },
+  mdLink: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: KipiPalette.icedDenim, marginBottom: 8 },
+  mdDica: { fontFamily: Fonts.sans, fontSize: 11, color: '#64748B', marginTop: 6 },
+  mdLinha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  mdInput: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '600', color: '#0F172A', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  mdInputIcone: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 10 },
+  mdInputSemBorda: { flex: 1, minWidth: 0, fontFamily: Fonts.sans, fontSize: 13, fontWeight: '600', color: '#0F172A', paddingVertical: 8, ...Platform.select({ web: { outlineStyle: 'none' } as any }) },
+  mdPrefixo: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#94A3B8' },
+  mdSegmento: { flexDirection: 'row', backgroundColor: '#EEF2F6', borderRadius: 10, padding: 3 },
+  mdSegmentoBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 7, borderRadius: 8 },
+  mdSegmentoBtnAtivo: { backgroundColor: '#FFFFFF', ...Platform.select({ web: { boxShadow: '0 1px 3px rgba(15,23,42,0.1)' } }) },
+  mdSegmentoTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '600', color: '#64748B' },
+  mdSegmentoTextoAtivo: { color: KipiPalette.icedDenim, fontWeight: '800' },
+  mdChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  mdChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
+  mdChipAtivo: { backgroundColor: KipiPalette.icedDenim, borderColor: KipiPalette.icedDenim },
+  mdChipTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#475569' },
+  mdItem: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#EEF2F6', paddingHorizontal: 10, paddingVertical: 8 },
+  mdItemNome: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  mdItemSub: { fontFamily: Fonts.sans, fontSize: 11, color: '#64748B', marginTop: 1 },
+  mdItemTotal: { width: 80, textAlign: 'right', fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  mdStepper: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', padding: 2 },
+  mdStepperBtn: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  mdStepperQtd: { minWidth: 22, textAlign: 'center', fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  mdTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E2E8F0', borderStyle: 'dashed' },
+  mdTotalRotulo: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#475569' },
+  mdTotalValor: { fontFamily: Fonts.display, fontSize: 18, fontWeight: '800', color: KipiPalette.icedDenim },
+  mdSaldo: { flex: 1, minWidth: 150, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
+  mdSaldoPendente: { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' },
+  mdSaldoOk: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
+  mdSaldoValor: { fontFamily: Fonts.display, fontSize: 16, fontWeight: '800' },
+  mdFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  mdBtnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' },
+  mdBtnSecTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#334155' },
+  mdBtnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: KipiPalette.icedDenim },
+  mdBtnPriTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  // Baixa de pagamento
+  mdBaixaHero: { alignItems: 'center', backgroundColor: '#FFFBEB', borderRadius: 14, borderWidth: 1, borderColor: '#FDE68A', paddingVertical: 14, paddingHorizontal: 12 },
+  mdBaixaHeroRotulo: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#B45309', letterSpacing: 0.6 },
+  mdBaixaHeroValor: { fontFamily: Fonts.display, fontSize: 28, fontWeight: '800', color: '#92400E', letterSpacing: -0.5, marginVertical: 2 },
+  mdBaixaHeroLinha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mdBaixaHeroInfo: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#B45309' },
+  mdBaixaHeroPonto: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#D97706' },
+  mdFormas: { flexDirection: 'row', gap: 8 },
+  mdForma: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
+  mdFormaAtiva: { borderColor: '#16A34A', backgroundColor: '#F0FDF4' },
+  mdFormaTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#475569' },
+  mdFormaTextoAtivo: { color: '#15803D', fontWeight: '800' },
+  // A receber e estoque
+  mdResumo: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  mdResumoCard: { flex: 1, minWidth: 100, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', paddingHorizontal: 12, paddingVertical: 9 },
+  mdResumoRotulo: { fontFamily: Fonts.sans, fontSize: 9, fontWeight: '800', color: '#64748B', letterSpacing: 0.5 },
+  mdResumoValor: { fontFamily: Fonts.display, fontSize: 17, fontWeight: '800', color: '#0F172A', marginTop: 2 },
+  mdVazio: { alignItems: 'center', gap: 4, paddingVertical: 28 },
+  mdVazioTitulo: { fontFamily: Fonts.display, fontSize: 14, fontWeight: '800', color: '#0F172A' },
+  mdDevedor: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 9 },
+  mdAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EAF3FA', alignItems: 'center', justifyContent: 'center' },
+  mdAvatarTexto: { fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: KipiPalette.icedDenim },
+  mdLinhaNome: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  mdCodigo: { backgroundColor: '#F1F5F9', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
+  mdCodigoTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '700', color: '#64748B' },
+  mdDevedorValor: { fontFamily: Fonts.display, fontSize: 14, fontWeight: '800', color: '#B45309' },
+  mdIconeBtnWpp: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0' },
+  mdBtnBaixa: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#16A34A', borderRadius: 8, paddingHorizontal: 10, height: 30 },
+  mdBtnBaixaTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  mdProduto: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, borderColor: '#EEF2F6', backgroundColor: '#FFFFFF', paddingRight: 12, paddingVertical: 8, overflow: 'hidden' },
+  mdProdutoBarra: { width: 3, alignSelf: 'stretch', borderRadius: 2, marginLeft: 6 },
+  mdStatus: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  mdStatusTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800' },
+  mdProdutoQtd: { width: 58, textAlign: 'right', fontFamily: Fonts.display, fontSize: 15, fontWeight: '800' },
+  mdProdutoUn: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '600', color: '#94A3B8' },
+  // Topo: botão Filtros com dropdown
+  filtrosEsq: { flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 50 },
+  filtrosBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 40, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
+  filtrosBtnAtivo: { borderColor: KipiPalette.icedDenim, backgroundColor: '#EAF3FA' },
+  filtrosBtnTexto: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '700', color: '#475569' },
+  filtrosBadge: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: KipiPalette.icedDenim, alignItems: 'center', justifyContent: 'center' },
+  filtrosBadgeTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
+  filtrosMenu: { position: 'absolute', top: 46, left: 0, width: 320, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', padding: 14, gap: 14, zIndex: 100, ...Platform.select({ web: { boxShadow: '0 16px 40px rgba(15,23,42,0.16)' } }) },
+  filtrosGrupoLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.5, marginBottom: 7 },
+  filtrosRodape: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  filtrosDir: { flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 'auto' },
   // TOAST DE SUCESSO (IDÊNTICO À VISÃO GERAL)
   toastSuccess: {
     position: 'absolute',

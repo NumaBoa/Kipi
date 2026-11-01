@@ -12,8 +12,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
+import { useLocalSearchParams } from 'expo-router';
 import Sidebar from '@/components/Sidebar';
+import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
+import {
+  useEstoqueVitrine,
+  useEstoqueFreezer,
+  produtoAtivo as produtoEstaAtivo,
+} from '@/lib/estoqueVitrine';
+import { usePedidos, encomendasEmAberto, resumoItens, rotuloEntrega, atualizarPedido } from '@/lib/clientesPedidos';
+import { useInsumos, useFichas, receitaDoProduto, congelarMassas, assarDoFreezer } from '@/lib/insumos';
+import { useHistoricoProducao, type RegistroProducao } from '@/lib/historicoProducao';
+import { resumoDePerdas, ultimosDias, EMOJI_MOTIVO } from '@/lib/descarte';
+import DescarteModal from '@/components/DescarteModal';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -52,148 +63,95 @@ export interface ProdutoProducao {
   nome: string;
   categoria: string;
   fotoEmoji: string;
-  estoqueAssado: number; // pronto para venda
-  estoqueCongelado: number; // no freezer para assar
   tempoFornoMinutos: number;
+}
+
+// Assados = estoque da vitrine compartilhado com as vendas; congelados = freezer
+// compartilhado com o Estoque Central; receita = ficha de produção com o estoque
+// atual da lista única de insumos (mesmo id do produto)
+export type ProdutoComVitrine = ProdutoProducao & {
+  estoqueAssado: number;
+  estoqueCongelado: number;
   receitaIngredientes: IngredienteNecessario[];
-}
+};
 
-export interface RegistroFornada {
-  id: string;
-  tipo: 'preparo_massa' | 'assar_fornada';
-  produtoNome: string;
-  fotoEmoji: string;
-  quantidade: number;
-  horario: string;
-  responsavel: string;
-  detalhes?: string;
-}
 
-// PRODUTOS DE CONFEITARIA COM ESTOQUE DE CONGELADOS E RECEITA
-const PRODUTOS_PRODUCAO_INICIAIS: ProdutoProducao[] = [
-  {
-    id: 'prod-1',
-    nome: 'Cookie Black Nutella & Avelã',
-    categoria: 'Cookies',
-    fotoEmoji: '🍪',
-    estoqueAssado: 14,
-    estoqueCongelado: 36, // 36 congelados no freezer
-    tempoFornoMinutos: 14,
-    receitaIngredientes: [
-      { nome: 'Chocolate Belga 54%', quantidadePorUnidade: 15, unidade: 'g', estoqueAtual: 4800 },
-      { nome: 'Farinha de Trigo Especial', quantidadePorUnidade: 28, unidade: 'g', estoqueAtual: 18000 },
-      { nome: 'Manteiga Extra sem Sal', quantidadePorUnidade: 12, unidade: 'g', estoqueAtual: 1200 },
-      { nome: 'Açúcar Mascavo Premium', quantidadePorUnidade: 10, unidade: 'g', estoqueAtual: 3500 },
-    ],
-  },
-  {
-    id: 'prod-2',
-    nome: 'Cookie Tradicional Gotas Belga',
-    categoria: 'Cookies',
-    fotoEmoji: '🍪',
-    estoqueAssado: 8,
-    estoqueCongelado: 24,
-    tempoFornoMinutos: 14,
-    receitaIngredientes: [
-      { nome: 'Farinha de Trigo Especial', quantidadePorUnidade: 30, unidade: 'g', estoqueAtual: 18000 },
-      { nome: 'Manteiga Extra sem Sal', quantidadePorUnidade: 14, unidade: 'g', estoqueAtual: 1200 },
-      { nome: 'Gotas Chocolate Belga', quantidadePorUnidade: 16, unidade: 'g', estoqueAtual: 2400 },
-    ],
-  },
-  {
-    id: 'prod-3',
-    nome: 'Bento Cake Pistache & Framboesa',
-    categoria: 'Bolos & Bentôs',
-    fotoEmoji: '🎂',
-    estoqueAssado: 4,
-    estoqueCongelado: 10,
-    tempoFornoMinutos: 35,
-    receitaIngredientes: [
-      { nome: 'Farinha de Trigo Especial', quantidadePorUnidade: 120, unidade: 'g', estoqueAtual: 18000 },
-      { nome: 'Pasta Pura de Pistache', quantidadePorUnidade: 60, unidade: 'g', estoqueAtual: 850 },
-      { nome: 'Creme de Leite Fresco', quantidadePorUnidade: 100, unidade: 'ml', estoqueAtual: 1500 },
-    ],
-  },
-  {
-    id: 'prod-4',
-    nome: 'Croissant Francês Folhado Manteiga',
-    categoria: 'Folhados',
-    fotoEmoji: '🥐',
-    estoqueAssado: 6,
-    estoqueCongelado: 18,
-    tempoFornoMinutos: 20,
-    receitaIngredientes: [
-      { nome: 'Farinha de Trigo Especial', quantidadePorUnidade: 55, unidade: 'g', estoqueAtual: 18000 },
-      { nome: 'Manteiga Extra sem Sal', quantidadePorUnidade: 35, unidade: 'g', estoqueAtual: 1200 },
-    ],
-  },
-  {
-    id: 'prod-5',
-    nome: 'Pão de Mel Artesanal Recheado',
-    categoria: 'Doces Finos',
-    fotoEmoji: '🍯',
-    estoqueAssado: 12,
-    estoqueCongelado: 0, // ZERADO NO CONGELADOR!
-    tempoFornoMinutos: 18,
-    receitaIngredientes: [
-      { nome: 'Farinha de Trigo Especial', quantidadePorUnidade: 40, unidade: 'g', estoqueAtual: 18000 },
-      { nome: 'Doce de Leite Cremoso', quantidadePorUnidade: 30, unidade: 'g', estoqueAtual: 2000 },
-      { nome: 'Chocolate Belga 54%', quantidadePorUnidade: 25, unidade: 'g', estoqueAtual: 4800 },
-    ],
-  },
-];
+// Status de produção das encomendas (as encomendas vêm dos pedidos compartilhados)
+const STATUS_ENCOMENDA: Record<string, { label: string; cor: string; fundo: string }> = {
+  a_fazer: { label: 'A fazer', cor: '#64748B', fundo: '#F1F5F9' },
+  em_producao: { label: 'Em produção', cor: '#B45309', fundo: '#FEF3C7' },
+  pronto: { label: 'Pronto', cor: '#2563EB', fundo: '#EAF3FA' },
+};
 
-// HISTÓRICO DAS FORNADAS DE HOJE
-const FORNADAS_HOJE_INICIAIS: RegistroFornada[] = [
-  {
-    id: 'forn-1',
-    tipo: 'assar_fornada',
-    produtoNome: 'Cookie Black Nutella & Avelã',
-    fotoEmoji: '🍪',
-    quantidade: 12,
-    horario: '10:45',
-    responsavel: 'Camila Lima',
-    detalhes: 'Fornada dourada e macia. Direto para a vitrine.',
-  },
-  {
-    id: 'forn-2',
-    tipo: 'preparo_massa',
-    produtoNome: 'Cookie Black Nutella & Avelã',
-    fotoEmoji: '🍪',
-    quantidade: 24,
-    horario: '09:30',
-    responsavel: 'Juliana Carvalho',
-    detalhes: 'Lote #88 modelado e guardado no freezer a -18°C.',
-  },
-  {
-    id: 'forn-3',
-    tipo: 'assar_fornada',
-    produtoNome: 'Croissant Francês Folhado Manteiga',
-    fotoEmoji: '🥐',
-    quantidade: 6,
-    horario: '08:15',
-    responsavel: 'Camila Lima',
-    detalhes: 'Fornada da manhã para o balcão.',
-  },
-];
+type FiltroPeriodoHistorico = 'hoje' | '7dias' | '30dias' | 'tudo';
+type FiltroTipoHistorico = 'todos' | RegistroFornada['tipo'];
+const HISTORICO_POR_PAGINA = 15;
+
+// Registro do histórico compartilhado + foto do produto para exibir
+export type RegistroFornada = RegistroProducao & { fotoEmoji: string };
+
+// Foto e tempo de forno: os produtos vêm da vitrine (inclusive os cadastrados em Produtos)
+const EMOJI_CATEGORIA: Record<string, string> = {
+  Cookies: '🍪',
+  'Bolos & Bentos': '🎂',
+  Macarons: '✨',
+  'Doces Finos': '🍬',
+  Folhados: '🥐',
+  Sobremesas: '🥧',
+  Bebidas: '☕',
+  Presentes: '🎁',
+};
+const EMOJI_PRODUTO: Record<string, string> = { 'prod-12': '🍯' };
+const TEMPO_FORNO: Record<string, number> = { 'prod-1': 14, 'prod-2': 14, 'prod-4': 35, 'prod-6': 16, 'prod-9': 10, 'prod-11': 20, 'prod-12': 18 };
+const TEMPO_FORNO_PADRAO = 15;
+// Próximo passo da encomenda na cozinha (Entregue é marcado em Pedidos)
+const PROXIMO_STATUS_COZINHA: Record<string, { id: 'em_producao' | 'pronto'; label: string } | undefined> = {
+  a_fazer: { id: 'em_producao', label: 'Iniciar produção' },
+  em_producao: { id: 'pronto', label: 'Marcar pronto' },
+};
 
 export default function ProducaoScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
   // Estados principais
-  const [produtos, setProdutos] = useState<ProdutoProducao[]>(PRODUTOS_PRODUCAO_INICIAIS);
-  const [fornadas, setFornadas] = useState<RegistroFornada[]>(FORNADAS_HOJE_INICIAIS);
+  // Histórico compartilhado: entradas de freezer do Estoque Central e de Produtos também aparecem aqui
+  const vitrineProdutos = useEstoqueVitrine();
+  const emojiDe = (produtoId: string) =>
+    EMOJI_PRODUTO[produtoId] ?? EMOJI_CATEGORIA[vitrineProdutos.find((v) => v.id === produtoId)?.categoria ?? ''] ?? '🧁';
+  const fornadas: RegistroFornada[] = useHistoricoProducao().map((r) => ({ ...r, fotoEmoji: emojiDe(r.produtoId) }));
+  // Produtos produzidos aqui: ativos da vitrine com ficha técnica ou com massa no freezer
+  const { fichas } = useFichas();
+  const freezerAtual = useEstoqueFreezer();
+  const produtos: ProdutoProducao[] = vitrineProdutos
+    .filter((v) => produtoEstaAtivo(v) && (fichas.some((f) => f.produtoId === v.id) || (freezerAtual[v.id] ?? 0) > 0))
+    .map((v) => ({
+      id: v.id,
+      nome: v.nome,
+      categoria: v.categoria,
+      fotoEmoji: emojiDe(v.id),
+      tempoFornoMinutos: TEMPO_FORNO[v.id] ?? TEMPO_FORNO_PADRAO,
+    }));
   const [searchQuery, setSearchQuery] = useState('');
+  const [encomendasAbertas, setEncomendasAbertas] = useState(false);
+
+  // Filtros do histórico (mostra tudo, carregando aos poucos)
+  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodoHistorico>('tudo');
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipoHistorico>('todos');
+  const [buscaHistorico, setBuscaHistorico] = useState('');
+  const [limiteHistorico, setLimiteHistorico] = useState(HISTORICO_POR_PAGINA);
 
   // Modais de Ação Operacional
   const [modalPreparoVisible, setModalPreparoVisible] = useState(false);
   const [modalAssarVisible, setModalAssarVisible] = useState(false);
-  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoProducao | null>(null);
+  const [produtoAtivo, setProdutoAtivo] = useState<ProdutoComVitrine | null>(null);
+  // Descarte: id do produto, "" = escolher na lista, null = fechado
+  const [descarteId, setDescarteId] = useState<string | null>(null);
 
   // Formulário: Preparar Massa (Congelar)
   const [qtdPreparoInput, setQtdPreparoInput] = useState('12');
   const [erroPreparo, setErroPreparo] = useState<string | null>(null);
+  const [descontarIngredientes, setDescontarIngredientes] = useState(true);
 
   // Formulário: Assar Fornada
   const [qtdAssarInput, setQtdAssarInput] = useState('6');
@@ -204,22 +162,138 @@ export default function ProducaoScreen() {
   const [timerMinutosRestantes, setTimerMinutosRestantes] = useState(14);
   const [produtoNoFornoNome, setProdutoNoFornoNome] = useState('');
 
+  // Assados lidos do estoque da vitrine: o que é assado aqui já aparece para venda
+  // Congelados lidos do freezer compartilhado: ajustes do Estoque Central aparecem aqui
+  const vitrine = useEstoqueVitrine();
+  const freezer = useEstoqueFreezer();
+  // Encomendas vêm dos pedidos compartilhados: uma encomenda nova no Novo Pedido já aparece aqui
+  const encomendasMarcadas = encomendasEmAberto(usePedidos());
+  // Ingredientes da receita com o estoque atual da lista única de insumos
+  const insumosLista = useInsumos();
+  const produtosView: ProdutoComVitrine[] = useMemo(
+    () =>
+      produtos.map((p) => ({
+        ...p,
+        estoqueAssado: vitrine.find((v) => v.id === p.id)?.estoque ?? 0,
+        estoqueCongelado: freezer[p.id] ?? 0,
+        receitaIngredientes: receitaDoProduto(p.id, insumosLista),
+      })),
+    [produtos, vitrine, freezer, insumosLista]
+  );
+  const produtoAtivoView = produtoAtivo ? produtosView.find((p) => p.id === produtoAtivo.id) || produtoAtivo : null;
+
+  // Atalhos (Estoque Central e Produtos): ?assar=<id> abre a fornada; ?preparar=<id> abre o preparo de massa
+  const { assar, preparar, t: atalhoEm } = useLocalSearchParams<{ assar?: string; preparar?: string; t?: string }>();
+  useEffect(() => {
+    const prodAssar = assar ? produtosView.find((p) => p.id === assar) : undefined;
+    if (prodAssar) {
+      setProdutoAtivo(prodAssar);
+      setQtdAssarInput(String(Math.max(1, Math.min(6, prodAssar.estoqueCongelado))));
+      setErroAssar(null);
+      setModalAssarVisible(true);
+      return;
+    }
+    const prodPreparo = preparar ? produtosView.find((p) => p.id === preparar) : undefined;
+    if (prodPreparo) {
+      setProdutoAtivo(prodPreparo);
+      setQtdPreparoInput('12');
+      setErroPreparo(null);
+      setModalPreparoVisible(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assar, preparar, atalhoEm]);
+
+  // LOTE (botões do topo): escolhe um ou vários produtos e a quantidade de cada
+  const [loteModo, setLoteModo] = useState<'preparo' | 'assar' | null>(null);
+  const [loteQtds, setLoteQtds] = useState<Record<string, string>>({});
+  const [loteErro, setLoteErro] = useState<string | null>(null);
+  const abrirLote = (modo: 'preparo' | 'assar') => {
+    setLoteQtds({});
+    setLoteErro(null);
+    setLoteModo(modo);
+  };
+  const confirmarLote = () => {
+    const escolhidos = produtosView
+      .map((p) => ({ p, qtd: parseInt(loteQtds[p.id] || '0', 10) || 0 }))
+      .filter((x) => x.qtd > 0);
+    if (escolhidos.length === 0) {
+      setLoteErro('Informe a quantidade de pelo menos um produto.');
+      return;
+    }
+    if (loteModo === 'assar') {
+      const semMassa = escolhidos.find((x) => x.qtd > x.p.estoqueCongelado);
+      if (semMassa) {
+        setLoteErro(`${semMassa.p.nome}: só há ${semMassa.p.estoqueCongelado} no freezer.`);
+        return;
+      }
+      // Cada produto sai do freezer e entra na vitrine (e vai para o histórico)
+      escolhidos.forEach(({ p, qtd }) => assarDoFreezer(p.id, p.nome, qtd, p.estoqueCongelado));
+      const maisDemorado = escolhidos.reduce((a, b) => (b.p.tempoFornoMinutos > a.p.tempoFornoMinutos ? b : a));
+      setProdutoNoFornoNome(escolhidos.length === 1 ? maisDemorado.p.nome : `${escolhidos.length} produtos`);
+      setTimerMinutosRestantes(maisDemorado.p.tempoFornoMinutos);
+      setTimerAtivo(true);
+    } else {
+      // Cada massa entra no freezer descontando os insumos da ficha (e vai para o histórico)
+      escolhidos.forEach(({ p, qtd }) => congelarMassas(p.id, qtd, true, 'preparo em lote na Produção'));
+    }
+    setLoteModo(null);
+  };
+
   // Totais de KPIs
-  const totalCongelados = produtos.reduce((acc, p) => acc + p.estoqueCongelado, 0);
-  const totalAssados = produtos.reduce((acc, p) => acc + p.estoqueAssado, 0);
-  const totalFornadasHoje = fornadas.filter(f => f.tipo === 'assar_fornada').length;
+  const totalCongelados = produtosView.reduce((acc, p) => acc + p.estoqueCongelado, 0);
+  const totalAssados = produtosView.reduce((acc, p) => acc + p.estoqueAssado, 0);
+  const saboresFreezerZerado = produtosView.filter((p) => p.estoqueCongelado === 0).length;
+  const hojeChave = new Date().toDateString();
+  const totalFornadasHoje = fornadas.filter(f => f.tipo === 'assar_fornada' && new Date(f.data).toDateString() === hojeChave).length;
+  // Descartes dos últimos 30 dias (custo de material perdido)
+  const perdas30 = resumoDePerdas(fornadas, ultimosDias(30));
+
+  // HISTÓRICO FILTRADO E AGRUPADO POR DIA
+  const historicoFiltrado = useMemo(() => {
+    const agora = Date.now();
+    const limiteDias = { hoje: 0, '7dias': 7, '30dias': 30, tudo: Infinity }[filtroPeriodo];
+    const termo = buscaHistorico.trim().toLowerCase();
+    return [...fornadas]
+      .sort((a, b) => b.data.localeCompare(a.data))
+      .filter((f) => {
+        if (filtroTipo !== 'todos' && f.tipo !== filtroTipo) return false;
+        if (termo && !f.produtoNome.toLowerCase().includes(termo)) return false;
+        if (filtroPeriodo === 'hoje') return new Date(f.data).toDateString() === hojeChave;
+        return (agora - new Date(f.data).getTime()) / 86400000 <= limiteDias;
+      });
+  }, [fornadas, filtroPeriodo, filtroTipo, buscaHistorico, hojeChave]);
+
+  const historicoVisivel = historicoFiltrado.slice(0, limiteHistorico);
+  const gruposHistorico = useMemo(() => {
+    const ontemChave = new Date(Date.now() - 86400000).toDateString();
+    const grupos: { titulo: string; itens: RegistroFornada[] }[] = [];
+    historicoVisivel.forEach((f) => {
+      const d = new Date(f.data);
+      const chave = d.toDateString();
+      const titulo =
+        chave === hojeChave
+          ? 'Hoje'
+          : chave === ontemChave
+          ? 'Ontem'
+          : d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+      const ultimo = grupos[grupos.length - 1];
+      if (ultimo && ultimo.titulo === titulo) ultimo.itens.push(f);
+      else grupos.push({ titulo, itens: [f] });
+    });
+    return grupos;
+  }, [historicoVisivel, hojeChave]);
 
   // ==========================================================================
   // VALIDAÇÃO EM TEMPO REAL DE INGREDIENTES PARA O PREPARO (UX SÊNIOR)
   // ==========================================================================
   const analiseIngredientesPreparo = useMemo(() => {
-    if (!produtoAtivo) return { viavel: false, itens: [] };
+    if (!produtoAtivoView) return { viavel: false, itens: [] };
 
     const qtd = parseInt(qtdPreparoInput) || 0;
     if (qtd <= 0) return { viavel: false, itens: [] };
 
     let viavel = true;
-    const itens = produtoAtivo.receitaIngredientes.map(ing => {
+    const itens = produtoAtivoView.receitaIngredientes.map(ing => {
       const necessario = ing.quantidadePorUnidade * qtd;
       const suficiente = ing.estoqueAtual >= necessario;
       if (!suficiente) viavel = false;
@@ -234,7 +308,7 @@ export default function ProducaoScreen() {
     });
 
     return { viavel, itens };
-  }, [produtoAtivo, qtdPreparoInput]);
+  }, [produtoAtivoView, qtdPreparoInput]);
 
   // ==========================================================================
   // FLUXO 1: CONFIRMAR PREPARO DE MASSA (VAI PARA O CONGELADOR)
@@ -248,40 +322,11 @@ export default function ProducaoScreen() {
       return;
     }
 
-    if (!analiseIngredientesPreparo.viavel) {
-      setErroPreparo('Não é possível produzir: estoque de ingredientes insuficiente.');
-      return;
-    }
-
     // 1. Atualiza estoque do produto: adiciona aos congelados
-    setProdutos(prev =>
-      prev.map(p =>
-        p.id === produtoAtivo.id
-          ? {
-              ...p,
-              estoqueCongelado: p.estoqueCongelado + qtd,
-              // Subtrai proporcionalmente o estoque dos ingredientes da receita
-              receitaIngredientes: p.receitaIngredientes.map(ing => ({
-                ...ing,
-                estoqueAtual: Math.max(0, ing.estoqueAtual - ing.quantidadePorUnidade * qtd),
-              })),
-            }
-          : p
-      )
-    );
-
-    // 2. Registra no histórico de produção
-    const novoRegistro: RegistroFornada = {
-      id: `forn-${Date.now()}`,
-      tipo: 'preparo_massa',
-      produtoNome: produtoAtivo.nome,
-      fotoEmoji: produtoAtivo.fotoEmoji,
-      quantidade: qtd,
-      horario: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      responsavel: 'Camila Lima',
-      detalhes: `${qtd} massas preparadas e armazenadas no freezer.`,
-    };
-    setFornadas(prev => [novoRegistro, ...prev]);
+    // Desconto opcional dos ingredientes na lista única de insumos (Estoque Central e
+    // Insumos & Receitas já mostram o novo estoque); se faltar, o insumo para em zero
+    // 2. O preparo entra no histórico compartilhado (congelarMassas)
+    congelarMassas(produtoAtivo.id, qtd, descontarIngredientes, 'preparo na Produção');
 
     setModalPreparoVisible(false);
   };
@@ -299,51 +344,30 @@ export default function ProducaoScreen() {
     }
 
     // REGRA BÁSICA: NÃO PODE ASSAR SE NÃO TIVER ITEM SUFICIENTE CONGELADO!
-    if (qtd > produtoAtivo.estoqueCongelado) {
-      setErroAssar(`Estoque congelado insuficiente! Você possui apenas ${produtoAtivo.estoqueCongelado} no freezer.`);
+    const congeladoAtual = freezer[produtoAtivo.id] ?? 0;
+    if (qtd > congeladoAtual) {
+      setErroAssar(`Estoque congelado insuficiente! Você possui apenas ${congeladoAtual} no freezer.`);
       return;
     }
 
     // 1. Atualiza estoque: subtrai do congelado e adiciona ao assado para venda
-    setProdutos(prev =>
-      prev.map(p =>
-        p.id === produtoAtivo.id
-          ? {
-              ...p,
-              estoqueCongelado: p.estoqueCongelado - qtd,
-              estoqueAssado: p.estoqueAssado + qtd,
-            }
-          : p
-      )
-    );
+    assarDoFreezer(produtoAtivo.id, produtoAtivo.nome, qtd, congeladoAtual);
 
     // 2. Inicia Timer de Forno visual
     setProdutoNoFornoNome(produtoAtivo.nome);
     setTimerMinutosRestantes(produtoAtivo.tempoFornoMinutos);
     setTimerAtivo(true);
 
-    // 3. Registra fornada
-    const novoRegistro: RegistroFornada = {
-      id: `forn-${Date.now()}`,
-      tipo: 'assar_fornada',
-      produtoNome: produtoAtivo.nome,
-      fotoEmoji: produtoAtivo.fotoEmoji,
-      quantidade: qtd,
-      horario: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      responsavel: 'Camila Lima',
-      detalhes: `${qtd} unidades assadas e adicionadas à vitrine de pronta entrega.`,
-    };
-    setFornadas(prev => [novoRegistro, ...prev]);
-
+    // A fornada já entra no histórico compartilhado (assarDoFreezer)
     setModalAssarVisible(false);
   };
 
   // Filtragem de produtos
   const produtosFiltrados = useMemo(() => {
-    if (!searchQuery.trim()) return produtos;
+    if (!searchQuery.trim()) return produtosView;
     const q = searchQuery.toLowerCase().trim();
-    return produtos.filter(p => p.nome.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q));
-  }, [produtos, searchQuery]);
+    return produtosView.filter(p => p.nome.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q));
+  }, [produtosView, searchQuery]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -355,44 +379,27 @@ export default function ProducaoScreen() {
         <View style={styles.mainContainer}>
           {/* TOPO: CABEÇALHO */}
           <View style={styles.topHeader}>
-            <View style={styles.headerTitleCol}>
-              <View style={styles.headerBadgeRow}>
-                <View style={styles.activeDot} />
-                <Text style={styles.headerCategoryBadge}>CHÃO DE FÁBRICA & ATELIÊ</Text>
-                <View style={styles.systemBluePill}>
-                  <Text style={styles.systemBluePillText}>KIPI ATELIÊ</Text>
-                </View>
-              </View>
-              <Text style={styles.pageTitle}>Produção & Forno</Text>
-              <Text style={styles.pageSubtitle}>
-                Fluxo diário de produção: prepare lotes de massa para congelar e asse sob demanda para a vitrine.
-              </Text>
-            </View>
+            <PageHeaderTitulo
+              etiqueta="ATELIÊ · CHÃO DE FÁBRICA"
+              titulo="Produção & Forno"
+              subtitulo="Prepare lotes de massa para congelar e asse sob demanda para a vitrine."
+            />
 
             {/* Ações Rápidas no Topo */}
             <View style={styles.topActionsRow}>
-              <TouchableOpacity
-                style={styles.btnAcaoPreparo}
-                onPress={() => {
-                  setProdutoAtivo(produtos[0]);
-                  setQtdPreparoInput('12');
-                  setErroPreparo(null);
-                  setModalPreparoVisible(true);
-                }}>
+              <TouchableOpacity style={styles.btnAcaoPreparo} onPress={() => abrirLote('preparo')}>
                 <Text style={{ fontSize: 16 }}>🧊</Text>
-                <Text style={styles.btnAcaoPreparoText}>+ Preparar Massa</Text>
+                <Text style={styles.btnAcaoPreparoText}>Preparar massa</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.btnAcaoAssar}
-                onPress={() => {
-                  setProdutoAtivo(produtos[0]);
-                  setQtdAssarInput('6');
-                  setErroAssar(null);
-                  setModalAssarVisible(true);
-                }}>
+              <TouchableOpacity style={styles.btnAcaoAssar} onPress={() => abrirLote('assar')}>
                 <Text style={{ fontSize: 16 }}>🔥</Text>
-                <Text style={styles.btnAcaoAssarText}>♨️ Assar Fornada</Text>
+                <Text style={styles.btnAcaoAssarText}>Assar</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.btnAcaoDescarte} onPress={() => setDescarteId('')}>
+                <Feather name="trash-2" size={14} color={DANGER_RED} />
+                <Text style={styles.btnAcaoDescarteText}>Descartar</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -425,44 +432,74 @@ export default function ProducaoScreen() {
             </View>
           )}
 
-          {/* KPIS DE PRODUÇÃO */}
-          <View style={styles.kpiCardsRow}>
-            {/* KPI 1: Congelados no Freezer */}
-            <View style={styles.kpiCard}>
-              <View style={styles.kpiCardHeader}>
-                <Text style={styles.kpiLabel}>NO FREEZER (CONGELADOS)</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: FREEZER_TINT }]}>
-                  <Text style={{ fontSize: 13 }}>🧊</Text>
-                </View>
+          {/* KPIS DE PRODUÇÃO (FAIXA COMPACTA) */}
+          <View style={styles.kpiStrip}>
+            {[
+              { rotulo: '🧊 No freezer', valor: `${totalCongelados} un`, cor: FREEZER_CYAN },
+              { rotulo: '🧁 Na vitrine', valor: `${totalAssados} un`, cor: OVEN_ORANGE },
+              { rotulo: '♨️ Fornadas hoje', valor: String(totalFornadasHoje), cor: '#0F172A' },
+              { rotulo: '⚠️ Freezer zerado', valor: String(saboresFreezerZerado), cor: saboresFreezerZerado > 0 ? WARNING_AMBER : SUCCESS_GREEN },
+              { rotulo: '🗑 Perdas 30 dias', valor: perdas30.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), cor: perdas30.total > 0 ? DANGER_RED : SUCCESS_GREEN },
+            ].map((k) => (
+              <View key={k.rotulo} style={styles.kpiStripItem}>
+                <Text style={styles.kpiStripLabel}>{k.rotulo}</Text>
+                <Text style={[styles.kpiStripValue, { color: k.cor }]}>{k.valor}</Text>
               </View>
-              <Text style={[styles.kpiValue, { color: FREEZER_CYAN }]}>{totalCongelados} un</Text>
-              <Text style={styles.kpiSubtext}>Massas modeladas prontas para o forno</Text>
-            </View>
-
-            {/* KPI 2: Assados Prontos para Venda */}
-            <View style={styles.kpiCard}>
-              <View style={styles.kpiCardHeader}>
-                <Text style={styles.kpiLabel}>NA VITRINE (PRONTOS)</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: OVEN_TINT }]}>
-                  <Text style={{ fontSize: 13 }}>🧁</Text>
-                </View>
-              </View>
-              <Text style={[styles.kpiValue, { color: OVEN_ORANGE }]}>{totalAssados} un</Text>
-              <Text style={styles.kpiSubtext}>Disponíveis para pronta entrega</Text>
-            </View>
-
-            {/* KPI 3: Fornadas Assadas Hoje */}
-            <View style={styles.kpiCard}>
-              <View style={styles.kpiCardHeader}>
-                <Text style={styles.kpiLabel}>FORNADAS HOJE</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: SUCCESS_TINT }]}>
-                  <Feather name="check-circle" size={15} color={SUCCESS_GREEN} />
-                </View>
-              </View>
-              <Text style={styles.kpiValue}>{totalFornadasHoje}</Text>
-              <Text style={styles.kpiSubtext}>Lotes assados no dia</Text>
-            </View>
+            ))}
+            {/* Encomendas: clique abre a lista do que produzir */}
+            <TouchableOpacity
+              style={[styles.kpiStripItem, styles.kpiStripClicavel, encomendasAbertas && styles.kpiStripAtivo]}
+              onPress={() => setEncomendasAbertas(!encomendasAbertas)}
+              activeOpacity={0.85}>
+              <Text style={styles.kpiStripLabel}>📅 Encomendas {encomendasAbertas ? '▲' : '▼'}</Text>
+              <Text style={[styles.kpiStripValue, { color: KIPI_BLUE_ACCENT }]}>{encomendasMarcadas.length}</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* LISTA DE ENCOMENDAS MARCADAS (O QUE A COZINHA PRECISA PRODUZIR) */}
+          {encomendasAbertas && (
+            <View style={styles.ordersPanel}>
+              <View style={styles.sectionHeaderRow}>
+                <View>
+                  <Text style={styles.sectionTitle}>Encomendas a Produzir</Text>
+                  <Text style={styles.sectionSubtitle}>Pedidos agendados que ainda não foram entregues</Text>
+                </View>
+                <TouchableOpacity onPress={() => setEncomendasAbertas(false)}>
+                  <Feather name="chevron-up" size={18} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.ordersGrid}>
+                {encomendasMarcadas.map((enc) => {
+                  const st = STATUS_ENCOMENDA[enc.statusProducao];
+                  return (
+                    <View key={enc.id} style={styles.orderCard}>
+                      <View style={styles.orderCardTop}>
+                        <Text style={styles.orderClient} numberOfLines={1}>{enc.clienteNome}</Text>
+                        <View style={[styles.orderStatusPill, { backgroundColor: st.fundo }]}>
+                          <Text style={[styles.orderStatusText, { color: st.cor }]}>{st.label}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.orderItems}>{resumoItens(enc)}</Text>
+                      {enc.observacoes ? <Text style={styles.orderObs}>"{enc.observacoes}"</Text> : null}
+                      <Text style={styles.orderDelivery}>
+                        <Feather name="clock" size={11} color={KIPI_BLUE_ACCENT} /> Entrega: {rotuloEntrega(enc.dataEntrega)}
+                      </Text>
+                      {/* Avança o status aqui e reflete em Pedidos; Entregue é marcado em Pedidos */}
+                      {PROXIMO_STATUS_COZINHA[enc.statusProducao] ? (
+                        <TouchableOpacity
+                          style={styles.orderNextBtn}
+                          onPress={() => atualizarPedido({ ...enc, statusProducao: PROXIMO_STATUS_COZINHA[enc.statusProducao]!.id })}>
+                          <Text style={styles.orderNextBtnText}>{PROXIMO_STATUS_COZINHA[enc.statusProducao]!.label} →</Text>
+                        </TouchableOpacity>
+                      ) : enc.statusProducao === 'pronto' ? (
+                        <Text style={styles.orderAguardando}>✓ Pronto · aguardando entrega</Text>
+                      ) : null}
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* =========================================================================
               CONTEÚDO PRINCIPAL (DIVIDIDO EM PRODUTOS & TIMELINE DE FORNADAS)
@@ -495,44 +532,23 @@ export default function ProducaoScreen() {
                   const precisaPrepararMassa = prod.estoqueCongelado <= 6;
 
                   return (
-                    <View key={prod.id} style={styles.productionCard}>
-                      <View style={styles.prodCardTop}>
-                        <View style={styles.prodAvatar}>
-                          <Text style={{ fontSize: 22 }}>{prod.fotoEmoji}</Text>
+                    <View key={prod.id} style={[styles.productionCard, styles.productionCardCompacto]}>
+                      {/* Linha única: produto · freezer · vitrine (com avisos curtos) */}
+                      <View style={styles.prodLinha}>
+                        <View style={styles.prodAvatarMini}>
+                          <Text style={{ fontSize: 17 }}>{prod.fotoEmoji}</Text>
                         </View>
-                        <View style={{ flex: 1 }}>
-                          <Text style={styles.prodCategory}>{prod.categoria}</Text>
-                          <Text style={styles.prodName}>{prod.nome}</Text>
-                          <Text style={styles.prodOvenTime}>⏱️ Tempo de Forno: {prod.tempoFornoMinutos} min</Text>
+                        <View style={{ flex: 1, minWidth: 140 }}>
+                          <Text style={styles.prodName} numberOfLines={1}>{prod.nome}</Text>
+                          <Text style={styles.prodOvenTime}>{prod.categoria} · ⏱️ {prod.tempoFornoMinutos} min</Text>
                         </View>
-                      </View>
-
-                      {/* As 2 Barras de Nível: Congelados vs Assados */}
-                      <View style={styles.stockBarsContainer}>
-                        {/* 1. Congelados */}
-                        <View style={styles.stockBarItem}>
-                          <View style={styles.stockBarTextRow}>
-                            <Text style={styles.stockBarLabel}>🧊 Congelados no Freezer:</Text>
-                            <Text style={[styles.stockBarNumber, { color: FREEZER_CYAN }]}>
-                              {prod.estoqueCongelado} un
-                            </Text>
-                          </View>
-                          {precisaPrepararMassa && (
-                            <Text style={styles.stockNoticeWarning}>⚠️ Fazer mais massa</Text>
-                          )}
+                        <View style={styles.prodNumero}>
+                          <Text style={[styles.stockBarNumber, { color: FREEZER_CYAN }]}>🧊 {prod.estoqueCongelado}</Text>
+                          {precisaPrepararMassa && <Text style={styles.stockNoticeWarning}>fazer massa</Text>}
                         </View>
-
-                        {/* 2. Assados */}
-                        <View style={styles.stockBarItem}>
-                          <View style={styles.stockBarTextRow}>
-                            <Text style={styles.stockBarLabel}>♨️ Assados na Vitrine:</Text>
-                            <Text style={[styles.stockBarNumber, { color: OVEN_ORANGE }]}>
-                              {prod.estoqueAssado} un
-                            </Text>
-                          </View>
-                          {precisaAssar && (
-                            <Text style={styles.stockNoticeAlert}>🔥 Hora de assar fornada!</Text>
-                          )}
+                        <View style={styles.prodNumero}>
+                          <Text style={[styles.stockBarNumber, { color: OVEN_ORANGE }]}>♨️ {prod.estoqueAssado}</Text>
+                          {precisaAssar && <Text style={styles.stockNoticeAlert}>hora de assar</Text>}
                         </View>
                       </View>
 
@@ -547,7 +563,7 @@ export default function ProducaoScreen() {
                             setModalPreparoVisible(true);
                           }}>
                           <Text style={{ fontSize: 13 }}>🧊</Text>
-                          <Text style={styles.cardBtnPreparoText}>+ Preparar Massa</Text>
+                          <Text style={styles.cardBtnPreparoText}>Preparar massa</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -567,8 +583,19 @@ export default function ProducaoScreen() {
                             styles.cardBtnAssarText,
                             prod.estoqueCongelado <= 0 && styles.cardBtnAssarTextDisabled,
                           ]}>
-                            {prod.estoqueCongelado <= 0 ? 'Sem Congelados' : 'Assar Fornada'}
+                            {prod.estoqueCongelado <= 0 ? 'Sem congelados' : 'Assar'}
                           </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.cardBtnPerda,
+                            prod.estoqueAssado + prod.estoqueCongelado <= 0 && styles.cardBtnAssarDisabled,
+                          ]}
+                          disabled={prod.estoqueAssado + prod.estoqueCongelado <= 0}
+                          onPress={() => setDescarteId(prod.id)}>
+                          <Feather name="trash-2" size={12} color={DANGER_RED} />
+                          <Text style={styles.cardBtnPerdaText}>Descartar</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -581,27 +608,101 @@ export default function ProducaoScreen() {
             <View style={styles.historyCol}>
               <View style={styles.sectionHeaderRow}>
                 <View>
-                  <Text style={styles.sectionTitle}>Histórico de Hoje</Text>
-                  <Text style={styles.sectionSubtitle}>Lotes preparados e fornadas</Text>
+                  <Text style={styles.sectionTitle}>Histórico de Produção</Text>
+                  <Text style={styles.sectionSubtitle}>
+                    {historicoFiltrado.length} {historicoFiltrado.length === 1 ? 'registro' : 'registros'} · preparos, fornadas e perdas
+                  </Text>
                 </View>
                 <Feather name="clock" size={16} color="#64748B" />
               </View>
 
+              {/* FILTROS DO HISTÓRICO */}
+              <View style={styles.historyFilters}>
+                <View style={styles.historyChipRow}>
+                  {[
+                    { id: 'hoje', label: 'Hoje' },
+                    { id: '7dias', label: '7 dias' },
+                    { id: '30dias', label: '30 dias' },
+                    { id: 'tudo', label: 'Tudo' },
+                  ].map((p) => {
+                    const ativo = filtroPeriodo === p.id;
+                    return (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[styles.historyChip, ativo && styles.historyChipActive]}
+                        onPress={() => {
+                          setFiltroPeriodo(p.id as FiltroPeriodoHistorico);
+                          setLimiteHistorico(HISTORICO_POR_PAGINA);
+                        }}>
+                        <Text style={[styles.historyChipText, ativo && styles.historyChipTextActive]}>{p.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <View style={styles.historyChipRow}>
+                  {[
+                    { id: 'todos', label: 'Todos' },
+                    { id: 'preparo_massa', label: '🧊 Preparos' },
+                    { id: 'assar_fornada', label: '♨️ Fornadas' },
+                    { id: 'perda', label: '🗑 Descartes' },
+                    { id: 'ajuste', label: '⚙️ Ajustes' },
+                  ].map((t) => {
+                    const ativo = filtroTipo === t.id;
+                    return (
+                      <TouchableOpacity
+                        key={t.id}
+                        style={[styles.historyChip, ativo && styles.historyChipActive]}
+                        onPress={() => {
+                          setFiltroTipo(t.id as FiltroTipoHistorico);
+                          setLimiteHistorico(HISTORICO_POR_PAGINA);
+                        }}>
+                        <Text style={[styles.historyChipText, ativo && styles.historyChipTextActive]}>{t.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <View style={styles.miniSearchBox}>
+                  <Feather name="search" size={14} color="#94A3B8" />
+                  <TextInput
+                    style={styles.miniSearchInput}
+                    placeholder="Filtrar por produto..."
+                    placeholderTextColor="#94A3B8"
+                    value={buscaHistorico}
+                    onChangeText={(t) => {
+                      setBuscaHistorico(t);
+                      setLimiteHistorico(HISTORICO_POR_PAGINA);
+                    }}
+                  />
+                </View>
+              </View>
+
               <ScrollView style={styles.historyListScroll} showsVerticalScrollIndicator={false}>
-                {fornadas.map(f => (
+                {historicoFiltrado.length === 0 && (
+                  <Text style={styles.historyEmpty}>Nenhum registro para os filtros escolhidos.</Text>
+                )}
+                {gruposHistorico.map(grupo => (
+                  <View key={grupo.titulo}>
+                    <Text style={styles.historyDayTitle}>{grupo.titulo}</Text>
+                {grupo.itens.map(f => (
                   <View key={f.id} style={styles.historyItem}>
                     <View style={styles.historyTimeCol}>
                       <Text style={styles.historyTimeText}>{f.horario}</Text>
-                      <View style={[styles.historyDot, f.tipo === 'assar_fornada' ? styles.historyDotOven : styles.historyDotFreezer]} />
+                      <View style={[styles.historyDot, f.tipo === 'assar_fornada' ? styles.historyDotOven : f.tipo === 'perda' ? styles.historyDotLoss : styles.historyDotFreezer]} />
                     </View>
 
                     <View style={styles.historyCardBox}>
                       <View style={styles.historyTopRow}>
                         <Text style={{ fontSize: 16 }}>{f.fotoEmoji}</Text>
                         <Text style={styles.historyProdName} numberOfLines={1}>{f.produtoNome}</Text>
-                        <View style={[styles.historyTypeBadge, f.tipo === 'assar_fornada' ? styles.badgeOven : styles.badgeFreezer]}>
-                          <Text style={[styles.historyTypeBadgeText, f.tipo === 'assar_fornada' ? styles.badgeOvenText : styles.badgeFreezerText]}>
-                            {f.tipo === 'assar_fornada' ? `♨️ +${f.quantidade} assados` : `🧊 +${f.quantidade} massas`}
+                        <View style={[styles.historyTypeBadge, f.tipo === 'assar_fornada' ? styles.badgeOven : f.tipo === 'perda' ? styles.badgeLoss : styles.badgeFreezer]}>
+                          <Text style={[styles.historyTypeBadgeText, f.tipo === 'assar_fornada' ? styles.badgeOvenText : f.tipo === 'perda' ? styles.badgeLossText : styles.badgeFreezerText]}>
+                            {f.tipo === 'assar_fornada'
+                              ? `♨️ +${f.quantidade} assados`
+                              : f.tipo === 'perda'
+                              ? `${EMOJI_MOTIVO[f.motivo ?? ''] ?? '🗑'} -${f.quantidade} descartados${f.custo ? ` · perda ${f.custo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}`
+                              : f.tipo === 'ajuste'
+                              ? `⚙️ ajuste ${f.quantidade} un`
+                              : `🧊 +${f.quantidade} massas`}
                           </Text>
                         </View>
                       </View>
@@ -610,6 +711,17 @@ export default function ProducaoScreen() {
                     </View>
                   </View>
                 ))}
+                  </View>
+                ))}
+                {historicoFiltrado.length > historicoVisivel.length && (
+                  <TouchableOpacity
+                    style={styles.historyMoreBtn}
+                    onPress={() => setLimiteHistorico(limiteHistorico + HISTORICO_POR_PAGINA)}>
+                    <Text style={styles.historyMoreBtnText}>
+                      Mostrar mais ({historicoFiltrado.length - historicoVisivel.length} restantes)
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </ScrollView>
             </View>
           </View>
@@ -688,9 +800,20 @@ export default function ProducaoScreen() {
                   <Text style={styles.checklistTitle}>
                     Verificação de Ingredientes no Estoque:
                   </Text>
-                  <Text style={styles.checklistSubtitle}>
-                    O sistema desconta automaticamente dos insumos cadastrados.
-                  </Text>
+                  <TouchableOpacity
+                    style={styles.toggleRow}
+                    onPress={() => setDescontarIngredientes(!descontarIngredientes)}
+                    activeOpacity={0.8}>
+                    <View style={[styles.toggleBox, descontarIngredientes && styles.toggleBoxActive]}>
+                      {descontarIngredientes && <Feather name="check" size={11} color="#FFFFFF" />}
+                    </View>
+                    <Text style={styles.checklistSubtitle}>Descontar os ingredientes do estoque de insumos</Text>
+                  </TouchableOpacity>
+                  {descontarIngredientes && !analiseIngredientesPreparo.viavel && analiseIngredientesPreparo.itens.length > 0 && (
+                    <Text style={styles.ingredientWarning}>
+                      ⚠️ Alguns ingredientes não são suficientes. Você pode produzir mesmo assim: o estoque deles ficará zerado.
+                    </Text>
+                  )}
 
                   <View style={{ gap: 8, marginTop: 10 }}>
                     {analiseIngredientesPreparo.itens.map((item, idx) => (
@@ -725,15 +848,11 @@ export default function ProducaoScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[
-                    styles.modalConfirmBtn,
-                    !analiseIngredientesPreparo.viavel && styles.modalConfirmBtnDisabled,
-                  ]}
-                  disabled={!analiseIngredientesPreparo.viavel}
+                  style={styles.modalConfirmBtn}
                   onPress={handleConfirmarPreparo}>
                   <Feather name="check" size={16} color="#FFFFFF" />
                   <Text style={styles.modalConfirmBtnText}>
-                    {analiseIngredientesPreparo.viavel ? 'Confirmar & Congelar' : 'Faltam Ingredientes'}
+                    {!descontarIngredientes || analiseIngredientesPreparo.viavel ? 'Confirmar & Congelar' : 'Produzir mesmo assim'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -759,7 +878,7 @@ export default function ProducaoScreen() {
                     <Text style={{ fontSize: 24 }}>♨️</Text>
                   </View>
                   <View>
-                    <Text style={styles.modalTitle}>Assar Fornada</Text>
+                    <Text style={styles.modalTitle}>Assar</Text>
                     <Text style={styles.modalSubtitle}>
                       {produtoAtivo.nome} • Tempo de forno: {produtoAtivo.tempoFornoMinutos} min.
                     </Text>
@@ -854,6 +973,108 @@ export default function ProducaoScreen() {
           )}
         </View>
       </Modal>
+      {/* DESCARTE: SAI DA VITRINE OU DO FREEZER, COM MOTIVO, E ENTRA COMO PERDA */}
+      <DescarteModal
+        visible={descarteId !== null}
+        produtoId={descarteId === '' ? null : descarteId}
+        onClose={() => setDescarteId(null)}
+      />
+
+      {/* =========================================================================
+          MODAL 4: LOTE (BOTÕES DO TOPO) — UM OU VÁRIOS PRODUTOS DE UMA VEZ
+      ========================================================================== */}
+      <Modal visible={loteModo !== null} transparent animationType="fade" onRequestClose={() => setLoteModo(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <View style={styles.modalHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={[styles.modalIconCircle, { backgroundColor: loteModo === 'assar' ? OVEN_TINT : FREEZER_TINT }]}>
+                  <Text style={{ fontSize: 20 }}>{loteModo === 'assar' ? '🔥' : '🧊'}</Text>
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>{loteModo === 'assar' ? 'Assar fornada' : 'Preparar massa'}</Text>
+                  <Text style={styles.modalSubtitle}>
+                    {loteModo === 'assar'
+                      ? 'Sai do freezer e entra na vitrine'
+                      : 'Entra no freezer descontando os insumos da ficha'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => setLoteModo(null)}>
+                <Feather name="x" size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {loteErro && (
+              <View style={styles.errorBox}>
+                <Feather name="alert-triangle" size={16} color={DANGER_RED} />
+                <Text style={styles.errorBoxText}>{loteErro}</Text>
+              </View>
+            )}
+
+            <ScrollView style={{ maxHeight: 420 }}>
+              {produtosView.map((p) => {
+                const qtd = parseInt(loteQtds[p.id] || '0', 10) || 0;
+                const semMassa = loteModo === 'assar' && p.estoqueCongelado <= 0;
+                // Preparo: avisa se algum insumo da ficha não dá para a quantidade
+                const faltaInsumo =
+                  loteModo === 'preparo' && qtd > 0 && p.receitaIngredientes.some((i) => i.quantidadePorUnidade * qtd > i.estoqueAtual);
+                return (
+                  <View key={p.id} style={[styles.loteLinha, semMassa && { opacity: 0.45 }]}>
+                    <Text style={{ fontSize: 18 }}>{p.fotoEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.prodName} numberOfLines={1}>{p.nome}</Text>
+                      <Text style={[styles.prodOvenTime, faltaInsumo && { color: DANGER_RED, fontWeight: '700' }]}>
+                        {loteModo === 'assar'
+                          ? `🧊 ${p.estoqueCongelado} no freezer · ⏱️ ${p.tempoFornoMinutos} min`
+                          : faltaInsumo
+                          ? '⚠ insumos insuficientes (desconta até zerar)'
+                          : `🧊 ${p.estoqueCongelado} no freezer`}
+                      </Text>
+                    </View>
+                    {/* − / + ajudam a ajustar sem digitar (assar: até o que tem no freezer) */}
+                    <View style={styles.loteStepper}>
+                      <TouchableOpacity
+                        style={[styles.loteStepBtn, qtd <= 0 && { opacity: 0.35 }]}
+                        disabled={semMassa || qtd <= 0}
+                        onPress={() => setLoteQtds((prev) => ({ ...prev, [p.id]: qtd - 1 > 0 ? String(qtd - 1) : '' }))}>
+                        <Feather name="minus" size={13} color="#334155" />
+                      </TouchableOpacity>
+                      <TextInput
+                        style={styles.loteInput}
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor="#CBD5E1"
+                        editable={!semMassa}
+                        value={loteQtds[p.id] ?? ''}
+                        onChangeText={(t) => setLoteQtds((prev) => ({ ...prev, [p.id]: t.replace(/\D/g, '') }))}
+                      />
+                      <TouchableOpacity
+                        style={[styles.loteStepBtn, (semMassa || (loteModo === 'assar' && qtd >= p.estoqueCongelado)) && { opacity: 0.35 }]}
+                        disabled={semMassa || (loteModo === 'assar' && qtd >= p.estoqueCongelado)}
+                        onPress={() => setLoteQtds((prev) => ({ ...prev, [p.id]: String(qtd + 1) }))}>
+                        <Feather name="plus" size={13} color={loteModo === 'assar' ? OVEN_ORANGE : FREEZER_CYAN} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.modalFooter}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setLoteModo(null)}>
+                <Text style={styles.modalCancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmBtn, { backgroundColor: loteModo === 'assar' ? OVEN_ORANGE : FREEZER_CYAN }]}
+                onPress={confirmarLote}>
+                <Feather name="check" size={16} color="#FFFFFF" />
+                <Text style={styles.modalConfirmBtnText}>{loteModo === 'assar' ? 'Assar' : 'Preparar'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -862,6 +1083,258 @@ export default function ProducaoScreen() {
 // ESTILOS
 // ============================================================================
 const styles = StyleSheet.create({
+  // ENCOMENDAS A PRODUZIR
+  kpiCardSelected: {
+    borderColor: KIPI_BLUE_ACCENT,
+    borderWidth: 1.5,
+  },
+  ordersPanel: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginBottom: 16,
+  },
+  ordersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  orderCard: {
+    flexGrow: 1,
+    flexBasis: 220,
+    backgroundColor: KIPI_FROST_BG,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    gap: 4,
+  },
+  orderCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  orderClient: {
+    flex: 1,
+    fontFamily: FONT_DISPLAY,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  orderStatusPill: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  orderStatusText: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  orderItems: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    color: '#334155',
+  },
+  orderObs: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: '#64748B',
+  },
+  orderDelivery: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '700',
+    color: KIPI_BLUE_ACCENT,
+    marginTop: 2,
+  },
+  orderNextBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    backgroundColor: KIPI_BLUE_TINT,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  orderNextBtnText: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '700',
+    color: KIPI_BLUE_ACCENT,
+  },
+  orderAguardando: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '700',
+    color: SUCCESS_GREEN,
+    marginTop: 8,
+  },
+
+  // HISTÓRICO COM FILTROS
+  historyFilters: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  historyChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  historyChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  historyChipActive: {
+    backgroundColor: KIPI_BLUE_TINT,
+    borderColor: KIPI_BLUE,
+  },
+  historyChipText: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  historyChipTextActive: {
+    color: KIPI_BLUE_ACCENT,
+    fontWeight: '800',
+  },
+  historyDayTitle: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '800',
+    color: KIPI_BLUE_DARK,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  historyEmpty: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  historyMoreBtn: {
+    alignSelf: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    marginBottom: 10,
+  },
+  historyMoreBtnText: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '700',
+    color: KIPI_BLUE_ACCENT,
+  },
+  // PERDA / DESCARTE
+  cardBtnPerda: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    backgroundColor: '#FEF2F2',
+  },
+  cardBtnPerdaText: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '700',
+    color: DANGER_RED,
+  },
+  historyDotLoss: {
+    backgroundColor: DANGER_RED,
+  },
+  badgeLoss: {
+    backgroundColor: DANGER_TINT,
+  },
+  badgeLossText: {
+    color: DANGER_RED,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+  },
+  chipActive: {
+    borderColor: DANGER_RED,
+    backgroundColor: DANGER_TINT,
+  },
+  chipText: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  chipTextActive: {
+    color: DANGER_RED,
+    fontWeight: '800',
+  },
+  obsInput: {
+    fontFamily: FONT_SANS,
+    fontSize: 13,
+    color: '#0F172A',
+    backgroundColor: KIPI_FROST_BG,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
+
+  // PREPARO: DESCONTO OPCIONAL DE INGREDIENTES
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  toggleBox: {
+    width: 16,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  toggleBoxActive: {
+    backgroundColor: KIPI_BLUE_ACCENT,
+    borderColor: KIPI_BLUE_ACCENT,
+  },
+  ingredientWarning: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '600',
+    color: WARNING_AMBER,
+    marginTop: 6,
+  },
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -880,64 +1353,7 @@ const styles = StyleSheet.create({
   },
 
   // CABEÇALHO
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  headerTitleCol: {
-    flex: 1,
-    minWidth: 280,
-  },
-  headerBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  activeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: OVEN_ORANGE,
-  },
-  headerCategoryBadge: {
-    fontFamily: FONT_SANS,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    color: '#64748B',
-  },
-  systemBluePill: {
-    backgroundColor: KIPI_BLUE_TINT,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  systemBluePillText: {
-    fontFamily: FONT_SANS,
-    fontSize: 10,
-    fontWeight: '800',
-    color: KIPI_BLUE_ACCENT,
-    letterSpacing: 0.5,
-  },
-  pageTitle: {
-    fontFamily: FONT_DISPLAY,
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    fontFamily: FONT_SANS,
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-  },
+  topHeader: TOPO_COMPACTO,
   topActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -959,6 +1375,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: FREEZER_CYAN,
+  },
+  btnAcaoDescarte: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  btnAcaoDescarteText: {
+    fontFamily: FONT_SANS,
+    fontSize: 13,
+    fontWeight: '700',
+    color: DANGER_RED,
   },
   btnAcaoAssar: {
     flexDirection: 'row',
@@ -1155,6 +1588,88 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0',
     marginBottom: 12,
   },
+  loteLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  loteStepper: { flexDirection: 'row', alignItems: 'center', gap: 4 },  loteStepBtn: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  loteInput: {
+    width: 48,
+    textAlign: 'center',
+    fontFamily: FONT_DISPLAY,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingVertical: 6,
+    backgroundColor: '#F8FAFC',
+  },
+  productionCardCompacto: {
+    padding: 10,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  prodLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  prodAvatarMini: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  prodNumero: {
+    minWidth: 62,
+    alignItems: 'flex-end',
+  },
+  kpiStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    paddingVertical: 6,
+    marginBottom: 12,
+  },
+  kpiStripItem: {
+    flexGrow: 1,
+    minWidth: 110,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderLeftWidth: 1,
+    borderLeftColor: '#F1F5F9',
+  },
+  kpiStripClicavel: {
+    borderRadius: 8,
+  },
+  kpiStripAtivo: {
+    backgroundColor: KIPI_BLUE_TINT,
+  },
+  kpiStripLabel: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  kpiStripValue: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 1,
+  },
   prodCardTop: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1244,13 +1759,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F9FF',
     borderWidth: 1,
     borderColor: '#BAE6FD',
-    paddingVertical: 8,
+    paddingVertical: 5,
     borderRadius: 10,
     gap: 6,
   },
   cardBtnPreparoText: {
     fontFamily: FONT_SANS,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: FREEZER_CYAN,
   },
@@ -1262,7 +1777,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF7ED',
     borderWidth: 1,
     borderColor: '#FED7AA',
-    paddingVertical: 8,
+    paddingVertical: 5,
     borderRadius: 10,
     gap: 6,
   },
@@ -1272,7 +1787,7 @@ const styles = StyleSheet.create({
   },
   cardBtnAssarText: {
     fontFamily: FONT_SANS,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: OVEN_ORANGE,
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,24 @@ import {
   Platform,
   useWindowDimensions,
   Modal,
-  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { supabase } from '@/lib/supabase';
 import Sidebar from '@/components/Sidebar';
 import NovoPedidoModal from '@/components/NovoPedidoModal';
+import ClienteFormModal, { ClienteCadastrado } from '@/components/ClienteFormModal';
+import {
+  useClientes,
+  usePedidos,
+  metricasCliente,
+  salvarCliente,
+  alternarStatusCliente as alternarStatusNaLista,
+  cadastroDoFormulario,
+  type ClienteCompleto,
+  type ClienteCadastro,
+} from '@/lib/clientesPedidos';
+import { useEscopoRevendedora, pedidosDoEscopo } from '@/lib/minhaRevenda';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (ATELIÊ SAGE / LOVABLE)
@@ -30,335 +41,41 @@ const ATELIE_SUCCESS = '#228658';
 export type ViewMode = 'grid' | 'lista' | 'cards';
 export type StatusFilter = 'todos' | 'ativos' | 'inativos' | 'aniversariantes';
 
-export interface ProdutoComprado {
-  id: string;
-  nome: string;
-  categoria: string;
-  quantidade: number;
-  totalGasto: number;
-  dataUltimaCompra: string;
-  emoji: string;
-}
-
-export interface ClienteCompleto {
-  id: string;
-  nome: string;
-  telefone: string;
-  email?: string | null;
-  cpf_cnpj?: string | null;
-  aniversario?: string | null; // ex: "24/10" ou "24/10/1992"
-  mesAniversario?: number; // 1-12
-  cep?: string | null;
-  rua?: string | null;
-  numero?: string | null;
-  bairro?: string | null;
-  cidade?: string | null;
-  estado?: string | null;
-  complemento?: string | null;
-  observacoes?: string | null; // preferências e restrições
-  tag?: string | null;
-  status: 'ativo' | 'inativo';
-  totalGasto: number;
-  quantidadePedidos: number;
-  ticketMedio: number;
-  produtoMaisComprado?: string;
-  produtosComprados: ProdutoComprado[];
-  created_at?: string;
-}
-
-// CLIENTES INICIAIS ENRIQUECIDOS (CONFEITARIA ATELIERQ)
-const CLIENTES_INICIAIS: ClienteCompleto[] = [
-  {
-    id: 'cli-1',
-    nome: 'Mariana Albuquerque',
-    telefone: '(21) 98844-3321',
-    email: 'mariana.alb@gmail.com',
-    aniversario: '28/10/1994',
-    mesAniversario: 10,
-    cep: '22040-002',
-    rua: 'Rua Barata Ribeiro',
-    numero: '450',
-    complemento: 'Apto 802',
-    bairro: 'Copacabana',
-    cidade: 'Rio de Janeiro',
-    estado: 'RJ',
-    tag: 'Noiva VIP',
-    status: 'ativo',
-    totalGasto: 2840.00,
-    quantidadePedidos: 6,
-    ticketMedio: 473.33,
-    produtoMaisComprado: 'Bolo Casamento Flores de Açúcar',
-    observacoes: 'Noiva de Novembro. Prefere doces com pouco açúcar, louca por ganache de pistache e laços em fita de cetim dusty rose.',
-    produtosComprados: [
-      { id: 'p1', nome: 'Bolo Casamento Flores de Açúcar', categoria: 'Bolos & Bentos', quantidade: 2, totalGasto: 680.00, dataUltimaCompra: '15/10/2026', emoji: '🎂' },
-      { id: 'p2', nome: 'Torre de Macarons 24 unidades', categoria: 'Macarons', quantidade: 3, totalGasto: 660.00, dataUltimaCompra: '12/10/2026', emoji: '✨' },
-      { id: 'p3', nome: 'Cento de Brigadeiros Gourmet Belga', categoria: 'Doces Finos', quantidade: 5, totalGasto: 800.00, dataUltimaCompra: '08/10/2026', emoji: '🍬' },
-      { id: 'p4', nome: 'Cookie Black Nutella & Avelã', categoria: 'Cookies', quantidade: 14, totalGasto: 264.60, dataUltimaCompra: '18/10/2026', emoji: '🍪' },
-    ],
-  },
-  {
-    id: 'cli-2',
-    nome: 'Dra. Camila Morales',
-    telefone: '(21) 99122-4411',
-    email: 'morales.camila@clinicavita.com',
-    aniversario: '24/10/1988',
-    mesAniversario: 10,
-    cep: '22640-100',
-    rua: 'Avenida das Américas',
-    numero: '3500',
-    complemento: 'Bloco 4 - Sala 312',
-    bairro: 'Barra da Tijuca',
-    cidade: 'Rio de Janeiro',
-    estado: 'RJ',
-    tag: 'VIP Corporativo',
-    status: 'ativo',
-    totalGasto: 1980.50,
-    quantidadePedidos: 12,
-    ticketMedio: 165.04,
-    produtoMaisComprado: 'Cookie Tradicional Gotas Belga',
-    observacoes: 'Manda caixinhas de cookies de presente para pacientes da clínica toda sexta-feira. Pedir sempre embalagem para presente.',
-    produtosComprados: [
-      { id: 'p4', nome: 'Cookie Tradicional Gotas Belga', categoria: 'Cookies', quantidade: 38, totalGasto: 566.20, dataUltimaCompra: '19/10/2026', emoji: '🍪' },
-      { id: 'p5', nome: 'Caixa Macarons Degustação (6 un)', categoria: 'Macarons', quantidade: 10, totalGasto: 570.00, dataUltimaCompra: '16/10/2026', emoji: '🧁' },
-      { id: 'p6', nome: 'Bento Cake Pistache & Framboesa', categoria: 'Bolos & Bentos', quantidade: 4, totalGasto: 260.00, dataUltimaCompra: '02/10/2026', emoji: '🎂' },
-    ],
-  },
-  {
-    id: 'cli-3',
-    nome: 'Fernanda Montenegro Santos',
-    telefone: '(21) 98711-2299',
-    email: 'fernanda.m@globo.com',
-    aniversario: '12/05/1990',
-    mesAniversario: 5,
-    cep: '22410-003',
-    rua: 'Rua Visconde de Pirajá',
-    numero: '215',
-    complemento: 'Apto 1101',
-    bairro: 'Ipanema',
-    cidade: 'Rio de Janeiro',
-    estado: 'RJ',
-    tag: 'Festa Infantil',
-    status: 'ativo',
-    totalGasto: 1420.00,
-    quantidadePedidos: 4,
-    ticketMedio: 355.00,
-    produtoMaisComprado: 'Bolo Red Velvet Floral',
-    observacoes: 'Filho alérgico a nozes e amendoim. Produtos devem ser 100% nut-free na bancada.',
-    produtosComprados: [
-      { id: 'p7', nome: 'Bolo Red Velvet Floral', categoria: 'Bolos & Bentos', quantidade: 3, totalGasto: 960.00, dataUltimaCompra: '18/10/2026', emoji: '🎂' },
-      { id: 'p8', nome: 'Cento de Brigadeiros Gourmet Belga', categoria: 'Doces Finos', quantidade: 2, totalGasto: 320.00, dataUltimaCompra: '18/10/2026', emoji: '🍬' },
-    ],
-  },
-  {
-    id: 'cli-4',
-    nome: 'Guilherme Peixoto',
-    telefone: '(21) 99876-5432',
-    email: 'guilherme.px@yahoo.com',
-    aniversario: '05/10/1995',
-    mesAniversario: 10,
-    cep: '22270-010',
-    rua: 'Rua Voluntários da Pátria',
-    numero: '120',
-    complemento: 'Apto 401',
-    bairro: 'Botafogo',
-    cidade: 'Rio de Janeiro',
-    estado: 'RJ',
-    tag: 'Noivado',
-    status: 'ativo',
-    totalGasto: 890.00,
-    quantidadePedidos: 3,
-    ticketMedio: 296.67,
-    produtoMaisComprado: 'Torre de Macarons 24 unidades',
-    observacoes: 'Adora café espresso com fatia de torta ópera.',
-    produtosComprados: [
-      { id: 'p2', nome: 'Torre de Macarons 24 unidades', categoria: 'Macarons', quantidade: 2, totalGasto: 440.00, dataUltimaCompra: '17/10/2026', emoji: '✨' },
-      { id: 'p9', nome: 'Fatia Torta Ópera Café & Ganache', categoria: 'Sobremesas', quantidade: 6, totalGasto: 201.00, dataUltimaCompra: '10/10/2026', emoji: '🍮' },
-    ],
-  },
-  {
-    id: 'cli-5',
-    nome: 'Larissa Manoela Vasconcelos',
-    telefone: '(21) 98455-1234',
-    email: 'larissa.v@outlook.com',
-    aniversario: '15/10/2001',
-    mesAniversario: 10,
-    cep: '22793-080',
-    rua: 'Avenida Olegário Maciel',
-    numero: '510',
-    complemento: '',
-    bairro: 'Barra da Tijuca',
-    cidade: 'Rio de Janeiro',
-    estado: 'RJ',
-    tag: 'Recompra Semanal',
-    status: 'ativo',
-    totalGasto: 645.20,
-    quantidadePedidos: 8,
-    ticketMedio: 80.65,
-    produtoMaisComprado: 'Cookie Black Nutella & Avelã',
-    observacoes: 'Pede sempre no delivery pelo WhatsApp. Gosta de entrega rápida por volta das 16h.',
-    produtosComprados: [
-      { id: 'p1', nome: 'Cookie Black Nutella & Avelã', categoria: 'Cookies', quantidade: 22, totalGasto: 415.80, dataUltimaCompra: '19/10/2026', emoji: '🍪' },
-      { id: 'p10', nome: 'Brownie Fudge Triplo Chocolate', categoria: 'Cookies', quantidade: 10, totalGasto: 155.00, dataUltimaCompra: '14/10/2026', emoji: '🍫' },
-    ],
-  },
-  {
-    id: 'cli-6',
-    nome: 'Roberto Justus Filho',
-    telefone: '(21) 97123-9988',
-    email: 'roberto.justus@holding.com.br',
-    aniversario: '03/02/1975',
-    mesAniversario: 2,
-    cep: '22470-050',
-    rua: 'Rua Aníbal de Mendonça',
-    numero: '88',
-    complemento: 'Cobertura 01',
-    bairro: 'Ipanema',
-    cidade: 'Rio de Janeiro',
-    estado: 'RJ',
-    tag: 'Corporativo',
-    status: 'inativo',
-    totalGasto: 520.00,
-    quantidadePedidos: 1,
-    ticketMedio: 520.00,
-    produtoMaisComprado: 'Torre de Macarons 24 unidades',
-    observacoes: 'Cliente corporativo. Sem compras há mais de 90 dias.',
-    produtosComprados: [
-      { id: 'p2', nome: 'Torre de Macarons 24 unidades', categoria: 'Macarons', quantidade: 2, totalGasto: 440.00, dataUltimaCompra: '12/04/2026', emoji: '✨' },
-    ],
-  },
-];
-
 export default function ClientesScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 900;
 
   // ESTADOS DA TELA
-  const [clientes, setClientes] = useState<ClienteCompleto[]>(CLIENTES_INICIAIS);
-  const [carregando, setCarregando] = useState(false);
+  // Clientes compartilhados: total gasto, pedidos e produtos comprados saem dos pedidos
+  // Revendedora: só os clientes dela, com totais calculados só pelas vendas dela
+  const escopo = useEscopoRevendedora();
+  const todosPedidos = usePedidos();
+  const todosClientes = useClientes();
+  const clientes = escopo.ehRevendedora
+    ? todosClientes
+        .filter((c) => c.revendedoraId === escopo.revendedoraId)
+        .map((c) => ({ ...c, ...metricasCliente(c, pedidosDoEscopo(todosPedidos, escopo.revendedoraId)) }))
+    : todosClientes;
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('todos');
   const [busca, setBusca] = useState('');
 
   // MODAIS
   const [modalNovoClienteAberto, setModalNovoClienteAberto] = useState(false);
-  const [clienteDetalhe, setClienteDetalhe] = useState<ClienteCompleto | null>(null);
+  const [clienteEmEdicao, setClienteEmEdicao] = useState<ClienteCompleto | null>(null);
+  const [confirmandoInativacao, setConfirmandoInativacao] = useState(false);
+  // Guarda só o id: o dossiê se atualiza sozinho quando entra um pedido novo do cliente
+  const [clienteDetalheId, setClienteDetalheId] = useState<string | null>(null);
+  const clienteDetalhe = clientes.find((c) => c.id === clienteDetalheId) ?? null;
+  const setClienteDetalhe = (c: ClienteCompleto | null) => setClienteDetalheId(c?.id ?? null);
   const [modalNovoPedidoAberto, setModalNovoPedidoAberto] = useState(false);
   const [toastMensagem, setToastMensagem] = useState<string | null>(null);
-
-  // FORM NOVO CLIENTE (CAMPOS SOLICITADOS)
-  const [formNome, setFormNome] = useState('');
-  const [formTelefone, setFormTelefone] = useState('');
-  const [formTag, setFormTag] = useState('VIP');
-  const [formCep, setFormCep] = useState('');
-  const [formRua, setFormRua] = useState('');
-  const [formNumero, setFormNumero] = useState('');
-  const [formComplemento, setFormComplemento] = useState('');
-  const [formBairro, setFormBairro] = useState('');
-  const [formDataNascimento, setFormDataNascimento] = useState('');
-  const [formEmail, setFormEmail] = useState('');
-  const [formPreferencias, setFormPreferencias] = useState('');
-  const [salvandoCliente, setSalvandoCliente] = useState(false);
-  const [erroForm, setErroForm] = useState<string | null>(null);
-
-  useEffect(() => {
-    carregarClientesDoSupabase();
-  }, []);
 
   const exibirToast = (msg: string) => {
     setToastMensagem(msg);
     setTimeout(() => {
       setToastMensagem(null);
     }, 3800);
-  };
-
-  const carregarClientesDoSupabase = async () => {
-    setCarregando(true);
-    try {
-      const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .order('nome', { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        // Enriquecer com dados locais se existirem ou mapear
-        const mapeados: ClienteCompleto[] = data.map((c: any) => {
-          const mockExistente = CLIENTES_INICIAIS.find((ci) => ci.nome.toLowerCase() === c.nome.toLowerCase());
-          const aniversarioStr = c.aniversario || mockExistente?.aniversario || '15/10/1995';
-          const mesNum = extrairMes(aniversarioStr);
-
-          return {
-            id: c.id,
-            nome: c.nome,
-            telefone: c.telefone || '(21) 98000-0000',
-            email: c.email || `${c.nome.toLowerCase().replace(/\s+/g, '.')}@email.com`,
-            cpf_cnpj: c.cpf_cnpj || null,
-            aniversario: aniversarioStr,
-            mesAniversario: mesNum,
-            cep: c.cep || '22000-000',
-            rua: c.rua || 'Avenida Atlântica',
-            numero: c.numero || '100',
-            bairro: c.bairro || 'Copacabana',
-            cidade: c.cidade || 'Rio de Janeiro',
-            estado: c.estado || 'RJ',
-            complemento: c.complemento || '',
-            observacoes: c.observacoes || 'Cliente cadastrado no ateliê.',
-            tag: c.tag || mockExistente?.tag || 'Cliente Frequente',
-            status: c.tipo_contato === 'inativo' ? 'inativo' : 'ativo',
-            totalGasto: mockExistente?.totalGasto || 420.00,
-            quantidadePedidos: mockExistente?.quantidadePedidos || 3,
-            ticketMedio: mockExistente?.ticketMedio || 140.00,
-            produtoMaisComprado: mockExistente?.produtoMaisComprado || 'Cookie Black Nutella',
-            produtosComprados: mockExistente?.produtosComprados || [
-              { id: 'p1', nome: 'Cookie Tradicional Gotas Belga', categoria: 'Cookies', quantidade: 6, totalGasto: 89.40, dataUltimaCompra: '18/10/2026', emoji: '🍪' },
-            ],
-            created_at: c.created_at,
-          };
-        });
-
-        // Garantir que os clientes ricos iniciais também apareçam
-        const idsDb = new Set(mapeados.map((m) => m.nome.toLowerCase()));
-        const unicosIniciais = CLIENTES_INICIAIS.filter((ci) => !idsDb.has(ci.nome.toLowerCase()));
-        setClientes([...mapeados, ...unicosIniciais]);
-      }
-    } catch {
-      // fallback com mock
-    } finally {
-      setCarregando(false);
-    }
-  };
-
-  // MÁSCARA DE TELEFONE AUTOMÁTICA
-  const formatarTelefone = (valor: string) => {
-    const limpo = valor.replace(/\D/g, '').slice(0, 11);
-    if (limpo.length <= 2) return limpo;
-    if (limpo.length <= 6) return `(${limpo.slice(0, 2)}) ${limpo.slice(2)}`;
-    if (limpo.length <= 10) return `(${limpo.slice(0, 2)}) ${limpo.slice(2, 6)}-${limpo.slice(6)}`;
-    return `(${limpo.slice(0, 2)}) ${limpo.slice(2, 7)}-${limpo.slice(7)}`;
-  };
-
-  // MÁSCARA DE CEP
-  const formatarCep = (valor: string) => {
-    const limpo = valor.replace(/\D/g, '').slice(0, 8);
-    if (limpo.length <= 5) return limpo;
-    return `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
-  };
-
-  // MÁSCARA DE DATA
-  const formatarData = (valor: string) => {
-    const limpo = valor.replace(/\D/g, '').slice(0, 8);
-    if (limpo.length <= 2) return limpo;
-    if (limpo.length <= 4) return `${limpo.slice(0, 2)}/${limpo.slice(2)}`;
-    return `${limpo.slice(0, 2)}/${limpo.slice(2, 4)}/${limpo.slice(4)}`;
-  };
-
-  const extrairMes = (dataStr?: string | null): number => {
-    if (!dataStr) return 10;
-    const partes = dataStr.split(/[-/]/);
-    if (partes.length >= 2) {
-      const mes = parseInt(partes[1], 10);
-      if (!isNaN(mes) && mes >= 1 && mes <= 12) return mes;
-    }
-    return 10;
   };
 
   // FILTRAGEM DE CLIENTES
@@ -400,98 +117,86 @@ export default function ClientesScreen() {
     return { total, ativos, inativos, aniversariantesMes, somaFaturamento };
   }, [clientes, mesAtual]);
 
-  // CADASTRAR NOVO CLIENTE
-  const handleSalvarNovoCliente = async () => {
-    const nomeLimpo = formNome.trim();
-    const telLimpo = formTelefone.trim();
+  // CONVERSÃO PARA O FORMULÁRIO COMPARTILHADO
+  const paraFormulario = (c: ClienteCompleto): ClienteCadastrado => ({
+    id: c.id,
+    nome: c.nome,
+    telefone: c.telefone,
+    tag: c.tag || '',
+    cpfCnpj: c.cpf_cnpj || null,
+    cep: c.cep || null,
+    rua: c.rua || null,
+    numero: c.numero || null,
+    complemento: c.complemento || null,
+    bairro: c.bairro || null,
+    cidade: c.cidade || null,
+    estado: c.estado || null,
+    aniversario: c.aniversario || null,
+    email: c.email || null,
+    observacoes: c.observacoes || null,
+    revendedoraId: c.revendedoraId || null,
+    revendedoraNome: c.revendedoraNome || null,
+  });
 
-    if (!nomeLimpo) {
-      setErroForm('Por favor, informe o nome do cliente.');
-      return;
-    }
-    if (!telLimpo || telLimpo.length < 10) {
-      setErroForm('Por favor, informe um telefone/WhatsApp válido.');
-      return;
-    }
-
-    setSalvandoCliente(true);
-    setErroForm(null);
-
-    const mesNasc = extrairMes(formDataNascimento);
-
-    const novoObj: ClienteCompleto = {
-      id: `cli_${Date.now()}`,
-      nome: nomeLimpo,
-      telefone: telLimpo,
-      tag: formTag.trim() || 'Cliente VIP',
-      cep: formCep.trim() || null,
-      rua: formRua.trim() || null,
-      numero: formNumero.trim() || null,
-      complemento: formComplemento.trim() || null,
-      bairro: formBairro.trim() || null,
-      cidade: 'Rio de Janeiro',
-      estado: 'RJ',
-      aniversario: formDataNascimento.trim() || null,
-      mesAniversario: mesNasc,
-      email: formEmail.trim() || null,
-      observacoes: formPreferencias.trim() || null,
-      status: 'ativo',
-      totalGasto: 0,
-      quantidadePedidos: 0,
-      ticketMedio: 0,
-      produtosComprados: [],
-    };
-
-    try {
-      const { data, error } = await supabase
-        .from('clientes')
-        .insert({
-          empresa_id: 'emp_fatio',
-          nome: novoObj.nome,
-          telefone: novoObj.telefone,
-          email: novoObj.email,
-          tag: novoObj.tag,
-          cep: novoObj.cep,
-          rua: novoObj.rua,
-          numero: novoObj.numero,
-          complemento: novoObj.complemento,
-          bairro: novoObj.bairro,
-          cidade: novoObj.cidade,
-          estado: novoObj.estado,
-          aniversario: novoObj.aniversario,
-          observacoes: novoObj.observacoes,
-          tipo_contato: 'cliente',
-        })
-        .select()
-        .single();
-
-      if (!error && data) {
-        novoObj.id = data.id;
-      }
-    } catch {
-      // fallback
-    } finally {
-      setClientes((prev) => [novoObj, ...prev]);
-      setSalvandoCliente(false);
+  // CLIENTE SALVO PELO FORMULÁRIO (NOVO OU EDIÇÃO)
+  const handleClienteSalvo = (cadastrado: ClienteCadastrado) => {
+    if (clienteEmEdicao) {
+      const atualizado: ClienteCadastro = cadastroDoFormulario(cadastrado, clienteEmEdicao.status);
+      salvarCliente(atualizado);
+      setClienteDetalheId(atualizado.id);
+      setClienteEmEdicao(null);
       setModalNovoClienteAberto(false);
-      limparFormulario();
-      exibirToast(`✨ Cliente "${novoObj.nome}" cadastrado com sucesso!`);
+      exibirToast(`✓ Dados de "${atualizado.nome}" atualizados!`);
+      return;
     }
+
+    // Cadastrado aqui já aparece no Novo Pedido
+    const novo = cadastroDoFormulario(cadastrado);
+    salvarCliente(novo);
+    setModalNovoClienteAberto(false);
+    exibirToast(`✨ Cliente "${novo.nome}" cadastrado com sucesso!`);
   };
 
-  const limparFormulario = () => {
-    setFormNome('');
-    setFormTelefone('');
-    setFormTag('VIP');
-    setFormCep('');
-    setFormRua('');
-    setFormNumero('');
-    setFormComplemento('');
-    setFormBairro('');
-    setFormDataNascimento('');
-    setFormEmail('');
-    setFormPreferencias('');
-    setErroForm(null);
+  const abrirEdicaoCliente = (c: ClienteCompleto) => {
+    setClienteEmEdicao(c);
+    setModalNovoClienteAberto(true);
+  };
+
+  // EXCLUSÃO LÓGICA: o cliente fica inativo e pode ser reativado
+  const alternarStatusCliente = (c: ClienteCompleto) => {
+    const novoStatus: ClienteCompleto['status'] = c.status === 'ativo' ? 'inativo' : 'ativo';
+    alternarStatusNaLista(c.id);
+    setConfirmandoInativacao(false);
+    exibirToast(novoStatus === 'inativo' ? `Cliente "${c.nome}" inativado.` : `Cliente "${c.nome}" reativado!`);
+  };
+
+  const abrirWhatsAppCliente = (c: ClienteCompleto) => {
+    const tel = c.telefone.replace(/\D/g, '');
+    if (!tel) return;
+    Linking.openURL(`https://wa.me/55${tel}`);
+  };
+
+  const enderecoCompleto = (c: ClienteCompleto) =>
+    [
+      c.rua ? `${c.rua}, ${c.numero || 'S/N'}` : null,
+      c.complemento || null,
+      c.bairro || null,
+      c.cidade ? `${c.cidade}${c.estado ? ` - ${c.estado}` : ''}` : null,
+      c.cep ? `CEP ${c.cep}` : null,
+    ]
+      .filter(Boolean)
+      .join(', ');
+
+  const copiarEndereco = (c: ClienteCompleto) => {
+    const texto = enderecoCompleto(c);
+    if (!texto) {
+      exibirToast('Este cliente não tem endereço cadastrado.');
+      return;
+    }
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(`${c.nome}\n${texto}`);
+    }
+    exibirToast('📋 Endereço copiado!');
   };
 
   return (
@@ -515,9 +220,9 @@ export default function ClientesScreen() {
           <View style={styles.topHeader}>
             <View style={styles.topHeaderLeft}>
               <View style={styles.tagBadge}>
-                <Text style={styles.tagBadgeText}>ATELIÊ · CLIENTES & FIDELIDADE</Text>
+                <Text style={styles.tagBadgeText}>{escopo.ehRevendedora ? 'REVENDA · MEUS CLIENTES' : 'ATELIÊ · CLIENTES & FIDELIDADE'}</Text>
               </View>
-              <Text style={styles.pageTitle}>Gestão de Clientes do Ateliê</Text>
+              <Text style={styles.pageTitle}>{escopo.ehRevendedora ? 'Meus Clientes' : 'Gestão de Clientes do Ateliê'}</Text>
               <Text style={styles.pageSubtitle}>
                 Histórico de compras, preferências gastronômicas e fidelidade.
               </Text>
@@ -527,7 +232,7 @@ export default function ClientesScreen() {
               <TouchableOpacity
                 style={styles.btnNovoClientePrimary}
                 onPress={() => {
-                  limparFormulario();
+                  setClienteEmEdicao(null);
                   setModalNovoClienteAberto(true);
                 }}
                 activeOpacity={0.85}>
@@ -632,12 +337,7 @@ export default function ClientesScreen() {
             contentContainerStyle={styles.mainScrollContent}
             showsVerticalScrollIndicator={true}>
 
-            {carregando ? (
-              <View style={styles.loadingBox}>
-                <ActivityIndicator size="large" color={ATELIE_GREEN} />
-                <Text style={styles.loadingText}>Carregando clientes do ateliê...</Text>
-              </View>
-            ) : clientesFiltrados.length === 0 ? (
+            {clientesFiltrados.length === 0 ? (
               <View style={styles.emptyBox}>
                 <View style={styles.emptyIconCircle}>
                   <Feather name="users" size={32} color="#94A3B8" />
@@ -668,101 +368,84 @@ export default function ClientesScreen() {
                       key={cli.id}
                       style={[
                         styles.dossierCard,
-                        isDesktop ? styles.dossierCardDesktop : styles.dossierCardMobile,
+                        isDesktop ? (width >= 1400 ? styles.dossierCardLargo : styles.dossierCardDesktop) : styles.dossierCardMobile,
                       ]}
                       onPress={() => setClienteDetalhe(cli)}
                       activeOpacity={0.88}>
 
-                      {/* CABEÇALHO DO CARD */}
-                      <View style={styles.dossierHeader}>
-                        <View style={styles.dossierAvatar}>
-                          <Text style={styles.dossierAvatarText}>
-                            {cli.nome.substring(0, 2).toUpperCase()}
-                          </Text>
+                      {/* CABEÇALHO: avatar, nome + tag, telefone e situação na mesma linha */}
+                      <View style={styles.ccHeader}>
+                        <View style={styles.ccAvatar}>
+                          <Text style={styles.ccAvatarText}>{cli.nome.substring(0, 2).toUpperCase()}</Text>
                         </View>
-
-                        <View style={styles.dossierNameCol}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <View style={styles.dossierTitleRow}>
-                            <Text style={styles.dossierName} numberOfLines={1}>{cli.nome}</Text>
-                            {cli.tag && (
+                            <Text style={styles.ccNome} numberOfLines={1}>{cli.nome}</Text>
+                            {!!cli.tag && (
                               <View style={styles.clientTagPill}>
                                 <Text style={styles.clientTagPillText}>{cli.tag}</Text>
                               </View>
                             )}
                           </View>
-                          <Text style={styles.dossierPhone}>
-                            <Feather name="phone" size={11} color="#64748B" /> {cli.telefone}
-                          </Text>
-                        </View>
-
-                        <View style={[styles.statusDotBadge, cli.status === 'ativo' ? styles.statusDotAtivo : styles.statusDotInativo]}>
-                          <Text style={[styles.statusDotText, cli.status === 'ativo' ? styles.statusDotTextAtivo : styles.statusDotTextInativo]}>
-                            {cli.status === 'ativo' ? 'Ativo' : 'Inativo'}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* ESTATÍSTICAS FINANCEIRAS DO CLIENTE */}
-                      <View style={styles.dossierMetricsGrid}>
-                        <View style={styles.dossierMetricItem}>
-                          <Text style={styles.dossierMetricLabel}>TOTAL GASTO</Text>
-                          <Text style={styles.dossierMetricValue}>
-                            R$ {cli.totalGasto.toFixed(2)}
-                          </Text>
-                        </View>
-
-                        <View style={styles.dossierMetricItem}>
-                          <Text style={styles.dossierMetricLabel}>PEDIDOS</Text>
-                          <Text style={styles.dossierMetricValue}>
-                            {cli.quantidadePedidos} {cli.quantidadePedidos === 1 ? 'pedido' : 'pedidos'}
-                          </Text>
-                        </View>
-
-                        <View style={styles.dossierMetricItem}>
-                          <Text style={styles.dossierMetricLabel}>TICKET MÉDIO</Text>
-                          <Text style={styles.dossierMetricValue}>
-                            R$ {cli.ticketMedio.toFixed(2)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* PRODUTO FAVORITO */}
-                      {cli.produtoMaisComprado && (
-                        <View style={styles.favoriteProductBar}>
-                          <Text style={styles.favIcon}>🏆</Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.favTitle}>Mais pedido pelo cliente:</Text>
-                            <Text style={styles.favName} numberOfLines={1}>{cli.produtoMaisComprado}</Text>
+                          <View style={styles.ccSubLinha}>
+                            <Text style={styles.ccSub} numberOfLines={1}>
+                              <Feather name="phone" size={10} color="#64748B" /> {cli.telefone}
+                              {cli.revendedoraId ? `  ·  Cliente de ${cli.revendedoraNome?.split(' ')[0] || 'revendedora'}` : ''}
+                            </Text>
+                            <View style={[styles.ccStatusDot, { backgroundColor: cli.status === 'ativo' ? '#16A34A' : '#CBD5E1' }]} />
+                            <Text style={[styles.ccStatusTexto, { color: cli.status === 'ativo' ? '#15803D' : '#94A3B8' }]}>
+                              {cli.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                            </Text>
                           </View>
+                        </View>
+                      </View>
+
+                      {/* NÚMEROS DO CLIENTE */}
+                      <View style={styles.ccMetricas}>
+                        <View style={styles.ccMetrica}>
+                          <Text style={styles.ccMetricaRotulo}>TOTAL GASTO</Text>
+                          <Text style={styles.ccMetricaValor}>R$ {cli.totalGasto.toFixed(2)}</Text>
+                        </View>
+                        <View style={styles.ccDivisor} />
+                        <View style={styles.ccMetrica}>
+                          <Text style={styles.ccMetricaRotulo}>PEDIDOS</Text>
+                          <Text style={styles.ccMetricaValor}>{cli.quantidadePedidos}</Text>
+                        </View>
+                        <View style={styles.ccDivisor} />
+                        <View style={styles.ccMetrica}>
+                          <Text style={styles.ccMetricaRotulo}>TICKET MÉDIO</Text>
+                          <Text style={styles.ccMetricaValor}>R$ {cli.ticketMedio.toFixed(2)}</Text>
+                        </View>
+                      </View>
+
+                      {/* FAVORITO E PREFERÊNCIAS EM LINHAS CURTAS */}
+                      {(cli.produtoMaisComprado || cli.observacoes) && (
+                        <View style={styles.ccInfos}>
+                          {cli.produtoMaisComprado && (
+                            <Text style={styles.ccInfo} numberOfLines={1}>
+                              🏆 <Text style={styles.ccInfoRotulo}>Mais pede: </Text>
+                              <Text style={styles.ccInfoForte}>{cli.produtoMaisComprado}</Text>
+                            </Text>
+                          )}
+                          {cli.observacoes ? (
+                            <Text style={styles.ccInfo} numberOfLines={1}>
+                              💚 {cli.observacoes}
+                            </Text>
+                          ) : null}
                         </View>
                       )}
 
-                      {/* PREFERÊNCIAS E RESTRIÇÕES */}
-                      {cli.observacoes ? (
-                        <View style={styles.preferencesPreviewBox}>
-                          <Feather name="heart" size={12} color="#708018" style={{ marginTop: 2 }} />
-                          <Text style={styles.preferencesPreviewText} numberOfLines={2}>
-                            {cli.observacoes}
+                      {/* RODAPÉ: ENDEREÇO E ANIVERSÁRIO */}
+                      <View style={styles.ccRodape}>
+                        <Text style={styles.ccRodapeTexto} numberOfLines={1}>
+                          📍 {cli.bairro || cli.rua ? [cli.bairro, cli.rua].filter(Boolean).join(' · ') : 'Sem endereço'}
+                        </Text>
+                        {cli.aniversario && (
+                          <Text style={[styles.ccRodapeTexto, styles.ccNiver, isAniverMes && styles.dossierBdayHighlight]} numberOfLines={1}>
+                            🎂 {cli.aniversario}{isAniverMes ? ' ★ este mês' : ''}
                           </Text>
-                        </View>
-                      ) : null}
-
-                      {/* RODAPÉ DO CARD COM ENDEREÇO E ANIVERSÁRIO */}
-                      <View style={styles.dossierFooter}>
-                        <View style={styles.dossierAddressCol}>
-                          <Text style={styles.dossierAddressText} numberOfLines={1}>
-                            📍 {cli.bairro || 'Copacabana'} {cli.rua ? `• ${cli.rua}` : ''}
-                          </Text>
-                          {cli.aniversario && (
-                            <Text style={[styles.dossierBdayText, isAniverMes && styles.dossierBdayHighlight]}>
-                              🎂 Niver: {cli.aniversario} {isAniverMes ? '★ Este Mês!' : ''}
-                            </Text>
-                          )}
-                        </View>
-
-                        <View style={styles.dossierArrowCircle}>
-                          <Feather name="chevron-right" size={14} color={ATELIE_GREEN} />
-                        </View>
+                        )}
+                        <Feather name="chevron-right" size={14} color={ATELIE_GREEN} />
                       </View>
 
                     </TouchableOpacity>
@@ -790,7 +473,7 @@ export default function ClientesScreen() {
                         <Text style={styles.compactGridName} numberOfLines={1}>{cli.nome}</Text>
                         <Text style={styles.compactGridPhone}>{cli.telefone}</Text>
                       </View>
-                      {cli.tag && (
+                      {!!cli.tag && (
                         <View style={styles.compactGridTag}>
                           <Text style={styles.compactGridTagText}>{cli.tag}</Text>
                         </View>
@@ -905,238 +588,18 @@ export default function ClientesScreen() {
       </View>
 
       {/* =========================================================================
-          MODAL: CADASTRAR NOVO CLIENTE (COM TODOS OS CAMPOS SOLICITADOS)
+          MODAL: CADASTRAR NOVO CLIENTE (FORMULÁRIO COMPARTILHADO COM O NOVO PEDIDO)
       ========================================================================== */}
-      <Modal
+      <ClienteFormModal
         visible={modalNovoClienteAberto}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalNovoClienteAberto(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalNovoClienteContent}>
-
-            {/* CABEÇALHO DO MODAL */}
-            <View style={styles.modalHeader}>
-              <View style={styles.modalHeaderIconWrap}>
-                <Feather name="user-plus" size={20} color={ATELIE_GREEN} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.modalHeaderSub}>ATELIÊ · NOVO CLIENTE</Text>
-                <Text style={styles.modalHeaderTitle}>Cadastrar Novo Cliente</Text>
-                <Text style={styles.modalHeaderDesc}>
-                  Registre o cliente com carinho, endereço completo e preferências gastronômicas.
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.modalCloseCircle}
-                onPress={() => setModalNovoClienteAberto(false)}>
-                <Feather name="x" size={16} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            {/* ALERTA DE ERRO */}
-            {erroForm && (
-              <View style={styles.errorAlertBar}>
-                <Feather name="alert-circle" size={14} color="#DC2626" />
-                <Text style={styles.errorAlertText}>{erroForm}</Text>
-              </View>
-            )}
-
-            {/* FORMULÁRIO ROLÁVEL */}
-            <ScrollView style={styles.formScroll} contentContainerStyle={styles.formScrollContent}>
-
-              {/* SEÇÃO 1: DADOS BÁSICOS */}
-              <View style={styles.formSection}>
-                <Text style={styles.formSectionTitle}>1. IDENTIFICAÇÃO DO CLIENTE</Text>
-
-                <View style={styles.formRow}>
-                  <View style={{ flex: 1.4 }}>
-                    <Text style={styles.formLabel}>Nome Completo *</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Ex: Mariana Albuquerque"
-                      placeholderTextColor="#94A3B8"
-                      value={formNome}
-                      onChangeText={setFormNome}
-                    />
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.formLabel}>Telefone / WhatsApp *</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="(21) 98844-3321"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="phone-pad"
-                      value={formTelefone}
-                      onChangeText={(t) => setFormTelefone(formatarTelefone(t))}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={{ flex: 1.2 }}>
-                    <Text style={styles.formLabel}>E-mail</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="exemplo@gmail.com"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="email-address"
-                      value={formEmail}
-                      onChangeText={setFormEmail}
-                    />
-                  </View>
-
-                  <View style={{ flex: 0.8 }}>
-                    <Text style={styles.formLabel}>Data de Nascimento</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="DD/MM/AAAA"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="numeric"
-                      value={formDataNascimento}
-                      onChangeText={(t) => setFormDataNascimento(formatarData(t))}
-                    />
-                  </View>
-
-                  <View style={{ flex: 0.8 }}>
-                    <Text style={styles.formLabel}>Tag / Segmento</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Ex: VIP, Noiva..."
-                      placeholderTextColor="#94A3B8"
-                      value={formTag}
-                      onChangeText={setFormTag}
-                    />
-                  </View>
-                </View>
-
-                {/* SUGESTÕES RÁPIDAS DE TAGS */}
-                <View style={styles.tagsQuickRow}>
-                  <Text style={styles.tagsQuickLabel}>Sugestões:</Text>
-                  {['VIP', 'Noiva', 'Corporativo', 'Festa Infantil', 'Frequente'].map((tg) => (
-                    <TouchableOpacity
-                      key={tg}
-                      style={[styles.tagQuickChip, formTag === tg && styles.tagQuickChipActive]}
-                      onPress={() => setFormTag(tg)}>
-                      <Text style={[styles.tagQuickChipText, formTag === tg && styles.tagQuickChipTextActive]}>
-                        {tg}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-              {/* SEÇÃO 2: ENDEREÇO DE ENTREGA */}
-              <View style={styles.formSection}>
-                <Text style={styles.formSectionTitle}>2. ENDEREÇO DE ENTREGA</Text>
-
-                <View style={styles.formRow}>
-                  <View style={{ width: 140 }}>
-                    <Text style={styles.formLabel}>CEP</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="22040-002"
-                      placeholderTextColor="#94A3B8"
-                      keyboardType="numeric"
-                      value={formCep}
-                      onChangeText={(t) => setFormCep(formatarCep(t))}
-                    />
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.formLabel}>Rua / Logradouro</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Ex: Rua Barata Ribeiro"
-                      placeholderTextColor="#94A3B8"
-                      value={formRua}
-                      onChangeText={setFormRua}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.formRow}>
-                  <View style={{ width: 100 }}>
-                    <Text style={styles.formLabel}>Número</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="450"
-                      placeholderTextColor="#94A3B8"
-                      value={formNumero}
-                      onChangeText={setFormNumero}
-                    />
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.formLabel}>Complemento / Ap</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Apto 802, Bloco 1..."
-                      placeholderTextColor="#94A3B8"
-                      value={formComplemento}
-                      onChangeText={setFormComplemento}
-                    />
-                  </View>
-
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.formLabel}>Bairro</Text>
-                    <TextInput
-                      style={styles.formInput}
-                      placeholder="Copacabana"
-                      placeholderTextColor="#94A3B8"
-                      value={formBairro}
-                      onChangeText={setFormBairro}
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* SEÇÃO 3: PREFERÊNCIAS E RESTRIÇÕES */}
-              <View style={styles.formSection}>
-                <Text style={styles.formSectionTitle}>3. PREFERÊNCIAS E RESTRIÇÕES GASTRONÔMICAS</Text>
-                <Text style={styles.formHint}>
-                  Anote alergias, intolerâncias (glúten/lactose), doces favoritos, cores de fita ou cuidados especiais.
-                </Text>
-                <TextInput
-                  style={styles.formTextarea}
-                  placeholder="Ex: Alérgica a nozes e amendoim. Adora ganache de pistache e sempre pede laço rosa de presente..."
-                  placeholderTextColor="#94A3B8"
-                  multiline
-                  numberOfLines={3}
-                  value={formPreferencias}
-                  onChangeText={setFormPreferencias}
-                />
-              </View>
-
-            </ScrollView>
-
-            {/* FOOTER DO MODAL DE CADASTRO */}
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={styles.btnModalCancel}
-                onPress={() => setModalNovoClienteAberto(false)}>
-                <Text style={styles.btnModalCancelText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.btnModalSave}
-                onPress={handleSalvarNovoCliente}
-                disabled={salvandoCliente}>
-                {salvandoCliente ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Feather name="check" size={15} color="#FFFFFF" />
-                    <Text style={styles.btnModalSaveText}>Salvar Cliente</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-
-          </View>
-        </View>
-      </Modal>
+        onClose={() => {
+          setModalNovoClienteAberto(false);
+          setClienteEmEdicao(null);
+        }}
+        onSalvo={handleClienteSalvo}
+        clienteInicial={clienteEmEdicao ? paraFormulario(clienteEmEdicao) : null}
+        revendedoraFixa={escopo.revendedoraId}
+      />
 
       {/* =========================================================================
           MODAL / GAVETA: DETALHES COMPLETOS DO REGISTRO DO CLIENTE (DOSSIÊ)
@@ -1146,7 +609,10 @@ export default function ClientesScreen() {
           visible={!!clienteDetalhe}
           transparent
           animationType="fade"
-          onRequestClose={() => setClienteDetalhe(null)}>
+          onRequestClose={() => {
+            setClienteDetalhe(null);
+            setConfirmandoInativacao(false);
+          }}>
           <View style={styles.modalBackdrop}>
             <View style={styles.modalDossierContent}>
 
@@ -1161,7 +627,7 @@ export default function ClientesScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <Text style={styles.dossierModalName}>{clienteDetalhe.nome}</Text>
-                    {clienteDetalhe.tag && (
+                    {!!clienteDetalhe.tag && (
                       <View style={styles.clientTagPill}>
                         <Text style={styles.clientTagPillText}>{clienteDetalhe.tag}</Text>
                       </View>
@@ -1170,6 +636,30 @@ export default function ClientesScreen() {
                   <Text style={styles.dossierModalSub}>
                     {clienteDetalhe.telefone} • {clienteDetalhe.email || 'Sem e-mail'}
                   </Text>
+                  <View style={styles.dossierOrigemRow}>
+                    <View style={[styles.origemPill, clienteDetalhe.revendedoraId ? styles.origemPillRevenda : styles.origemPillDireto]}>
+                      <Feather
+                        name={clienteDetalhe.revendedoraId ? 'briefcase' : 'home'}
+                        size={11}
+                        color={clienteDetalhe.revendedoraId ? '#7C3AED' : '#2563EB'}
+                      />
+                      <Text style={[styles.origemPillText, { color: clienteDetalhe.revendedoraId ? '#6D28D9' : '#1D4ED8' }]}>
+                        {clienteDetalhe.revendedoraId
+                          ? `Cliente de: ${clienteDetalhe.revendedoraNome || 'Revendedora'}`
+                          : 'Cliente direto (ateliê)'}
+                      </Text>
+                    </View>
+                    {clienteDetalhe.cpf_cnpj ? (
+                      <Text style={styles.dossierDocText}>
+                        {clienteDetalhe.cpf_cnpj.replace(/\D/g, '').length > 11 ? 'CNPJ' : 'CPF'} {clienteDetalhe.cpf_cnpj}
+                      </Text>
+                    ) : null}
+                    {clienteDetalhe.status === 'inativo' && (
+                      <View style={styles.inativoPill}>
+                        <Text style={styles.inativoPillText}>INATIVO</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
 
                 <View style={styles.dossierModalHeaderBtns}>
@@ -1189,6 +679,44 @@ export default function ClientesScreen() {
                     <Feather name="x" size={16} color="#64748B" />
                   </TouchableOpacity>
                 </View>
+              </View>
+
+              {/* AÇÕES DO CLIENTE */}
+              <View style={styles.dossierActionsBar}>
+                <TouchableOpacity style={styles.dossierActionWpp} onPress={() => abrirWhatsAppCliente(clienteDetalhe)}>
+                  <Feather name="message-circle" size={14} color="#16A34A" />
+                  <Text style={styles.dossierActionWppText}>WhatsApp</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.dossierActionBtn}
+                  onPress={() => {
+                    abrirEdicaoCliente(clienteDetalhe);
+                    setClienteDetalhe(null);
+                  }}>
+                  <Feather name="edit-2" size={14} color="#475569" />
+                  <Text style={styles.dossierActionBtnText}>Editar</Text>
+                </TouchableOpacity>
+                {clienteDetalhe.status === 'inativo' ? (
+                  <TouchableOpacity style={styles.dossierActionBtn} onPress={() => alternarStatusCliente(clienteDetalhe)}>
+                    <Feather name="rotate-ccw" size={14} color={ATELIE_GREEN} />
+                    <Text style={[styles.dossierActionBtnText, { color: ATELIE_GREEN }]}>Reativar cliente</Text>
+                  </TouchableOpacity>
+                ) : confirmandoInativacao ? (
+                  <View style={styles.dossierConfirmRow}>
+                    <Text style={styles.dossierConfirmText}>Inativar este cliente?</Text>
+                    <TouchableOpacity style={styles.dossierConfirmYes} onPress={() => alternarStatusCliente(clienteDetalhe)}>
+                      <Text style={styles.dossierConfirmYesText}>Sim, inativar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setConfirmandoInativacao(false)}>
+                      <Text style={styles.dossierConfirmNoText}>Cancelar</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.dossierActionBtn} onPress={() => setConfirmandoInativacao(true)}>
+                    <Feather name="user-x" size={14} color="#DC2626" />
+                    <Text style={[styles.dossierActionBtnText, { color: '#DC2626' }]}>Inativar</Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {/* CONTEÚDO SCROLLÁVEL DO REGISTRO DO CLIENTE */}
@@ -1235,9 +763,15 @@ export default function ClientesScreen() {
                     </Text>
                     <Text style={styles.infoCardSecondary}>
                       {clienteDetalhe.complemento ? `${clienteDetalhe.complemento} • ` : ''}
-                      {clienteDetalhe.bairro || 'Copacabana'}, {clienteDetalhe.cidade || 'Rio de Janeiro'} - {clienteDetalhe.estado || 'RJ'}
+                      {[clienteDetalhe.bairro, clienteDetalhe.cidade && `${clienteDetalhe.cidade}${clienteDetalhe.estado ? ` - ${clienteDetalhe.estado}` : ''}`]
+                        .filter(Boolean)
+                        .join(', ') || 'Bairro e cidade não informados'}
                     </Text>
                     <Text style={styles.infoCardCep}>CEP: {clienteDetalhe.cep || 'Não cadastrado'}</Text>
+                    <TouchableOpacity style={styles.copyAddressBtn} onPress={() => copiarEndereco(clienteDetalhe)}>
+                      <Feather name="copy" size={12} color={ATELIE_GREEN} />
+                      <Text style={styles.copyAddressBtnText}>Copiar endereço</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.infoCardBox}>
@@ -1314,7 +848,6 @@ export default function ClientesScreen() {
         onClose={() => setModalNovoPedidoAberto(false)}
         onPedidoCriado={(pedido) => {
           exibirToast(`🎉 Pedido registrado com sucesso no ateliê!`);
-          carregarClientesDoSupabase();
         }}
       />
 
@@ -1334,6 +867,162 @@ export default function ClientesScreen() {
 // ESTILOS COM A MESMA IDENTIDADE DO MODAL DE NOVO PEDIDO (SORA + MANROPE + VERDE SÁLVIA)
 // ============================================================================
 const styles = StyleSheet.create({
+  // ORIGEM / DOCUMENTO / STATUS NO DOSSIÊ
+  dossierOrigemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 6,
+  },
+  origemPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  origemPillDireto: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  origemPillRevenda: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+  },
+  origemPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    fontFamily: FONT_SANS,
+  },
+  dossierDocText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+    fontFamily: FONT_SANS,
+  },
+  inativoPill: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  inativoPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#DC2626',
+    letterSpacing: 0.5,
+    fontFamily: FONT_SANS,
+  },
+  cardOrigemText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#6D28D9',
+    fontFamily: FONT_SANS,
+    marginBottom: 2,
+  },
+
+  // AÇÕES DO DOSSIÊ (WHATSAPP, EDITAR, INATIVAR)
+  dossierActionsBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FCFDFE',
+  },
+  dossierActionWpp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+  },
+  dossierActionWppText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#16A34A',
+    fontFamily: FONT_SANS,
+  },
+  dossierActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  dossierActionBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+    fontFamily: FONT_SANS,
+  },
+  dossierConfirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  dossierConfirmText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#991B1B',
+    fontFamily: FONT_SANS,
+  },
+  dossierConfirmYes: {
+    backgroundColor: '#DC2626',
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  dossierConfirmYesText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    fontFamily: FONT_SANS,
+  },
+  dossierConfirmNoText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    fontFamily: FONT_SANS,
+  },
+  copyAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: '#CDE7DC',
+    backgroundColor: '#FFFFFF',
+  },
+  copyAddressBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: ATELIE_GREEN,
+    fontFamily: FONT_SANS,
+  },
+
   viewport: {
     flex: 1,
     backgroundColor: '#F8FAFC',
@@ -1582,8 +1271,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    padding: 16,
-    gap: 12,
+    padding: 14,
+    gap: 10,
     ...Platform.select({
       web: {
         transition: 'all 0.16s ease',
@@ -1594,6 +1283,28 @@ const styles = StyleSheet.create({
   dossierCardDesktop: {
     width: 'calc(50% - 8px)' as any,
   },
+  // CARD DE CLIENTE COMPACTO
+  dossierCardLargo: { width: 'calc(33.333% - 11px)' as any },
+  ccHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ccAvatar: { width: 38, height: 38, borderRadius: 11, backgroundColor: ATELIE_TINT, alignItems: 'center', justifyContent: 'center' },
+  ccAvatarText: { fontFamily: FONT_DISPLAY, fontSize: 13, fontWeight: '800', color: ATELIE_GREEN },
+  ccNome: { fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: '700', color: '#1E293B', flexShrink: 1 },
+  ccSubLinha: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  ccSub: { flexShrink: 1, fontFamily: FONT_SANS, fontSize: 11, color: '#64748B', marginRight: 4 },
+  ccStatusDot: { width: 6, height: 6, borderRadius: 3 },
+  ccStatusTexto: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700' },
+  ccMetricas: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 10, paddingVertical: 7 },
+  ccMetrica: { flex: 1, alignItems: 'center' },
+  ccMetricaRotulo: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', color: '#94A3B8', letterSpacing: 0.4 },
+  ccMetricaValor: { fontFamily: FONT_DISPLAY, fontSize: 13, fontWeight: '800', color: '#0F172A', marginTop: 1 },
+  ccDivisor: { width: 1, height: 22, backgroundColor: '#E2E8F0' },
+  ccInfos: { gap: 3 },
+  ccInfo: { fontFamily: FONT_SANS, fontSize: 11.5, color: '#475569' },
+  ccInfoRotulo: { color: '#94A3B8', fontWeight: '600' },
+  ccInfoForte: { color: '#1E293B', fontWeight: '700' },
+  ccRodape: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  ccRodapeTexto: { flex: 1, fontFamily: FONT_SANS, fontSize: 11, color: '#64748B' },
+  ccNiver: { flex: 0 },
   dossierCardMobile: {
     width: '100%',
   },
@@ -1983,58 +1694,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  modalNovoClienteContent: {
-    width: '100%',
-    maxWidth: 720,
-    maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    overflow: 'hidden',
-    flexDirection: 'column',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
-      },
-    }),
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 22,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
-  },
-  modalHeaderIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    backgroundColor: ATELIE_TINT,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalHeaderSub: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-    color: ATELIE_GREEN,
-    fontFamily: FONT_SANS,
-  },
-  modalHeaderTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1E293B',
-    fontFamily: FONT_DISPLAY,
-  },
-  modalHeaderDesc: {
-    fontSize: 11,
-    color: '#64748B',
-    fontFamily: FONT_SANS,
-  },
   modalCloseCircle: {
     width: 32,
     height: 32,
@@ -2042,146 +1701,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  errorAlertBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#FEF2F2',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FECACA',
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-  },
-  errorAlertText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#DC2626',
-    fontFamily: FONT_SANS,
-  },
-  formScroll: {
-    flex: 1,
-  },
-  formScrollContent: {
-    padding: 22,
-    gap: 20,
-  },
-  formSection: {
-    gap: 10,
-  },
-  formSectionTitle: {
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    color: '#475569',
-    fontFamily: FONT_SANS,
-  },
-  formHint: {
-    fontSize: 11,
-    color: '#64748B',
-    fontFamily: FONT_SANS,
-    marginTop: -4,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  formLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginBottom: 4,
-    fontFamily: FONT_SANS,
-  },
-  formInput: {
-    height: 38,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    fontSize: 12,
-    color: '#0F172A',
-    fontFamily: FONT_SANS,
-  },
-  formTextarea: {
-    height: 70,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 12,
-    color: '#0F172A',
-    fontFamily: FONT_SANS,
-    textAlignVertical: 'top',
-  },
-  tagsQuickRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
-    marginTop: 2,
-  },
-  tagsQuickLabel: {
-    fontSize: 11,
-    color: '#64748B',
-    fontFamily: FONT_SANS,
-  },
-  tagQuickChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    backgroundColor: '#F1F5F9',
-  },
-  tagQuickChipActive: {
-    backgroundColor: ATELIE_TINT,
-  },
-  tagQuickChipText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#64748B',
-  },
-  tagQuickChipTextActive: {
-    color: ATELIE_GREEN,
-    fontWeight: '800',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 22,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
-    gap: 12,
-  },
-  btnModalCancel: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-  },
-  btnModalCancelText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#64748B',
-    fontFamily: FONT_SANS,
-  },
-  btnModalSave: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: ATELIE_GREEN,
-    paddingHorizontal: 18,
-    paddingVertical: 9,
-    borderRadius: 8,
-  },
-  btnModalSaveText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    fontFamily: FONT_DISPLAY,
   },
 
   // MODAL / DOSSIÊ DE DETALHES DO CLIENTE

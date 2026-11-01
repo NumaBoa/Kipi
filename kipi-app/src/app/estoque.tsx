@@ -12,7 +12,35 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import Sidebar from '@/components/Sidebar';
+import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
+import {
+  useEstoqueVitrine,
+  adicionarAoEstoque,
+  removerDoEstoque,
+  useEstoqueFreezer,
+  retirarDoFreezer,
+  produtoAtivo,
+  aceitaEncomenda,
+} from '@/lib/estoqueVitrine';
+import {
+  useInsumos,
+  salvarInsumo,
+  excluirInsumo,
+  ajustarEstoqueInsumo,
+  capacidadeDoInsumo,
+  custoPorUnidadeEstoque,
+  fatorDaUnidade,
+  unidadeFracionadaDe,
+  ROTULO_ARMAZENAMENTO,
+  congelarMassas,
+  type Armazenamento,
+} from '@/lib/insumos';
+import { registrarProducao, useHistoricoProducao } from '@/lib/historicoProducao';
+import { resumoDePerdas, ultimosDias, custoDoDescarte, EMOJI_MOTIVO } from '@/lib/descarte';
+import DescarteModal from '@/components/DescarteModal';
+import ProducaoRapidaModal, { type ModoProducaoRapida } from '@/components/ProducaoRapidaModal';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -45,10 +73,11 @@ export interface EstoqueProduto {
   categoria: string;
   fotoEmoji: string;
   precoVenda: number;
+  custo: number; // R$ por unidade (0 = sem custo cadastrado)
   estoqueAssado: number; // diminui com vendas
   estoqueCongelado: number; // para assar
   minimoAssado: number;
-  minimoCongelado: number;
+  minimoCongelado: number; // 0 = produto não usa freezer
 }
 
 // INGREDIENTES COM CAPACIDADE DE RECEITAS
@@ -59,6 +88,7 @@ export interface EstoqueIngrediente {
   quantidadeAtual: number;
   unidade: string;
   minimoSeguranca: number;
+  custoUnitario: number; // R$ por unidade de medida (custo médio das compras)
   precoEstimadoCompra: number;
   armazenamento: string;
   emoji: string;
@@ -69,204 +99,265 @@ export interface EstoqueIngrediente {
   }[];
 }
 
-// EMBALAGENS
+// EMBALAGENS E OUTROS MATERIAIS (velas, toppers, etiquetas...)
 export interface EstoqueEmbalagem {
   id: string;
+  tipo: 'embalagem' | 'outro';
   nome: string;
   quantidadeAtual: number;
   unidade: string;
   minimoSeguranca: number;
+  custoUnitario: number; // R$ por unidade de medida (custo médio das compras)
   precoEstimadoCompra: number;
   emoji: string;
   usadoEm: string;
 }
 
-const PRODUTOS_ESTOQUE_MOCK: EstoqueProduto[] = [
-  {
-    id: 'p1',
-    nome: 'Cookie Black Nutella & Avelã',
-    categoria: 'Cookies',
-    fotoEmoji: '🍪',
-    precoVenda: 18.90,
-    estoqueAssado: 4, // BAIXO!
-    estoqueCongelado: 36, // tem bastante congelado
-    minimoAssado: 8,
-    minimoCongelado: 12,
-  },
-  {
-    id: 'p2',
-    nome: 'Cookie Tradicional Gotas Belga',
-    categoria: 'Cookies',
-    fotoEmoji: '🍪',
-    precoVenda: 15.90,
-    estoqueAssado: 12,
-    estoqueCongelado: 24,
-    minimoAssado: 8,
-    minimoCongelado: 12,
-  },
-  {
-    id: 'p3',
-    nome: 'Bento Cake Pistache & Framboesa',
-    categoria: 'Bolos & Bentôs',
-    fotoEmoji: '🎂',
-    precoVenda: 65.00,
-    estoqueAssado: 2, // BAIXO!
-    estoqueCongelado: 4, // BAIXO NO FREEZER TAMBÉM!
-    minimoAssado: 4,
-    minimoCongelado: 6,
-  },
-  {
-    id: 'p4',
-    nome: 'Croissant Francês Folhado Manteiga',
-    categoria: 'Folhados',
-    fotoEmoji: '🥐',
-    precoVenda: 16.00,
-    estoqueAssado: 6,
-    estoqueCongelado: 18,
-    minimoAssado: 6,
-    minimoCongelado: 10,
-  },
-  {
-    id: 'p5',
-    nome: 'Pão de Mel Artesanal Recheado',
-    categoria: 'Doces Finos',
-    fotoEmoji: '🍯',
-    precoVenda: 12.00,
-    estoqueAssado: 14,
-    estoqueCongelado: 0, // ZERADO!
-    minimoAssado: 8,
-    minimoCongelado: 10,
-  },
-];
+// Nome, preço, custo, categoria, assados e congelados vêm dos estoques compartilhados
+// (lib/estoqueVitrine). Aqui ficam só o emoji e o mínimo do freezer de cada produto.
+const MINIMO_FREEZER: Record<string, number> = {
+  'prod-1': 12,
+  'prod-2': 12,
+  'prod-4': 6,
+  'prod-11': 10,
+  'prod-12': 10,
+};
 
-const INGREDIENTES_ESTOQUE_MOCK: EstoqueIngrediente[] = [
-  {
-    id: 'ing-1',
-    nome: 'Manteiga Extra sem Sal 82%',
-    tipo: 'Laticínio',
-    quantidadeAtual: 1.2, // 1.2 kg
-    unidade: 'kg',
-    minimoSeguranca: 2.5, // ALERTA!
-    precoEstimadoCompra: 48.90,
-    armazenamento: 'Refrigerado',
-    emoji: '🧈',
-    consumoPorFornada: [
-      { receitaNome: 'Cookie Black (12 un)', gastoPorFornada: 0.15, fornadasPossiveis: 8 },
-      { receitaNome: 'Croissant (10 un)', gastoPorFornada: 0.35, fornadasPossiveis: 3 }, // GARGALO!
-    ],
-  },
-  {
-    id: 'ing-2',
-    nome: 'Chocolate Belga 54% Callebaut',
-    tipo: 'Chocolate Nobre',
-    quantidadeAtual: 4.8,
-    unidade: 'kg',
-    minimoSeguranca: 2.0,
-    precoEstimadoCompra: 189.90,
-    armazenamento: 'Seco',
-    emoji: '🍫',
-    consumoPorFornada: [
-      { receitaNome: 'Cookie Black (12 un)', gastoPorFornada: 0.18, fornadasPossiveis: 26 },
-      { receitaNome: 'Brigadeiro Belga (100 un)', gastoPorFornada: 0.40, fornadasPossiveis: 12 },
-    ],
-  },
-  {
-    id: 'ing-3',
-    nome: 'Farinha de Trigo Anaconda Tipo 1',
-    tipo: 'Farináceo',
-    quantidadeAtual: 18.0,
-    unidade: 'kg',
-    minimoSeguranca: 10.0,
-    precoEstimadoCompra: 32.50,
-    armazenamento: 'Seco',
-    emoji: '🌾',
-    consumoPorFornada: [
-      { receitaNome: 'Cookie Black (12 un)', gastoPorFornada: 0.35, fornadasPossiveis: 51 },
-      { receitaNome: 'Bento Cake (1 bolo)', gastoPorFornada: 0.12, fornadasPossiveis: 150 },
-    ],
-  },
-  {
-    id: 'ing-4',
-    nome: 'Pasta Pura de Pistache Siciliano',
-    tipo: 'Pasta Concentrada',
-    quantidadeAtual: 0.45,
-    unidade: 'kg',
-    minimoSeguranca: 0.8, // ALERTA!
-    precoEstimadoCompra: 145.00,
-    armazenamento: 'Refrigerado',
-    emoji: '🥜',
-    consumoPorFornada: [
-      { receitaNome: 'Bento Cake Pistache (1 un)', gastoPorFornada: 0.06, fornadasPossiveis: 7 },
-    ],
-  },
-  {
-    id: 'ing-5',
-    nome: 'Frutas Vermelhas Frescas',
-    tipo: 'Fruta Fresca',
-    quantidadeAtual: 0.3,
-    unidade: 'kg',
-    minimoSeguranca: 0.8, // ALERTA!
-    precoEstimadoCompra: 68.00,
-    armazenamento: 'In Natura',
-    emoji: '🍓',
-    consumoPorFornada: [
-      { receitaNome: 'Geleia e Decoração Bento Cake', gastoPorFornada: 0.08, fornadasPossiveis: 3 },
-    ],
-  },
-];
+const EMOJI_PRODUTO: Record<string, string> = { 'prod-11': '🥐', 'prod-12': '🍯' };
+const EMOJI_CATEGORIA: Record<string, string> = {
+  Cookies: '🍪',
+  'Bolos & Bentos': '🎂',
+  Macarons: '✨',
+  Sobremesas: '🥧',
+  'Doces Finos': '🍬',
+  Presentes: '🎁',
+  Folhados: '🥐',
+  Bebidas: '☕',
+};
+type TipoMaterial = 'ingrediente' | 'embalagem' | 'outro';
+const ROTULO_TIPO_MATERIAL: Record<TipoMaterial, string> = { ingrediente: 'Ingrediente', embalagem: 'Embalagem', outro: 'Outro' };
+const UNIDADES_MATERIAL = ['g', 'kg', 'ml', 'L', 'un', 'm', 'rolo', 'pacote'];
+const ARMAZENAMENTOS = Object.values(ROTULO_ARMAZENAMENTO);
 
-const EMBALAGENS_ESTOQUE_MOCK: EstoqueEmbalagem[] = [
-  {
-    id: 'emb-1',
-    nome: 'Caixa Cookie Kraft c/ Visor (6 un)',
-    quantidadeAtual: 120,
-    unidade: 'un',
-    minimoSeguranca: 30,
-    precoEstimadoCompra: 64.90,
-    emoji: '📦',
-    usadoEm: 'Caixas de Cookies Degustação',
-  },
-  {
-    id: 'emb-2',
-    nome: 'Caixa Bentô Cake Biodegradável',
-    quantidadeAtual: 14,
-    unidade: 'un',
-    minimoSeguranca: 25, // ALERTA!
-    precoEstimadoCompra: 98.00,
-    emoji: '🧁',
-    usadoEm: 'Bentô Cakes e Mini Tortas',
-  },
-  {
-    id: 'emb-3',
-    nome: 'Fita de Cetim Dourada Champagne 15mm',
-    quantidadeAtual: 2.5,
-    unidade: 'rolos (50m)',
-    minimoSeguranca: 1.0,
-    precoEstimadoCompra: 19.90,
-    emoji: '🎀',
-    usadoEm: 'Laços para Presente',
-  },
-  {
-    id: 'emb-4',
-    nome: 'Saco Celofane Transparente 15x25cm',
-    quantidadeAtual: 350,
-    unidade: 'un',
-    minimoSeguranca: 100,
-    precoEstimadoCompra: 18.50,
-    emoji: '🛍️',
-    usadoEm: 'Cookies Individuais de Balcão',
-  },
-];
+// "1.234,56" → 1234.56
+const lerNumero = (texto: string) => parseFloat(texto.replace(/\./g, '').replace(',', '.')) || 0;
+const lerQuantidade = (texto: string) => parseFloat(texto.replace(',', '.')) || 0;
+
+// Entrada com valor pago recalcula o custo médio ponderado; baixa só tira a quantidade
+const movimentarMaterial = <T extends { quantidadeAtual: number; custoUnitario: number }>(
+  item: T,
+  delta: number,
+  valorPago: number
+): T => {
+  const novaQtd = Math.max(0, Number((item.quantidadeAtual + delta).toFixed(3)));
+  const custoUnitario =
+    delta > 0 && valorPago > 0 && novaQtd > 0
+      ? (item.quantidadeAtual * item.custoUnitario + valorPago) / novaQtd
+      : item.custoUnitario;
+  return { ...item, quantidadeAtual: novaQtd, custoUnitario };
+};
+
+// Indicador compacto: vários lado a lado formam uma faixa única
+function Indicador({
+  rotulo,
+  valor,
+  detalhe,
+  cor = '#0F172A',
+  primeiro,
+  onPress,
+}: {
+  rotulo: string;
+  valor: string;
+  detalhe?: string;
+  cor?: string;
+  primeiro?: boolean;
+  onPress?: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.statItem, !primeiro && styles.statItemDivider]}
+      disabled={!onPress}
+      onPress={onPress}>
+      <Text style={styles.statLabel}>{rotulo}</Text>
+      <Text style={[styles.statValue, { color: cor }]}>{valor}</Text>
+      {detalhe ? <Text style={styles.statDetail}>{detalhe}</Text> : null}
+    </TouchableOpacity>
+  );
+}
 
 export default function EstoqueCentralScreen() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<EstoqueTab>('produtos');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [produtosEstoque, setProdutosEstoque] = useState<EstoqueProduto[]>(PRODUTOS_ESTOQUE_MOCK);
-  const [ingredientesEstoque, setIngredientesEstoque] = useState<EstoqueIngrediente[]>(INGREDIENTES_ESTOQUE_MOCK);
-  const [embalagensEstoque, setEmbalagensEstoque] = useState<EstoqueEmbalagem[]>(EMBALAGENS_ESTOQUE_MOCK);
+  const [modoProdutos, setModoProdutos] = useState<'cards' | 'lista'>('cards');
+  const [buscaProduto, setBuscaProduto] = useState('');
+
+  // Atalhos Assar / Produzir: abrem o modal aqui mesmo (mesmo registro e histórico da Produção)
+  const [producaoRapida, setProducaoRapida] = useState<{ id: string; modo: ModoProducaoRapida } | null>(null);
+  const irParaAssar = (id: string) => setProducaoRapida({ id, modo: 'assar' });
+  const irParaPreparar = (id: string) => setProducaoRapida({ id, modo: 'preparar' });
+  // "Ver produto" abre o dossiê na tela Produtos. O t força reabrir mesmo vindo do mesmo produto.
+  const verProduto = (id: string) => router.push(`/produtos-estoque?produto=${id}&t=${Date.now()}` as any);
+  const [categoriaFiltro, setCategoriaFiltro] = useState('Todas');
+  const [buscaMaterial, setBuscaMaterial] = useState('');
+
+  // Produtos ativos da vitrine; assados e congelados vêm dos estoques compartilhados:
+  // vendas, fornadas, preparos de massa e perdas já aparecem aqui
+  const vitrine = useEstoqueVitrine();
+  const freezer = useEstoqueFreezer();
+  const produtosEstoque: EstoqueProduto[] = useMemo(
+    () =>
+      vitrine.filter(produtoAtivo).map((v) => ({
+        id: v.id,
+        nome: v.nome,
+        categoria: v.categoria,
+        fotoEmoji: EMOJI_PRODUTO[v.id] ?? EMOJI_CATEGORIA[v.categoria] ?? '🧁',
+        precoVenda: v.preco,
+        custo: v.custo,
+        estoqueAssado: v.estoque,
+        estoqueCongelado: freezer[v.id] ?? 0,
+        minimoAssado: v.estoqueMinimo,
+        minimoCongelado: MINIMO_FREEZER[v.id] ?? 0,
+      })),
+    [vitrine, freezer]
+  );
+  const categoriasProdutos = useMemo(
+    () => ['Todas', ...Array.from(new Set(produtosEstoque.map((p) => p.categoria)))],
+    [produtosEstoque]
+  );
+  const produtosFiltrados = useMemo(() => {
+    const termo = buscaProduto.trim().toLowerCase();
+    return produtosEstoque.filter(
+      (p) =>
+        (categoriaFiltro === 'Todas' || p.categoria === categoriaFiltro) &&
+        (!termo || p.nome.toLowerCase().includes(termo) || p.categoria.toLowerCase().includes(termo))
+    );
+  }, [produtosEstoque, categoriaFiltro, buscaProduto]);
+
+  // Indicadores de produtos (todos os ativos, independente do filtro)
+  const totalProntos = produtosEstoque.reduce((acc, p) => acc + p.estoqueAssado, 0);
+  const totalCongelados = produtosEstoque.reduce((acc, p) => acc + p.estoqueCongelado, 0);
+  const valorVitrine = produtosEstoque.reduce((acc, p) => acc + p.estoqueAssado * p.precoVenda, 0);
+  const valorCongelados = produtosEstoque.reduce((acc, p) => acc + p.estoqueCongelado * p.precoVenda, 0);
+  const totalSobEncomenda = vitrine.filter((v) => produtoAtivo(v) && aceitaEncomenda(v)).length;
+
+  // Materiais vêm da lista única de insumos (a mesma de Insumos & Receitas, Produção e Visão Geral).
+  // Aqui a quantidade e o custo ficam na unidade de estoque (kg, L, un...).
+  const insumos = useInsumos();
+  const nomeProduto = (id: string) => vitrine.find((v) => v.id === id)?.nome ?? id;
+  const ingredientesEstoque: EstoqueIngrediente[] = insumos
+    .filter((i) => i.tipo === 'ingrediente')
+    .map((i) => ({
+      id: i.id,
+      nome: i.nome,
+      tipo: i.categoria || 'Ingrediente',
+      quantidadeAtual: i.quantidadeEstoque,
+      unidade: i.unidade,
+      minimoSeguranca: i.estoqueMinimo,
+      custoUnitario: custoPorUnidadeEstoque(i),
+      precoEstimadoCompra: 0,
+      armazenamento: ROTULO_ARMAZENAMENTO[i.armazenamento],
+      emoji: i.emoji,
+      consumoPorFornada: capacidadeDoInsumo(i, nomeProduto),
+    }));
+  const embalagensEstoque: EstoqueEmbalagem[] = insumos
+    .filter((i) => i.tipo !== 'ingrediente')
+    .map((i): EstoqueEmbalagem => ({
+      id: i.id,
+      tipo: i.tipo === 'outro' ? 'outro' : 'embalagem',
+      nome: i.nome,
+      quantidadeAtual: i.quantidadeEstoque,
+      unidade: i.unidade,
+      minimoSeguranca: i.estoqueMinimo,
+      custoUnitario: custoPorUnidadeEstoque(i),
+      precoEstimadoCompra: 0,
+      emoji: i.emoji,
+      usadoEm: i.usadoEm || '',
+    }));
+
+  // Descarte: id do produto, "" = escolher na lista, null = fechado
+  const [descarteId, setDescarteId] = useState<string | null>(null);
+  const perdas30 = resumoDePerdas(useHistoricoProducao(), ultimosDias(30));
+  // DETALHE DOS INDICADORES: clique abre o que o número quer dizer e de onde ele vem
+  type DetalheKpi = { titulo: string; explicacao: string; linhas: { nome: string; valor: string; alerta?: boolean }[] };
+  const [kpiDetalhe, setKpiDetalhe] = useState<DetalheKpi | null>(null);
+  const qtd = (n: number, un: string) => `${Number(n.toFixed(2)).toLocaleString('pt-BR')} ${un}`;
+  const detalhes = {
+    valorVitrine: (): DetalheKpi => ({
+      titulo: `Valor em vitrine · ${formatMoney(valorVitrine)}`,
+      explicacao: `Quanto vale, pelo preço de venda, o que está pronto na vitrine. Com as massas do freezer: ${formatMoney(valorVitrine + valorCongelados)}.`,
+      linhas: produtosEstoque
+        .filter((p) => p.estoqueAssado > 0)
+        .map((p) => ({ nome: `${p.nome} (${p.estoqueAssado} × ${formatMoney(p.precoVenda)})`, valor: formatMoney(p.estoqueAssado * p.precoVenda) })),
+    }),
+    prontos: (): DetalheKpi => ({
+      titulo: `♨️ Prontos · ${totalProntos} un`,
+      explicacao: 'Unidades assadas na vitrine, prontas para vender. Em vermelho, abaixo do mínimo.',
+      linhas: produtosEstoque.map((p) => ({ nome: p.nome, valor: `${p.estoqueAssado} un (mín. ${p.minimoAssado})`, alerta: p.estoqueAssado <= p.minimoAssado })),
+    }),
+    congelados: (): DetalheKpi => ({
+      titulo: `🧊 Congelados · ${totalCongelados} un`,
+      explicacao: 'Massas no freezer, prontas para assar. Em vermelho, abaixo do mínimo.',
+      linhas: produtosEstoque
+        .filter((p) => p.minimoCongelado > 0 || p.estoqueCongelado > 0)
+        .map((p) => ({ nome: p.nome, valor: `${p.estoqueCongelado} un (mín. ${p.minimoCongelado})`, alerta: p.minimoCongelado > 0 && p.estoqueCongelado <= p.minimoCongelado })),
+    }),
+    encomenda: (): DetalheKpi => ({
+      titulo: `Sob encomenda · ${totalSobEncomenda}`,
+      explicacao: 'Produtos que aceitam encomenda (só encomenda ou híbridos). Saem da vitrine só quando a encomenda é entregue.',
+      linhas: vitrine
+        .filter((v) => produtoAtivo(v) && aceitaEncomenda(v))
+        .map((v) => ({ nome: v.nome, valor: v.disponibilidade === 'hibrido' ? 'Híbrido' : 'Só encomenda' })),
+    }),
+    itens: (): DetalheKpi => ({
+      titulo: `Itens · ${totalMateriais}`,
+      explicacao: 'Ingredientes, embalagens e outros materiais cadastrados (a mesma lista de Insumos & Receitas).',
+      linhas: [...ingredientesEstoque, ...embalagensEstoque].map((m) => ({ nome: `${m.emoji} ${m.nome}`, valor: qtd(m.quantidadeAtual, m.unidade) })),
+    }),
+    critico: (): DetalheKpi => ({
+      titulo: `Estoque crítico · ${listaComprasSugerida.length}`,
+      explicacao: 'Materiais que chegaram no estoque mínimo ou abaixo dele e precisam de compra.',
+      linhas: [...ingredientesEstoque, ...embalagensEstoque]
+        .filter((m) => m.quantidadeAtual <= m.minimoSeguranca)
+        .map((m) => ({ nome: `${m.emoji} ${m.nome}`, valor: `${qtd(m.quantidadeAtual, m.unidade)} (mín. ${qtd(m.minimoSeguranca, m.unidade)})`, alerta: true })),
+    }),
+    perdas: (): DetalheKpi => ({
+      titulo: `🗑 Perdas 30 dias · ${formatMoney(perdas30.total)}`,
+      explicacao: `${perdas30.unidades} un descartadas. Custo de material (insumos da receita) que se perdeu; desconta do lucro na Visão Geral.`,
+      linhas: [
+        ...perdas30.porMotivo.map((m) => ({ nome: `${EMOJI_MOTIVO[m.motivo] ?? '🗑'} ${m.motivo} · ${m.unidades} un`, valor: formatMoney(m.custo), alerta: true })),
+        ...perdas30.lista.map((r) => ({
+          nome: `${new Date(r.data).toLocaleDateString('pt-BR')} · ${r.quantidade}× ${r.produtoNome} (${r.motivo ?? 'Outro'})`,
+          valor: formatMoney(custoDoDescarte(r)),
+        })),
+      ],
+    }),
+    almoxarifado: (): DetalheKpi => ({
+      titulo: `Valor em almoxarifado · ${formatMoney(valorAlmoxarifado)}`,
+      explicacao: 'Quanto vale o estoque de materiais pelo custo médio das compras (quantidade × custo).',
+      linhas: [...ingredientesEstoque, ...embalagensEstoque]
+        .map((m) => ({ nome: `${m.emoji} ${m.nome}`, valor: formatMoney(m.quantidadeAtual * m.custoUnitario), total: m.quantidadeAtual * m.custoUnitario }))
+        .sort((a, b) => b.total - a.total),
+    }),
+  };
+
+  // Busca de materiais por nome ou tipo
+  const termoMaterial = buscaMaterial.trim().toLowerCase();
+  const casaBuscaMaterial = (...textos: string[]) =>
+    !termoMaterial || textos.some((t) => t.toLowerCase().includes(termoMaterial));
+  const ingredientesFiltrados = ingredientesEstoque.filter((i) => casaBuscaMaterial(i.nome, i.tipo, 'ingrediente'));
+  const embalagensFiltradas = embalagensEstoque.filter((e) =>
+    casaBuscaMaterial(e.nome, ROTULO_TIPO_MATERIAL[e.tipo], e.usadoEm)
+  );
+
+  // Indicadores de materiais (ingredientes + embalagens + outros)
+  const totalMateriais = ingredientesEstoque.length + embalagensEstoque.length;
+  const valorAlmoxarifado = [...ingredientesEstoque, ...embalagensEstoque].reduce(
+    (acc, m) => acc + m.quantidadeAtual * m.custoUnitario,
+    0
+  );
 
   // Modal de Ajuste Rápido (+ / -)
   const [modalAjusteVisible, setModalAjusteVisible] = useState(false);
@@ -274,6 +365,126 @@ export default function EstoqueCentralScreen() {
   const [itemAjusteTipo, setItemAjusteTipo] = useState<'assado' | 'congelado' | 'ingrediente' | 'embalagem'>('assado');
   const [itemAjusteId, setItemAjusteId] = useState('');
   const [ajusteQtdInput, setAjusteQtdInput] = useState('1');
+  const [valorPagoInput, setValorPagoInput] = useState('');
+  const materialAjuste =
+    itemAjusteTipo === 'ingrediente'
+      ? ingredientesEstoque.find((i) => i.id === itemAjusteId)
+      : itemAjusteTipo === 'embalagem'
+      ? embalagensEstoque.find((e) => e.id === itemAjusteId)
+      : undefined;
+  const previaCustoMedio =
+    materialAjuste && lerNumero(valorPagoInput) > 0 && lerQuantidade(ajusteQtdInput) > 0
+      ? movimentarMaterial(materialAjuste, lerQuantidade(ajusteQtdInput), lerNumero(valorPagoInput)).custoUnitario
+      : null;
+
+  const abrirAjuste = (tipo: typeof itemAjusteTipo, id: string, nome: string, qtdPadrao: string) => {
+    setItemAjusteTipo(tipo);
+    setItemAjusteId(id);
+    setItemAjusteNome(nome);
+    setAjusteQtdInput(qtdPadrao);
+    setValorPagoInput('');
+    setModalAjusteVisible(true);
+  };
+
+  // Modal de Cadastro / Edição de Material
+  const [modalMaterialVisible, setModalMaterialVisible] = useState(false);
+  const [materialEditandoId, setMaterialEditandoId] = useState<string | null>(null);
+  const [formTipo, setFormTipo] = useState<TipoMaterial>('ingrediente');
+  const [formNome, setFormNome] = useState('');
+  const [formUnidade, setFormUnidade] = useState('kg');
+  const [formQtd, setFormQtd] = useState('');
+  const [formMinimo, setFormMinimo] = useState('');
+  const [formCusto, setFormCusto] = useState('');
+  const [formDetalhe, setFormDetalhe] = useState(''); // categoria do ingrediente ou "usado em"
+  const [formArmazenamento, setFormArmazenamento] = useState('Seco');
+  const [formErro, setFormErro] = useState<string | null>(null);
+  const [confirmarExclusao, setConfirmarExclusao] = useState(false);
+
+  const abrirNovoMaterial = (tipo: TipoMaterial) => {
+    setMaterialEditandoId(null);
+    setFormTipo(tipo);
+    setFormNome('');
+    setFormUnidade(tipo === 'ingrediente' ? 'kg' : 'un');
+    setFormQtd('');
+    setFormMinimo('');
+    setFormCusto('');
+    setFormDetalhe('');
+    setFormArmazenamento('Seco');
+    setFormErro(null);
+    setConfirmarExclusao(false);
+    setModalMaterialVisible(true);
+  };
+
+  const abrirEdicaoMaterial = (
+    tipo: TipoMaterial,
+    m: EstoqueIngrediente | EstoqueEmbalagem,
+    detalhe: string,
+    armazenamento = 'Seco'
+  ) => {
+    setMaterialEditandoId(m.id);
+    setFormTipo(tipo);
+    setFormNome(m.nome);
+    setFormUnidade(m.unidade);
+    setFormQtd(String(m.quantidadeAtual).replace('.', ','));
+    setFormMinimo(String(m.minimoSeguranca).replace('.', ','));
+    setFormCusto(m.custoUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }));
+    setFormDetalhe(detalhe);
+    setFormArmazenamento(armazenamento);
+    setFormErro(null);
+    setConfirmarExclusao(false);
+    setModalMaterialVisible(true);
+  };
+
+  const handleSalvarMaterial = () => {
+    if (!formNome.trim()) {
+      setFormErro('Informe o nome do material.');
+      return;
+    }
+    // O formulário trabalha na unidade de estoque; a lista única guarda o custo por unidade fracionada
+    const existente = materialEditandoId ? insumos.find((i) => i.id === materialEditandoId) : undefined;
+    const fator = fatorDaUnidade(formUnidade, existente?.conteudoEmbalagem ?? 1);
+    const custoPorUnidade = lerNumero(formCusto);
+    const armazenamento =
+      (Object.keys(ROTULO_ARMAZENAMENTO) as Armazenamento[]).find((k) => ROTULO_ARMAZENAMENTO[k] === formArmazenamento) ?? 'seco';
+    const dados = {
+      nome: formNome.trim(),
+      tipo: formTipo,
+      unidade: formUnidade,
+      unidadeFracionada: unidadeFracionadaDe(formTipo, formUnidade),
+      fatorFracionado: fator,
+      custoUnitario: custoPorUnidade / fator,
+      quantidadeEstoque: lerQuantidade(formQtd),
+      estoqueMinimo: lerQuantidade(formMinimo),
+      ...(formTipo === 'ingrediente'
+        ? { categoria: formDetalhe.trim() || undefined, armazenamento }
+        : { usadoEm: formDetalhe.trim() || undefined }),
+    };
+
+    if (existente) {
+      salvarInsumo({ ...existente, ...dados });
+    } else {
+      salvarInsumo({
+        id: `ins-${Date.now()}`,
+        ...dados,
+        armazenamento,
+        precoPago: custoPorUnidade,
+        conteudoEmbalagem: fator,
+        status: 'ativo',
+        emoji: formTipo === 'ingrediente' ? '🥣' : formTipo === 'outro' ? '🧷' : '📦',
+      });
+    }
+    setModalMaterialVisible(false);
+  };
+
+  const handleExcluirMaterial = () => {
+    if (!materialEditandoId) return;
+    if (!confirmarExclusao) {
+      setConfirmarExclusao(true);
+      return;
+    }
+    excluirInsumo(materialEditandoId);
+    setModalMaterialVisible(false);
+  };
 
   // Notificação copiada
   const [copiadoNotice, setCopiadoNotice] = useState(false);
@@ -289,7 +500,8 @@ export default function EstoqueCentralScreen() {
         atual: `${i.quantidadeAtual} ${i.unidade}`,
         minimo: `${i.minimoSeguranca} ${i.unidade}`,
         sugerido: `${(i.minimoSeguranca * 2 - i.quantidadeAtual).toFixed(1)} ${i.unidade}`,
-        precoEstimado: i.precoEstimadoCompra,
+        // sem preço estimado cadastrado: sugestão × custo médio
+        precoEstimado: i.precoEstimadoCompra || (i.minimoSeguranca * 2 - i.quantidadeAtual) * i.custoUnitario,
         emoji: i.emoji,
       }));
 
@@ -297,12 +509,12 @@ export default function EstoqueCentralScreen() {
       .filter(e => e.quantidadeAtual <= e.minimoSeguranca)
       .map(e => ({
         id: e.id,
-        tipo: 'Embalagem',
+        tipo: ROTULO_TIPO_MATERIAL[e.tipo],
         nome: e.nome,
         atual: `${e.quantidadeAtual} ${e.unidade}`,
         minimo: `${e.minimoSeguranca} ${e.unidade}`,
         sugerido: `${Math.round(e.minimoSeguranca * 2 - e.quantidadeAtual)} ${e.unidade}`,
-        precoEstimado: e.precoEstimadoCompra,
+        precoEstimado: e.precoEstimadoCompra || Math.round(e.minimoSeguranca * 2 - e.quantidadeAtual) * e.custoUnitario,
         emoji: e.emoji,
       }));
 
@@ -315,6 +527,9 @@ export default function EstoqueCentralScreen() {
   const formatMoney = (val: number) => {
     return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
+  // Custo por grama/unidade pode ser centavos: mostra até 3 casas
+  const formatCusto = (val: number) =>
+    val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: val < 1 ? 3 : 2 });
 
   // Copiar lista de compras para WhatsApp
   const handleCopiarWhatsApp = () => {
@@ -344,25 +559,77 @@ export default function EstoqueCentralScreen() {
     const finalDelta = delta * qtd;
 
     if (itemAjusteTipo === 'assado') {
-      setProdutosEstoque(prev =>
-        prev.map(p => (p.id === itemAjusteId ? { ...p, estoqueAssado: Math.max(0, p.estoqueAssado + finalDelta) } : p))
-      );
+      const movimento = [{ produtoId: itemAjusteId, nome: itemAjusteNome, quantidade: qtd }];
+      if (delta > 0) adicionarAoEstoque(movimento);
+      else removerDoEstoque(movimento);
+      registrarProducao({
+        tipo: 'ajuste',
+        produtoId: itemAjusteId,
+        produtoNome: itemAjusteNome,
+        quantidade: qtd,
+        detalhes: `Vitrine ${delta > 0 ? '+' : '−'}${qtd} un (ajuste no Estoque Central).`,
+      });
     } else if (itemAjusteTipo === 'congelado') {
-      setProdutosEstoque(prev =>
-        prev.map(p => (p.id === itemAjusteId ? { ...p, estoqueCongelado: Math.max(0, p.estoqueCongelado + finalDelta) } : p))
-      );
-    } else if (itemAjusteTipo === 'ingrediente') {
-      setIngredientesEstoque(prev =>
-        prev.map(i => (i.id === itemAjusteId ? { ...i, quantidadeAtual: Math.max(0, i.quantidadeAtual + finalDelta) } : i))
-      );
-    } else if (itemAjusteTipo === 'embalagem') {
-      setEmbalagensEstoque(prev =>
-        prev.map(e => (e.id === itemAjusteId ? { ...e, quantidadeAtual: Math.max(0, e.quantidadeAtual + finalDelta) } : e))
-      );
+      // Entrada no freezer é massa feita: consome os insumos da ficha (e vai para o histórico)
+      if (delta > 0) congelarMassas(itemAjusteId, qtd, true, 'entrada pelo Estoque Central');
+      else {
+        retirarDoFreezer(itemAjusteId, qtd);
+        registrarProducao({
+          tipo: 'ajuste',
+          produtoId: itemAjusteId,
+          produtoNome: itemAjusteNome,
+          quantidade: qtd,
+          detalhes: `Freezer −${qtd} un (ajuste no Estoque Central).`,
+        });
+      }
+    } else {
+      // Ingrediente, embalagem ou outro: entrada com valor pago recalcula o custo médio na lista única
+      ajustarEstoqueInsumo(itemAjusteId, finalDelta, lerNumero(valorPagoInput));
     }
 
     setModalAjusteVisible(false);
   };
+
+  // Indicadores + busca + novo material (mesma faixa nas abas de ingredientes e embalagens)
+  const barraMateriais = (tipoNovo: TipoMaterial) => (
+    <View style={styles.toolbarRow}>
+      <View style={styles.statsStrip}>
+        <Indicador primeiro rotulo="Itens" valor={String(totalMateriais)} onPress={() => setKpiDetalhe(detalhes.itens())} />
+        <Indicador
+          rotulo="Estoque crítico"
+          valor={String(listaComprasSugerida.length)}
+          cor={listaComprasSugerida.length > 0 ? DANGER_RED : SUCCESS_GREEN}
+          onPress={() => setKpiDetalhe(detalhes.critico())}
+        />
+        <Indicador rotulo="Valor em almoxarifado" valor={formatMoney(valorAlmoxarifado)} cor={SUCCESS_GREEN} onPress={() => setKpiDetalhe(detalhes.almoxarifado())} />
+        <Indicador
+          rotulo="Status de compra"
+          valor={listaComprasSugerida.length === 0 ? '✅ 100% ok' : '🛒 Comprar'}
+          cor={listaComprasSugerida.length === 0 ? SUCCESS_GREEN : DANGER_RED}
+          onPress={listaComprasSugerida.length > 0 ? () => setActiveTab('compras') : undefined}
+        />
+      </View>
+      <View style={styles.searchBox}>
+        <Feather name="search" size={14} color="#94A3B8" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar por nome ou tipo"
+          placeholderTextColor="#94A3B8"
+          value={buscaMaterial}
+          onChangeText={setBuscaMaterial}
+        />
+        {buscaMaterial.length > 0 && (
+          <TouchableOpacity onPress={() => setBuscaMaterial('')}>
+            <Feather name="x" size={14} color="#94A3B8" />
+          </TouchableOpacity>
+        )}
+      </View>
+      <TouchableOpacity style={styles.btnNovoMaterial} onPress={() => abrirNovoMaterial(tipoNovo)}>
+        <Feather name="plus" size={14} color="#FFFFFF" />
+        <Text style={styles.btnNovoMaterialText}>Novo material</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
@@ -374,19 +641,11 @@ export default function EstoqueCentralScreen() {
         <View style={styles.mainContainer}>
           {/* CABEÇALHO */}
           <View style={styles.topHeader}>
-            <View style={styles.headerTitleCol}>
-              <View style={styles.headerBadgeRow}>
-                <View style={styles.activeDot} />
-                <Text style={styles.headerCategoryBadge}>CONTROLE GERAL DE MATERIAIS & VITRINE</Text>
-                <View style={styles.systemBluePill}>
-                  <Text style={styles.systemBluePillText}>KIPI ATELIÊ</Text>
-                </View>
-              </View>
-              <Text style={styles.pageTitle}>Estoque Central</Text>
-              <Text style={styles.pageSubtitle}>
-                Acompanhe o estoque de produtos prontos, massas congeladas no freezer, insumos com cálculo de fornadas e lista de compras.
-              </Text>
-            </View>
+            <PageHeaderTitulo
+              etiqueta="ATELIÊ · MATERIAIS & VITRINE"
+              titulo="Estoque Central"
+              subtitulo="Produtos prontos, massas no freezer, insumos e lista de compras."
+            />
 
             {/* Ações no Topo */}
             <View style={styles.topActionsRow}>
@@ -440,7 +699,7 @@ export default function EstoqueCentralScreen() {
               onPress={() => setActiveTab('embalagens')}>
               <Text style={{ fontSize: 16 }}>📦</Text>
               <Text style={[styles.tabButtonText, activeTab === 'embalagens' && styles.tabButtonTextActive]}>
-                Embalagens & Apresentação
+                Embalagens & Outros
               </Text>
               <View style={[styles.tabBadge, activeTab === 'embalagens' && styles.tabBadgeActive]}>
                 <Text style={[styles.tabBadgeText, activeTab === 'embalagens' && styles.tabBadgeTextActive]}>
@@ -471,10 +730,103 @@ export default function EstoqueCentralScreen() {
           ========================================================================== */}
           {activeTab === 'produtos' && (
             <ScrollView style={styles.tabContentScroll} showsVerticalScrollIndicator={false}>
+              {/* INDICADORES + BUSCA (FAIXA ÚNICA COMPACTA) */}
+              <View style={styles.toolbarRow}>
+                <View style={styles.statsStrip}>
+                  <Indicador
+                    primeiro
+                    rotulo="Valor em vitrine"
+                    valor={formatMoney(valorVitrine)}
+                    detalhe={`c/ congelados: ${formatMoney(valorVitrine + valorCongelados)}`}
+                    cor={SUCCESS_GREEN}
+                    onPress={() => setKpiDetalhe(detalhes.valorVitrine())}
+                  />
+                  <Indicador rotulo="♨️ Prontos" valor={`${totalProntos} un`} cor={OVEN_ORANGE} onPress={() => setKpiDetalhe(detalhes.prontos())} />
+                  <Indicador rotulo="🧊 Congelados" valor={`${totalCongelados} un`} cor={FREEZER_CYAN} onPress={() => setKpiDetalhe(detalhes.congelados())} />
+                  <Indicador
+                    rotulo="Sob encomenda"
+                    valor={`${totalSobEncomenda} ${totalSobEncomenda === 1 ? 'produto' : 'produtos'}`}
+                    cor={KIPI_BLUE_ACCENT}
+                    onPress={() => setKpiDetalhe(detalhes.encomenda())}
+                  />
+                  <Indicador
+                    rotulo="🗑 Perdas 30d"
+                    valor={formatMoney(perdas30.total)}
+                    detalhe={`${perdas30.unidades} un descartadas`}
+                    cor={perdas30.total > 0 ? DANGER_RED : SUCCESS_GREEN}
+                    onPress={() => setKpiDetalhe(detalhes.perdas())}
+                  />
+                </View>
+                <View style={styles.searchBox}>
+                  <Feather name="search" size={14} color="#94A3B8" />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Buscar produto ou categoria"
+                    placeholderTextColor="#94A3B8"
+                    value={buscaProduto}
+                    onChangeText={setBuscaProduto}
+                  />
+                  {buscaProduto.length > 0 && (
+                    <TouchableOpacity onPress={() => setBuscaProduto('')}>
+                      <Feather name="x" size={14} color="#94A3B8" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
+              <View style={styles.chipsBar}>
+                <ScrollView
+                  horizontal
+                  style={{ flex: 1 }}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chipsRow}>
+                  {categoriasProdutos.map((cat) => {
+                    const ativo = categoriaFiltro === cat;
+                    return (
+                      <TouchableOpacity
+                        key={cat}
+                        style={[styles.chip, ativo && styles.chipActive]}
+                        onPress={() => setCategoriaFiltro(cat)}>
+                        <Text style={[styles.chipText, ativo && styles.chipTextActive]}>{cat}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Alternar visualização: cards ou lista */}
+                <View style={styles.viewToggle}>
+                  {(['cards', 'lista'] as const).map((modo) => {
+                    const ativo = modoProdutos === modo;
+                    return (
+                      <TouchableOpacity
+                        key={modo}
+                        style={[styles.viewToggleBtn, ativo && styles.viewToggleBtnActive]}
+                        onPress={() => setModoProdutos(modo)}
+                        accessibilityLabel={modo === 'cards' ? 'Ver em cards' : 'Ver em lista'}>
+                        <Feather name={modo === 'cards' ? 'grid' : 'list'} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#64748B'} />
+                        <Text style={[styles.viewToggleText, ativo && { color: KIPI_BLUE_ACCENT }]}>
+                          {modo === 'cards' ? 'Cards' : 'Lista'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {produtosFiltrados.length === 0 && (
+                <View style={styles.emptyContainer}>
+                  <Feather name="search" size={30} color="#94A3B8" />
+                  <Text style={styles.emptyTitle}>Nenhum produto encontrado</Text>
+                  <Text style={styles.emptySubtitle}>Tente outro nome ou categoria.</Text>
+                </View>
+              )}
+
+              {modoProdutos === 'cards' && (
               <View style={styles.cardsGrid}>
-                {produtosEstoque.map(p => {
+                {produtosFiltrados.map(p => {
                   const assadoBaixo = p.estoqueAssado <= p.minimoAssado;
-                  const congeladoBaixo = p.estoqueCongelado <= p.minimoCongelado;
+                  const congeladoBaixo = p.minimoCongelado > 0 && p.estoqueCongelado <= p.minimoCongelado;
+                  const margem = p.precoVenda > 0 ? Math.round(((p.precoVenda - p.custo) / p.precoVenda) * 100) : 0;
 
                   return (
                     <View key={p.id} style={[styles.stockCard, (assadoBaixo || congeladoBaixo) && styles.stockCardWarning]}>
@@ -485,7 +837,12 @@ export default function EstoqueCentralScreen() {
                         <View style={{ flex: 1 }}>
                           <Text style={styles.prodCategory}>{p.categoria}</Text>
                           <Text style={styles.prodName}>{p.nome}</Text>
-                          <Text style={styles.prodPrice}>{formatMoney(p.precoVenda)}</Text>
+                          <Text style={styles.prodPrice}>
+                            {formatMoney(p.precoVenda)}{' '}
+                            <Text style={styles.prodCusto}>
+                              {p.custo > 0 ? `· custo ${formatMoney(p.custo)} (${margem}% margem)` : '· sem custo cadastrado'}
+                            </Text>
+                          </Text>
                         </View>
                       </View>
 
@@ -526,38 +883,112 @@ export default function EstoqueCentralScreen() {
                         </View>
                       </View>
 
-                      {/* Ações de Ajuste Rápido */}
+                      {/* Atalhos da Produção: Produzir (massa → freezer, desconta insumos) e Assar (freezer → vitrine) */}
                       <View style={styles.stockCardActions}>
-                        <TouchableOpacity
-                          style={styles.btnAjustarSmall}
-                          onPress={() => {
-                            setItemAjusteNome(p.nome);
-                            setItemAjusteTipo('assado');
-                            setItemAjusteId(p.id);
-                            setAjusteQtdInput('1');
-                            setModalAjusteVisible(true);
-                          }}>
-                          <Feather name="edit-2" size={12} color="#64748B" />
-                          <Text style={styles.btnAjustarSmallText}>Ajustar Vitrine</Text>
+                        <TouchableOpacity style={styles.btnAjustarSmall} onPress={() => irParaPreparar(p.id)}>
+                          <Text style={{ fontSize: 11 }}>🧊</Text>
+                          <Text style={[styles.btnAjustarSmallText, { color: FREEZER_CYAN }]}>Produzir</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                          style={styles.btnAjustarSmall}
-                          onPress={() => {
-                            setItemAjusteNome(p.nome);
-                            setItemAjusteTipo('congelado');
-                            setItemAjusteId(p.id);
-                            setAjusteQtdInput('6');
-                            setModalAjusteVisible(true);
-                          }}>
-                          <Feather name="edit-2" size={12} color="#64748B" />
-                          <Text style={styles.btnAjustarSmallText}>Ajustar Freezer</Text>
+                          style={[styles.btnAtalhoAssar, p.estoqueCongelado <= 0 && { opacity: 0.45 }]}
+                          disabled={p.estoqueCongelado <= 0}
+                          onPress={() => irParaAssar(p.id)}>
+                          <Text style={{ fontSize: 11 }}>🔥</Text>
+                          <Text style={styles.btnAtalhoAssarText}>
+                            {p.estoqueCongelado > 0 ? 'Assar' : 'Sem congelados'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.btnAjustarSmall, p.estoqueAssado + p.estoqueCongelado <= 0 && { opacity: 0.45 }]}
+                          disabled={p.estoqueAssado + p.estoqueCongelado <= 0}
+                          onPress={() => setDescarteId(p.id)}>
+                          <Feather name="trash-2" size={12} color={DANGER_RED} />
+                          <Text style={[styles.btnAjustarSmallText, { color: DANGER_RED }]}>Descartar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.btnAjustarSmall} onPress={() => verProduto(p.id)}>
+                          <Feather name="external-link" size={12} color="#64748B" />
+                          <Text style={styles.btnAjustarSmallText}>Ver produto</Text>
                         </TouchableOpacity>
                       </View>
                     </View>
                   );
                 })}
               </View>
+              )}
+
+              {/* MODO LISTA: mesma informação dos cards em linhas compactas */}
+              {modoProdutos === 'lista' && produtosFiltrados.length > 0 && (
+                <View style={styles.tableCard}>
+                  <View style={styles.tableHead}>
+                    <Text style={[styles.th, { flex: 2.4 }]}>PRODUTO</Text>
+                    <Text style={[styles.th, { flex: 1.3 }]}>PREÇO / MARGEM</Text>
+                    <Text style={[styles.th, { flex: 1 }]}>♨️ VITRINE</Text>
+                    <Text style={[styles.th, { flex: 1 }]}>🧊 FREEZER</Text>
+                    <Text style={[styles.th, { width: 150, textAlign: 'right' }]}>AÇÕES</Text>
+                  </View>
+                  {produtosFiltrados.map((p, idx) => {
+                    const assadoBaixo = p.estoqueAssado <= p.minimoAssado;
+                    const congeladoBaixo = p.minimoCongelado > 0 && p.estoqueCongelado <= p.minimoCongelado;
+                    const margem = p.precoVenda > 0 ? Math.round(((p.precoVenda - p.custo) / p.precoVenda) * 100) : 0;
+                    return (
+                      <View
+                        key={p.id}
+                        style={[styles.tableRow, idx % 2 === 0 && styles.tableRowEven, (assadoBaixo || congeladoBaixo) && styles.tableRowAlert]}>
+                        <View style={[styles.td, styles.tdNome, { flex: 2.4 }]}>
+                          <View style={styles.tableAvatar}>
+                            <Text style={{ fontSize: 18 }}>{p.fotoEmoji}</Text>
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.tableName} numberOfLines={1}>{p.nome}</Text>
+                            <Text style={styles.tableSub}>{p.categoria}</Text>
+                          </View>
+                        </View>
+                        <View style={[styles.td, { flex: 1.3 }]}>
+                          <Text style={styles.tableStockNumber}>{formatMoney(p.precoVenda)}</Text>
+                          <Text style={styles.tableSub}>{p.custo > 0 ? `${margem}% margem` : 'sem custo'}</Text>
+                        </View>
+                        <View style={[styles.td, { flex: 1 }]}>
+                          <Text style={[styles.tableStockNumber, { color: assadoBaixo ? DANGER_RED : OVEN_ORANGE }]}>
+                            {p.estoqueAssado} un
+                          </Text>
+                          <Text style={styles.tableSub}>mín. {p.minimoAssado}</Text>
+                        </View>
+                        <View style={[styles.td, { flex: 1 }]}>
+                          <Text style={[styles.tableStockNumber, { color: congeladoBaixo ? DANGER_RED : FREEZER_CYAN }]}>
+                            {p.minimoCongelado > 0 || p.estoqueCongelado > 0 ? `${p.estoqueCongelado} un` : '—'}
+                          </Text>
+                          {p.minimoCongelado > 0 && <Text style={styles.tableSub}>mín. {p.minimoCongelado}</Text>}
+                        </View>
+                        <View style={[styles.td, { width: 150, flexDirection: 'row', justifyContent: 'flex-end', gap: 2 }]}>
+                          <TouchableOpacity style={styles.btnIconAjuste} accessibilityLabel="Produzir (preparar massa)" onPress={() => irParaPreparar(p.id)}>
+                            <Text style={{ fontSize: 14 }}>🧊</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.btnIconAjuste, p.estoqueCongelado <= 0 && { opacity: 0.35 }]}
+                            disabled={p.estoqueCongelado <= 0}
+                            accessibilityLabel="Assar na Produção"
+                            onPress={() => irParaAssar(p.id)}>
+                            <Text style={{ fontSize: 14 }}>🔥</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[styles.btnIconAjuste, p.estoqueAssado + p.estoqueCongelado <= 0 && { opacity: 0.35 }]}
+                            disabled={p.estoqueAssado + p.estoqueCongelado <= 0}
+                            accessibilityLabel="Descartar"
+                            onPress={() => setDescarteId(p.id)}>
+                            <Feather name="trash-2" size={14} color={DANGER_RED} />
+                          </TouchableOpacity>
+                          <TouchableOpacity style={styles.btnIconAjuste} accessibilityLabel="Ver produto" onPress={() => verProduto(p.id)}>
+                            <Feather name="external-link" size={15} color="#64748B" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
             </ScrollView>
           )}
 
@@ -566,6 +997,7 @@ export default function EstoqueCentralScreen() {
           ========================================================================== */}
           {activeTab === 'ingredientes' && (
             <ScrollView style={styles.tabContentScroll} showsVerticalScrollIndicator={false}>
+              {barraMateriais('ingrediente')}
               <View style={styles.tableCard}>
                 <View style={styles.tableHead}>
                   <Text style={[styles.th, { flex: 2 }]}>INGREDIENTE</Text>
@@ -573,21 +1005,25 @@ export default function EstoqueCentralScreen() {
                   <Text style={[styles.th, { flex: 1.1 }]}>MÍNIMO</Text>
                   <Text style={[styles.th, { flex: 2.2 }]}>CAPACIDADE DE FORNADAS (RENDIMENTO)</Text>
                   <Text style={[styles.th, { flex: 1.2 }]}>STATUS</Text>
-                  <Text style={[styles.th, { width: 70, textAlign: 'right' }]}>AJUSTE</Text>
+                  <Text style={[styles.th, { width: 70, textAlign: 'right' }]}>AÇÕES</Text>
                 </View>
 
-                {ingredientesEstoque.map((ing, idx) => {
+                {ingredientesFiltrados.length === 0 && (
+                  <Text style={styles.tableEmpty}>Nenhum ingrediente encontrado.</Text>
+                )}
+
+                {ingredientesFiltrados.map((ing, idx) => {
                   const isAlerta = ing.quantidadeAtual <= ing.minimoSeguranca;
                   const isEven = idx % 2 === 0;
 
                   return (
                     <View key={ing.id} style={[styles.tableRow, isEven && styles.tableRowEven, isAlerta && styles.tableRowAlert]}>
-                      <View style={[styles.td, { flex: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+                      <View style={[styles.td, styles.tdNome, { flex: 2 }]}>
                         <View style={styles.tableAvatar}>
                           <Text style={{ fontSize: 18 }}>{ing.emoji}</Text>
                         </View>
-                        <View>
-                          <Text style={styles.tableName}>{ing.nome}</Text>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.tableName} numberOfLines={1}>{ing.nome}</Text>
                           <Text style={styles.tableSub}>{ing.tipo} • {ing.armazenamento}</Text>
                         </View>
                       </View>
@@ -596,6 +1032,7 @@ export default function EstoqueCentralScreen() {
                         <Text style={[styles.tableStockNumber, isAlerta && { color: DANGER_RED }]}>
                           {ing.quantidadeAtual} {ing.unidade}
                         </Text>
+                        <Text style={styles.tableSub}>{formatCusto(ing.custoUnitario)}/{ing.unidade}</Text>
                       </View>
 
                       <View style={[styles.td, { flex: 1.1 }]}>
@@ -623,17 +1060,18 @@ export default function EstoqueCentralScreen() {
                         </View>
                       </View>
 
-                      <View style={[styles.td, { width: 70, alignItems: 'flex-end' }]}>
+                      <View style={[styles.td, styles.tdAcoes]}>
                         <TouchableOpacity
                           style={styles.btnIconAjuste}
-                          onPress={() => {
-                            setItemAjusteNome(ing.nome);
-                            setItemAjusteTipo('ingrediente');
-                            setItemAjusteId(ing.id);
-                            setAjusteQtdInput('1');
-                            setModalAjusteVisible(true);
-                          }}>
+                          accessibilityLabel="Entrada ou baixa"
+                          onPress={() => abrirAjuste('ingrediente', ing.id, ing.nome, '1')}>
                           <Feather name="plus-circle" size={17} color={KIPI_BLUE_ACCENT} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.btnIconAjuste}
+                          accessibilityLabel="Editar material"
+                          onPress={() => abrirEdicaoMaterial('ingrediente', ing, ing.tipo, ing.armazenamento)}>
+                          <Feather name="edit-2" size={15} color="#64748B" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -648,33 +1086,42 @@ export default function EstoqueCentralScreen() {
           ========================================================================== */}
           {activeTab === 'embalagens' && (
             <ScrollView style={styles.tabContentScroll} showsVerticalScrollIndicator={false}>
+              {barraMateriais('embalagem')}
               <View style={styles.tableCard}>
                 <View style={styles.tableHead}>
-                  <Text style={[styles.th, { flex: 2 }]}>EMBALAGEM</Text>
+                  <Text style={[styles.th, { flex: 2 }]}>EMBALAGEM / MATERIAL</Text>
                   <Text style={[styles.th, { flex: 1.4 }]}>ESTOQUE ATUAL</Text>
                   <Text style={[styles.th, { flex: 1.2 }]}>MÍNIMO</Text>
                   <Text style={[styles.th, { flex: 2 }]}>APLICAÇÃO / UTILIZAÇÃO</Text>
                   <Text style={[styles.th, { flex: 1.2 }]}>STATUS</Text>
-                  <Text style={[styles.th, { width: 70, textAlign: 'right' }]}>AJUSTE</Text>
+                  <Text style={[styles.th, { width: 70, textAlign: 'right' }]}>AÇÕES</Text>
                 </View>
 
-                {embalagensEstoque.map((emb, idx) => {
+                {embalagensFiltradas.length === 0 && (
+                  <Text style={styles.tableEmpty}>Nenhum material encontrado.</Text>
+                )}
+
+                {embalagensFiltradas.map((emb, idx) => {
                   const isAlerta = emb.quantidadeAtual <= emb.minimoSeguranca;
                   const isEven = idx % 2 === 0;
 
                   return (
                     <View key={emb.id} style={[styles.tableRow, isEven && styles.tableRowEven, isAlerta && styles.tableRowAlert]}>
-                      <View style={[styles.td, { flex: 2, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
+                      <View style={[styles.td, styles.tdNome, { flex: 2 }]}>
                         <View style={styles.tableAvatar}>
                           <Text style={{ fontSize: 18 }}>{emb.emoji}</Text>
                         </View>
-                        <Text style={styles.tableName}>{emb.nome}</Text>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.tableName} numberOfLines={1}>{emb.nome}</Text>
+                          <Text style={styles.tableSub}>{ROTULO_TIPO_MATERIAL[emb.tipo]}</Text>
+                        </View>
                       </View>
 
                       <View style={[styles.td, { flex: 1.4 }]}>
                         <Text style={[styles.tableStockNumber, isAlerta && { color: DANGER_RED }]}>
                           {emb.quantidadeAtual} {emb.unidade}
                         </Text>
+                        <Text style={styles.tableSub}>{formatCusto(emb.custoUnitario)}/{emb.unidade}</Text>
                       </View>
 
                       <View style={[styles.td, { flex: 1.2 }]}>
@@ -693,17 +1140,18 @@ export default function EstoqueCentralScreen() {
                         </View>
                       </View>
 
-                      <View style={[styles.td, { width: 70, alignItems: 'flex-end' }]}>
+                      <View style={[styles.td, styles.tdAcoes]}>
                         <TouchableOpacity
                           style={styles.btnIconAjuste}
-                          onPress={() => {
-                            setItemAjusteNome(emb.nome);
-                            setItemAjusteTipo('embalagem');
-                            setItemAjusteId(emb.id);
-                            setAjusteQtdInput('10');
-                            setModalAjusteVisible(true);
-                          }}>
+                          accessibilityLabel="Entrada ou baixa"
+                          onPress={() => abrirAjuste('embalagem', emb.id, emb.nome, '10')}>
                           <Feather name="plus-circle" size={17} color={KIPI_BLUE_ACCENT} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.btnIconAjuste}
+                          accessibilityLabel="Editar material"
+                          onPress={() => abrirEdicaoMaterial(emb.tipo, emb, emb.usadoEm)}>
+                          <Feather name="edit-2" size={15} color="#64748B" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -758,9 +1206,11 @@ export default function EstoqueCentralScreen() {
 
                   {listaComprasSugerida.map((item, idx) => (
                     <View key={item.id} style={[styles.tableRow, idx % 2 === 0 && styles.tableRowEven]}>
-                      <View style={[styles.td, { flex: 2.5, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
-                        <Text style={{ fontSize: 18 }}>{item.emoji}</Text>
-                        <Text style={styles.tableName}>{item.nome}</Text>
+                      <View style={[styles.td, styles.tdNome, { flex: 2.5 }]}>
+                        <View style={styles.tableAvatar}>
+                          <Text style={{ fontSize: 18 }}>{item.emoji}</Text>
+                        </View>
+                        <Text style={[styles.tableName, { flex: 1, minWidth: 0 }]} numberOfLines={1}>{item.nome}</Text>
                       </View>
                       <View style={[styles.td, { flex: 1.2 }]}>
                         <Text style={styles.tableSub}>{item.tipo}</Text>
@@ -816,7 +1266,32 @@ export default function EstoqueCentralScreen() {
                 value={ajusteQtdInput}
                 onChangeText={setAjusteQtdInput}
               />
+              {materialAjuste && (
+                <Text style={styles.modalHint}>
+                  Atual: {materialAjuste.quantidadeAtual} {materialAjuste.unidade} · {formatCusto(materialAjuste.custoUnitario)}/{materialAjuste.unidade}
+                </Text>
+              )}
             </View>
+
+            {/* Compra: valor pago recalcula o custo médio (só vale para "Dar Entrada") */}
+            {materialAjuste && (
+              <View style={{ marginBottom: 14 }}>
+                <Text style={styles.inputLabel}>VALOR TOTAL PAGO (R$) — OPCIONAL, SÓ NA ENTRADA:</Text>
+                <TextInput
+                  style={[styles.modalInput, { fontSize: 15 }]}
+                  keyboardType="decimal-pad"
+                  placeholder="0,00"
+                  placeholderTextColor="#94A3B8"
+                  value={valorPagoInput}
+                  onChangeText={setValorPagoInput}
+                />
+                {previaCustoMedio !== null && (
+                  <Text style={[styles.modalHint, { color: SUCCESS_GREEN, fontWeight: '700' }]}>
+                    Novo custo médio: {formatCusto(previaCustoMedio)}/{materialAjuste.unidade}
+                  </Text>
+                )}
+              </View>
+            )}
 
             <View style={styles.modalActionButtonsRow}>
               <TouchableOpacity
@@ -834,6 +1309,173 @@ export default function EstoqueCentralScreen() {
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      {/* =========================================================================
+          MODAL DE CADASTRO / EDIÇÃO DE MATERIAL
+      ========================================================================== */}
+      <Modal
+        visible={modalMaterialVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalMaterialVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalSmallBox, { maxWidth: 460 }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>{materialEditandoId ? 'Editar Material' : 'Novo Material'}</Text>
+                <Text style={styles.modalSubtitle}>Ingredientes, embalagens e outros materiais do ateliê</Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalMaterialVisible(false)}>
+                <Feather name="x" size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ paddingTop: 12, gap: 12 }}>
+              {formErro && <Text style={styles.formErro}>{formErro}</Text>}
+
+              <View>
+                <Text style={styles.inputLabel}>TIPO</Text>
+                <View style={styles.chipsWrap}>
+                  {(['ingrediente', 'embalagem', 'outro'] as TipoMaterial[]).map((t) => {
+                    const ativo = formTipo === t;
+                    // Na edição não troca de tipo (ingrediente e embalagem ficam em listas diferentes)
+                    const bloqueado = !!materialEditandoId && (t === 'ingrediente') !== (formTipo === 'ingrediente');
+                    return (
+                      <TouchableOpacity
+                        key={t}
+                        disabled={bloqueado}
+                        style={[styles.chip, ativo && styles.chipActive, bloqueado && { opacity: 0.4 }]}
+                        onPress={() => setFormTipo(t)}>
+                        <Text style={[styles.chipText, ativo && styles.chipTextActive]}>{ROTULO_TIPO_MATERIAL[t]}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View>
+                <Text style={styles.inputLabel}>NOME *</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder={formTipo === 'ingrediente' ? 'Ex: Leite Condensado' : formTipo === 'embalagem' ? 'Ex: Caixa Kraft 6 un' : 'Ex: Topper de Aniversário'}
+                  placeholderTextColor="#94A3B8"
+                  value={formNome}
+                  onChangeText={setFormNome}
+                />
+              </View>
+
+              <View>
+                <Text style={styles.inputLabel}>UNIDADE DE MEDIDA</Text>
+                <View style={styles.chipsWrap}>
+                  {(UNIDADES_MATERIAL.includes(formUnidade) ? UNIDADES_MATERIAL : [...UNIDADES_MATERIAL, formUnidade]).map((u) => {
+                    const ativo = formUnidade === u;
+                    return (
+                      <TouchableOpacity key={u} style={[styles.chip, ativo && styles.chipActive]} onPress={() => setFormUnidade(u)}>
+                        <Text style={[styles.chipText, ativo && styles.chipTextActive]}>{u}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              <View style={styles.formRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>QTD ATUAL</Text>
+                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#94A3B8" value={formQtd} onChangeText={setFormQtd} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.inputLabel}>MÍNIMO</Text>
+                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#94A3B8" value={formMinimo} onChangeText={setFormMinimo} />
+                </View>
+                <View style={{ flex: 1.2 }}>
+                  <Text style={styles.inputLabel}>CUSTO / {formUnidade.toUpperCase()} (R$)</Text>
+                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0,00" placeholderTextColor="#94A3B8" value={formCusto} onChangeText={setFormCusto} />
+                </View>
+              </View>
+
+              <View>
+                <Text style={styles.inputLabel}>{formTipo === 'ingrediente' ? 'CATEGORIA (OPCIONAL)' : 'USADO EM (OPCIONAL)'}</Text>
+                <TextInput
+                  style={styles.formInput}
+                  placeholder={formTipo === 'ingrediente' ? 'Ex: Laticínio' : 'Ex: Bolos de aniversário'}
+                  placeholderTextColor="#94A3B8"
+                  value={formDetalhe}
+                  onChangeText={setFormDetalhe}
+                />
+              </View>
+
+              {formTipo === 'ingrediente' && (
+                <View>
+                  <Text style={styles.inputLabel}>ARMAZENAMENTO</Text>
+                  <View style={styles.chipsWrap}>
+                    {ARMAZENAMENTOS.map((a) => {
+                      const ativo = formArmazenamento === a;
+                      return (
+                        <TouchableOpacity key={a} style={[styles.chip, ativo && styles.chipActive]} onPress={() => setFormArmazenamento(a)}>
+                          <Text style={[styles.chipText, ativo && styles.chipTextActive]}>{a}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            <View style={[styles.modalActionButtonsRow, { marginTop: 14 }]}>
+              {materialEditandoId && (
+                <TouchableOpacity style={styles.btnAjusteSubtrair} onPress={handleExcluirMaterial}>
+                  <Feather name="trash-2" size={15} color={DANGER_RED} />
+                  <Text style={styles.btnAjusteSubtrairText}>{confirmarExclusao ? 'Confirmar exclusão' : 'Excluir'}</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.btnSalvarMaterial} onPress={handleSalvarMaterial}>
+                <Feather name="check" size={15} color="#FFFFFF" />
+                <Text style={styles.btnSalvarMaterialText}>Salvar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* DESCARTE: vencido, doado, quebrado... sai da vitrine ou do freezer e entra como perda */}
+      <DescarteModal visible={descarteId !== null} produtoId={descarteId || null} onClose={() => setDescarteId(null)} />
+      <ProducaoRapidaModal
+        visible={producaoRapida !== null}
+        produtoId={producaoRapida?.id ?? null}
+        modo={producaoRapida?.modo ?? 'assar'}
+        onClose={() => setProducaoRapida(null)}
+      />
+
+      {/* DETALHE DO INDICADOR: o que o número quer dizer e de onde ele vem */}
+      <Modal visible={kpiDetalhe !== null} transparent animationType="fade" onRequestClose={() => setKpiDetalhe(null)}>
+        <View style={styles.modalOverlay}>
+          {kpiDetalhe && (
+            <View style={[styles.modalSmallBox, { maxWidth: 480 }]}>
+              <View style={styles.modalHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.modalTitle}>{kpiDetalhe.titulo}</Text>
+                  <Text style={styles.modalSubtitle}>{kpiDetalhe.explicacao}</Text>
+                </View>
+                <TouchableOpacity onPress={() => setKpiDetalhe(null)}>
+                  <Feather name="x" size={20} color="#64748B" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ maxHeight: 380, marginTop: 8 }}>
+                {kpiDetalhe.linhas.length === 0 ? (
+                  <Text style={styles.modalSubtitle}>Nada para mostrar no momento.</Text>
+                ) : (
+                  kpiDetalhe.linhas.map((l, idx) => (
+                    <View key={`${l.nome}-${idx}`} style={styles.kpiDetalheLinha}>
+                      <Text style={styles.kpiDetalheNome} numberOfLines={1}>{l.nome}</Text>
+                      <Text style={[styles.kpiDetalheValor, l.alerta && { color: DANGER_RED }]}>{l.valor}</Text>
+                    </View>
+                  ))
+                )}
+              </ScrollView>
+            </View>
+          )}
         </View>
       </Modal>
     </SafeAreaView>
@@ -862,64 +1504,7 @@ const styles = StyleSheet.create({
   },
 
   // CABEÇALHO
-  topHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    marginBottom: 18,
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  headerTitleCol: {
-    flex: 1,
-    minWidth: 280,
-  },
-  headerBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  activeDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: KIPI_BLUE_ACCENT,
-  },
-  headerCategoryBadge: {
-    fontFamily: FONT_SANS,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    color: '#64748B',
-  },
-  systemBluePill: {
-    backgroundColor: KIPI_BLUE_TINT,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  systemBluePillText: {
-    fontFamily: FONT_SANS,
-    fontSize: 10,
-    fontWeight: '800',
-    color: KIPI_BLUE_ACCENT,
-    letterSpacing: 0.5,
-  },
-  pageTitle: {
-    fontFamily: FONT_DISPLAY,
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  pageSubtitle: {
-    fontFamily: FONT_SANS,
-    fontSize: 13,
-    color: '#64748B',
-    lineHeight: 18,
-  },
+  topHeader: TOPO_COMPACTO,
   topActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1175,6 +1760,8 @@ const styles = StyleSheet.create({
   tableRowAlert: {
     backgroundColor: '#FFFBF9',
   },
+  // Célula do nome: alinhada à esquerda, nome longo corta com reticências
+  tdNome: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10, minWidth: 0, paddingRight: 12 },
   td: {
     justifyContent: 'center',
   },
@@ -1327,6 +1914,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  kpiDetalheLinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingVertical: 7,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  kpiDetalheNome: {
+    flex: 1,
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    color: '#334155',
+  },
+  kpiDetalheValor: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
   modalSmallBox: {
     width: '100%',
     maxWidth: 380,
@@ -1417,5 +2025,238 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: SUCCESS_GREEN,
+  },
+  modalHint: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+
+  // FAIXA DE INDICADORES + BUSCA (COMPACTA)
+  toolbarRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 12,
+  },
+  statsStrip: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    flexGrow: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 8,
+  },
+  statItem: {
+    flexGrow: 1,
+    minWidth: 110,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+  },
+  statItemDivider: {
+    borderLeftWidth: 1,
+    borderLeftColor: '#F1F5F9',
+  },
+  statLabel: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    fontFamily: FONT_DISPLAY,
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  statDetail: {
+    fontFamily: FONT_SANS,
+    fontSize: 10,
+    color: '#94A3B8',
+  },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 220,
+    flexGrow: 0.4,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: FONT_SANS,
+    fontSize: 13,
+    color: '#0F172A',
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
+  },
+  btnNovoMaterial: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: KIPI_BLUE_ACCENT,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  btnNovoMaterialText: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  chipsRow: {
+    gap: 6,
+    paddingBottom: 12,
+  },
+  chipsBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  viewToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 2,
+    gap: 2,
+  },
+  viewToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  viewToggleBtnActive: {
+    backgroundColor: KIPI_BLUE_TINT,
+  },
+  viewToggleText: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  btnAtalhoAssar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: OVEN_TINT,
+    borderWidth: 1,
+    borderColor: '#FED7AA',
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+  },
+  btnAtalhoAssarText: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '700',
+    color: OVEN_ORANGE,
+  },
+  chipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  chipActive: {
+    backgroundColor: KIPI_BLUE_TINT,
+    borderColor: KIPI_BLUE,
+  },
+  chipText: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  chipTextActive: {
+    color: KIPI_BLUE_ACCENT,
+    fontWeight: '800',
+  },
+  prodCusto: {
+    fontFamily: FONT_SANS,
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  tableEmpty: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    color: '#94A3B8',
+    textAlign: 'center',
+    paddingVertical: 24,
+  },
+  tdAcoes: {
+    width: 70,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: 4,
+  },
+
+  // MODAL MATERIAL
+  formErro: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '700',
+    color: DANGER_RED,
+    backgroundColor: DANGER_TINT,
+    padding: 8,
+    borderRadius: 8,
+  },
+  formInput: {
+    fontFamily: FONT_SANS,
+    fontSize: 14,
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+  },
+  formRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  btnSalvarMaterial: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: KIPI_BLUE_ACCENT,
+    paddingVertical: 10,
+    borderRadius: 10,
+    gap: 6,
+  },
+  btnSalvarMaterialText: {
+    fontFamily: FONT_SANS,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
