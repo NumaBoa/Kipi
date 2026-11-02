@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React from 'react';
 import { View, Text, StyleSheet, Platform, ViewStyle } from 'react-native';
 
@@ -47,7 +48,7 @@ export function PageHeaderTitulo({ etiqueta, titulo, subtitulo }: PageHeaderTitu
   );
 }
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   topHeaderLeft: {
     gap: 3,
     flexShrink: 1,
@@ -78,4 +79,4 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontFamily: FONT_SANS,
   },
-});
+}));

@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState } from 'react';
 import {
   View,
@@ -249,7 +250,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   viewport: {
     flex: 1,
     height: '100%',
@@ -499,4 +500,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1E293B',
   },
-});
+}));

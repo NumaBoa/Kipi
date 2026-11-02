@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -1782,7 +1783,7 @@ export default function ProdutosEstoqueScreen() {
 // ============================================================================
 // ESTILOS VISUAIS COM A MESMA IDENTIDADE DAS TELAS REFINADAS
 // ============================================================================
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   // TOPO: indicadores compactos + Filtros + visualização (mesmo padrão do Estoque Central)
   topoLinha: { flexDirection: 'row', alignItems: 'stretch', flexWrap: 'wrap', gap: 10 },
   statsStrip: { flexDirection: 'row', flexWrap: 'wrap', flexGrow: 1, flexShrink: 1, backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', paddingVertical: 8 },
@@ -3273,4 +3274,4 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 2,
   },
-});
+}));

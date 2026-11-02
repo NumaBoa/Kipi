@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Platform, Modal, useWindowDimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -549,7 +550,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
   );
 }
 
-const s = StyleSheet.create({
+const s = paraCelular(StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
   box: { width: '100%', maxWidth: 620, maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#E2E8F0', ...Platform.select({ web: { boxShadow: '0 20px 50px rgba(15,23,42,0.18)' } }) },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
@@ -613,4 +614,4 @@ const s = StyleSheet.create({
   btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#334155' },
   btnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: KIPI_BLUE },
   btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
-});
+}));

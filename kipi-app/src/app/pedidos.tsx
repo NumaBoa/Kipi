@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -1591,7 +1592,7 @@ export default function PedidosScreen() {
 // FOLHA DE ESTILOS MODERNA (EXATAMENTE OS MESMOS COMPONENTES DA VISÃO GERAL)
 // ============================================================================
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   viewport: {
     flex: 1,
     height: '100%',
@@ -3216,4 +3217,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
@@ -1217,7 +1218,7 @@ function TextoWhatsApp({ texto }: { texto: string }) {
     </Text>
   );
 }
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   // SINAL DA ENCOMENDA
   sinalBox: {
     gap: 6,
@@ -2182,4 +2183,4 @@ const styles = StyleSheet.create({
   wppBtnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#15803D' },
   btnStartAnother: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#2D7A58', paddingVertical: 11, borderRadius: 10 },
   btnStartAnotherText: { fontFamily: FONT_SANS, color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
-});
+}));

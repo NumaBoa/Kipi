@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -285,7 +286,7 @@ export default function DossieRevendedoraModal({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   avatar: {
     width: 42,
     height: 42,
@@ -396,4 +397,4 @@ const styles = StyleSheet.create({
     color: '#475569',
     flexShrink: 1,
   },
-});
+}));

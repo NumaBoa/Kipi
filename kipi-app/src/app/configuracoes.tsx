@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -706,7 +707,7 @@ export default function ConfiguracoesScreen() {
 // ============================================================================
 const semOutline = Platform.select({ web: { outlineStyle: 'none' } as any });
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -1020,4 +1021,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: DANGER_RED,
   },
-});
+}));

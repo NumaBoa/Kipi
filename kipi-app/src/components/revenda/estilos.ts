@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import { StyleSheet, Platform } from 'react-native';
 
 // ============================================================================
@@ -21,7 +22,7 @@ export const DANGER_TINT = '#FEE2E2';
 const semOutline = Platform.select({ web: { outlineStyle: 'none' } as any });
 
 // Estilos compartilhados pelos modais de revenda (dossiê, entrega e acerto)
-export const estilosRevenda = StyleSheet.create({
+export const estilosRevenda = paraCelular(StyleSheet.create({
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.55)',
@@ -269,4 +270,4 @@ export const estilosRevenda = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
-});
+}));

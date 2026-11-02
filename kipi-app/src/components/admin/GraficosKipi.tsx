@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { FONT_DISPLAY, FONT_SANS, COR } from '@/components/PaginaPortal';
@@ -132,7 +133,7 @@ export function Progresso({ pct, cor = SERIE_DESTAQUE }: { pct: number; cor?: st
   );
 }
 
-const g = StyleSheet.create({
+const g = paraCelular(StyleSheet.create({
   plot: { position: 'relative', justifyContent: 'flex-end' },
   gradeLinha: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderTopColor: GRADE },
   gradeRotulo: { position: 'absolute', left: 0, top: -14, fontFamily: FONT_SANS, fontSize: 9, color: '#94A3B8' },
@@ -159,4 +160,4 @@ const g = StyleSheet.create({
   legendaPct: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '600', color: '#94A3B8' },
   progTrilho: { height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', overflow: 'hidden', marginTop: 8 },
   progBarra: { height: '100%', borderRadius: 3 },
-});
+}));

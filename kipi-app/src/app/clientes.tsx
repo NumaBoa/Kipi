@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -866,7 +867,7 @@ export default function ClientesScreen() {
 // ============================================================================
 // ESTILOS COM A MESMA IDENTIDADE DO MODAL DE NOVO PEDIDO (SORA + MANROPE + VERDE SÁLVIA)
 // ============================================================================
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   // ORIGEM / DOCUMENTO / STATUS NO DOSSIÊ
   dossierOrigemRow: {
     flexDirection: 'row',
@@ -2006,4 +2007,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontFamily: FONT_SANS,
   },
-});
+}));

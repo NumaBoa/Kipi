@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Modal, Platform, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -278,7 +279,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
   );
 }
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   kpiSaldoAberto: {
     borderColor: '#FDE68A',
     backgroundColor: '#FFFBEB',
@@ -364,4 +365,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

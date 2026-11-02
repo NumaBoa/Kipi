@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -511,7 +512,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
   );
 }
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   btnAddEndereco: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -745,4 +746,4 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontFamily: FONT_DISPLAY,
   },
-});
+}));

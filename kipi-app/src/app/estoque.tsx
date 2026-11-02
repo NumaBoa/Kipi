@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -1485,7 +1486,7 @@ export default function EstoqueCentralScreen() {
 // ============================================================================
 // ESTILOS
 // ============================================================================
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -2259,4 +2260,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

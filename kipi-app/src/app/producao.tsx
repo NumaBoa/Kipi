@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -1082,7 +1083,7 @@ export default function ProducaoScreen() {
 // ============================================================================
 // ESTILOS
 // ============================================================================
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   // ENCOMENDAS A PRODUZIR
   kpiCardSelected: {
     borderColor: KIPI_BLUE_ACCENT,
@@ -2100,4 +2101,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
   },
-});
+}));

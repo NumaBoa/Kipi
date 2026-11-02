@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -1329,7 +1330,7 @@ export default function InsumosReceitasScreen() {
 // ============================================================================
 // ESTILOS COM A IDENTIDADE VISUAL DO ATELIÊ & AZUL DO SISTEMA
 // ============================================================================
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -2704,4 +2705,4 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontStyle: 'italic',
   },
-});
+}));

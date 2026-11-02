@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Modal, ScrollView, StyleSheet } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -636,7 +637,7 @@ export default function PainelKipi() {
   );
 }
 
-const st = StyleSheet.create({
+const st = paraCelular(StyleSheet.create({
   // Tabela de empresas: o card cresce com as linhas (sem altura fixa) e o menu pode sair por baixo
   tabelaCard: { flexBasis: 'auto', marginTop: 14, overflow: 'visible', zIndex: 1 },
   colEmpresa: { flex: 2.2, minWidth: 0 },
@@ -679,4 +680,4 @@ const st = StyleSheet.create({
   th: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', letterSpacing: 0.6, color: '#94A3B8' },
   avatar: { width: 32, height: 32, borderRadius: 9, backgroundColor: COR.azulClaro, alignItems: 'center', justifyContent: 'center' },
   avatarTexto: { fontFamily: FONT_DISPLAY, fontSize: 11, fontWeight: '800', color: COR.azulForte },
-});
+}));

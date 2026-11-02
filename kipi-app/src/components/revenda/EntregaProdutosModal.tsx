@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Modal, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -236,7 +237,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
   );
 }
 
-const styles = StyleSheet.create({
+const styles = paraCelular(StyleSheet.create({
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -314,4 +315,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#0F172A',
   },
-});
+}));

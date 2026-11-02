@@ -1,3 +1,4 @@
+import { paraCelular } from '@/lib/responsivo';
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet, Platform, Modal } from 'react-native';
 import { Feather } from '@expo/vector-icons';
@@ -235,7 +236,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
   );
 }
 
-const s = StyleSheet.create({
+const s = paraCelular(StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
   box: { width: '100%', maxWidth: 460, maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E2E8F0' },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
@@ -278,4 +279,4 @@ const s = StyleSheet.create({
   btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#334155' },
   btnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, backgroundColor: DANGER },
   btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
-});
+}));
