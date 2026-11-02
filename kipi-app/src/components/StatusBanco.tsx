@@ -17,6 +17,8 @@ export default function StatusBanco() {
   const { estado, mensagem, area } = useStatusBanco();
   const [aberto, setAberto] = useState(false);
   if (estado === 'desligado') return null;
+  // Em produção, tudo salvo não precisa de selo (só aparece salvando, carregando ou com erro)
+  if (area === 'public' && estado === 'ok') return null;
   const v = VISUAL[estado];
   return (
     <View style={s.posicao} pointerEvents="box-none">

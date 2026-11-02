@@ -9,6 +9,8 @@ import '../global.css';
 
 // On Web, ensure browser autofill does not render blue background
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  // Página em português: evita o navegador oferecer "Traduzir do inglês"
+  document.documentElement.lang = 'pt-BR';
   const styleId = 'kipi-autofill-fix';
   if (!document.getElementById(styleId)) {
     const style = document.createElement('style');

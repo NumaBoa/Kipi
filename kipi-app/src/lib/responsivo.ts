@@ -35,7 +35,15 @@ const ajustarUm = (e: any, largura: number) => {
   if (typeof r.gap === 'number' && r.gap >= 18) r.gap = 12;
   if (typeof r.fontSize === 'number' && r.fontSize >= 26) r.fontSize = Math.round(r.fontSize * 0.82);
 
-  if (r.flexDirection === 'row' && !r.flexWrap && typeof r.gap === 'number' && r.gap >= 12) r.flexWrap = 'wrap';
+  if (r.flexDirection === 'row') {
+    // Linha nunca passa da largura de quem a contém (senão não quebra e corta)
+    if (r.width === undefined && r.maxWidth === undefined) r.maxWidth = '100%';
+    // Blocos espaçados ou empurrados para os cantos descem para a linha de baixo
+    if (!r.flexWrap && ((typeof r.gap === 'number' && r.gap >= 12) || r.justifyContent === 'space-between')) {
+      r.flexWrap = 'wrap';
+      if (r.rowGap === undefined) r.rowGap = 6;
+    }
+  }
   return r;
 };
 

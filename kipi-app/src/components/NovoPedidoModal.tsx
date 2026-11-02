@@ -94,6 +94,8 @@ export default function NovoPedidoModal({
 }: NovoPedidoModalProps) {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
+  // Celular: as duas colunas viram uma página só, rolando (produtos em cima, pedido embaixo)
+  const CorpoPedido: any = isDesktop ? View : ScrollView;
 
   // ESTADOS DO PEDIDO
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -578,7 +580,7 @@ export default function NovoPedidoModal({
               </View>
             </ScrollView>
           ) : (
-            <View style={[styles.dialogBody, !isDesktop && styles.dialogBodyMobile]}>
+            <CorpoPedido style={isDesktop ? styles.dialogBody : styles.dialogBodyMobile} keyboardShouldPersistTaps="handled">
 
               {/* ---------------------------------------------------------------------
                   COLUNA 1 (ESQUERDA): SELETORES E VITRINE DO ATELIÊ
@@ -795,7 +797,7 @@ export default function NovoPedidoModal({
 
                   {/* GRID DE PRODUTOS EM 2 COLUNAS (FIDEDIGNO AO LOVABLE) */}
                   <ScrollView
-                    style={styles.productsScrollArea}
+                    style={[styles.productsScrollArea, !isDesktop && styles.rolagemInternaCelular]}
                     contentContainerStyle={styles.productsGridContent}
                     showsVerticalScrollIndicator={true}>
                     {visibleProducts.length === 0 ? (
@@ -874,9 +876,6 @@ export default function NovoPedidoModal({
                     )}
                   </ScrollView>
 
-                  <Text style={styles.footerMicroNote}>
-                    Produtos e clientes de exemplo · prévia de atendimento
-                  </Text>
                 </View>
 
               </View>
@@ -899,7 +898,7 @@ export default function NovoPedidoModal({
 
                 {/* ITENS SELECIONADOS OU EMPTY STATE */}
                 <ScrollView
-                  style={styles.cartItemsScroll}
+                  style={[styles.cartItemsScroll, !isDesktop && styles.rolagemInternaCelular]}
                   contentContainerStyle={styles.cartItemsContent}
                   showsVerticalScrollIndicator={true}>
                   {count === 0 ? (
@@ -1183,7 +1182,7 @@ export default function NovoPedidoModal({
 
               </View>
 
-            </View>
+            </CorpoPedido>
           )}
 
         </View>
@@ -1460,8 +1459,14 @@ const styles = paraCelular(StyleSheet.create({
     overflow: 'hidden',
   },
   dialogBodyMobile: {
-    flexDirection: 'column',
-    overflow: 'scroll' as any,
+    flex: 1,
+  },
+  // Celular: listas internas com altura própria (a página inteira já rola)
+  rolagemInternaCelular: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    maxHeight: 360,
   },
 
   // COLUNA 1 (ESQUERDA - 1FR)
@@ -1474,7 +1479,11 @@ const styles = paraCelular(StyleSheet.create({
   },
   leftSectionMobile: {
     borderRightWidth: 0,
-    flex: undefined,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
 
   // BARRA SUPERIOR DE QUEM COMPRA E COMO RECEBE
@@ -1891,7 +1900,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   asideOrderSectionMobile: {
     width: '100%',
-    minHeight: 520,
+    flexShrink: 0,
   },
   asideHeader: {
     flexDirection: 'row',
