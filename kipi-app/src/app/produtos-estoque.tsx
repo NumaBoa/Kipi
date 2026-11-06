@@ -28,6 +28,8 @@ import DescarteModal from '@/components/DescarteModal';
 import ProducaoRapidaModal, { type ModoProducaoRapida } from '@/components/ProducaoRapidaModal';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Sidebar from '@/components/Sidebar';
+import { useEhCelular } from '@/lib/layout';
+import ProdutosMobile from '@/components/produtos-mobile/ProdutosMobile';
 import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
 
 // ============================================================================
@@ -171,7 +173,13 @@ const CATEGORIAS_PADRAO = [
 
 const EMOJIS_SUGESTOES = ['🍪', '🎂', '🧁', '🍬', '🥧', '🍫', '✨', '☕', '🥐', '🍓', '🎁', '🍩'];
 
+// Celular: lista, detalhe, cadastro e receita próprios; computador: tela completa abaixo
 export default function ProdutosEstoqueScreen() {
+  const celular = useEhCelular();
+  return celular ? <ProdutosMobile /> : <ProdutosEstoqueDesktop />;
+}
+
+function ProdutosEstoqueDesktop() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const isTablet = width >= 768 && width < 1024;
