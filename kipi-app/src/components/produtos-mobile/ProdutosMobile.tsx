@@ -113,8 +113,11 @@ export default function ProdutosMobile() {
   const [receita, setReceita] = useState<{ id: string; congelarDepois: number } | null>(null);
 
   // Atalho "Ver produto" (Estoque Central): ?produto=<id> abre o detalhe
-  const { produto: atalho, t: atalhoEm } = useLocalSearchParams<{ produto?: string; t?: string }>();
+  const { produto: atalho, t: atalhoEm, descartar: atalhoDescartar } = useLocalSearchParams<{ produto?: string; t?: string; descartar?: string }>();
+  const [descarteInicial, setDescarteInicial] = useState(false);
   useEffect(() => {
+    // ?descartar=1 (Estoque Central): já abre o descarte do produto
+    setDescarteInicial(atalhoDescartar === '1');
     if (atalho && vitrine.some((v) => v.id === atalho)) setDetalheId(atalho);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atalho, atalhoEm]);
@@ -383,7 +386,11 @@ export default function ProdutosMobile() {
       {detalhe ? (
         <DetalheProduto
           p={detalhe}
-          aoFechar={() => setDetalheId(null)}
+          descarteInicial={descarteInicial}
+          aoFechar={() => {
+            setDetalheId(null);
+            setDescarteInicial(false);
+          }}
           aoEditar={() => setForm({ aberto: true, id: detalhe.id })}
           aoReceita={() => setReceita({ id: detalhe.id, congelarDepois: 0 })}>
           {sobrepostos}
@@ -403,9 +410,11 @@ function DetalheProduto({
   aoFechar,
   aoEditar,
   aoReceita,
+  descarteInicial,
   children,
 }: {
   p: Produto;
+  descarteInicial?: boolean;
   aoFechar: () => void;
   aoEditar: () => void;
   aoReceita: () => void;
@@ -443,6 +452,10 @@ function DetalheProduto({
     setErroDesc(null);
     setGaveta('descartar');
   };
+  useEffect(() => {
+    if (descarteInicial && podeDescartar) abrirDescarte();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [descarteInicial]);
   const confirmarAssar = () => {
     const qtd = Math.min(qtdAssar, p.freezer);
     if (qtd <= 0) return;

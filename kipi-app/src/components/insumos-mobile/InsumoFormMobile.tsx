@@ -11,11 +11,14 @@ import { Botao, Opcao, T } from '@/components/mobile/ui';
 // nome e preço obrigatórios; custo na receita = preço pago ÷ conteúdo da embalagem.
 // ============================================================================
 
-type Tipo = 'ingrediente' | 'embalagem';
+type Tipo = 'ingrediente' | 'embalagem' | 'outro';
 const UNIDADES: Record<Tipo, { v: string; comum: boolean }[]> = {
   ingrediente: [
     { v: 'kg', comum: true }, { v: 'g', comum: true }, { v: 'L', comum: true }, { v: 'ml', comum: true }, { v: 'un', comum: true }, { v: 'pct', comum: true },
     { v: 'lata', comum: false }, { v: 'pote', comum: false }, { v: 'cx', comum: false }, { v: 'garrafa', comum: false }, { v: 'balde', comum: false }, { v: 'tb', comum: false }, { v: 'medida', comum: false },
+  ],
+  outro: [
+    { v: 'un', comum: true }, { v: 'pacote', comum: true }, { v: 'caixa', comum: true }, { v: 'm', comum: true },
   ],
   embalagem: [
     { v: 'un', comum: true }, { v: 'pacote', comum: true }, { v: 'caixa', comum: true }, { v: 'rolo', comum: true }, { v: 'duzia', comum: true }, { v: 'fardo', comum: true }, { v: 'm', comum: true },
@@ -70,11 +73,12 @@ export default function InsumoFormMobile({
   const [estoque, setEstoque] = useState('');
   const [minimo, setMinimo] = useState('');
   const [erro, setErro] = useState<string | null>(null);
+  const [detalhe, setDetalhe] = useState(''); // categoria do ingrediente ou "usado em"
 
   useEffect(() => {
     if (!visivel) return;
     const i = insumo;
-    const t: Tipo = i && i.tipo !== 'ingrediente' ? 'embalagem' : 'ingrediente';
+    const t: Tipo = i ? i.tipo : 'ingrediente';
     setTipo(t);
     setNome(i?.nome ?? '');
     setMarca(i?.marcaFornecedor ?? '');
@@ -85,13 +89,14 @@ export default function InsumoFormMobile({
     setArmazenamento(i?.armazenamento ?? 'seco');
     setEstoque(i ? String(i.quantidadeEstoque).replace('.', ',') : '');
     setMinimo(i ? String(i.estoqueMinimo).replace('.', ',') : '');
+    setDetalhe((i?.tipo === 'ingrediente' ? i?.categoria : i?.usadoEm) ?? '');
     setErro(null);
   }, [visivel, insumo]);
 
   const trocarTipo = (t: Tipo) => {
     setTipo(t);
-    setUnidade(t === 'ingrediente' ? 'kg' : 'pacote');
-    setConteudo(t === 'ingrediente' ? '1000' : '50');
+    setUnidade(t === 'ingrediente' ? 'kg' : t === 'outro' ? 'un' : 'pacote');
+    setConteudo(t === 'ingrediente' ? '1000' : t === 'outro' ? '1' : '50');
     setTodas(false);
   };
 
@@ -122,10 +127,11 @@ export default function InsumoFormMobile({
       estoqueMinimo: minimoNum,
       armazenamento,
       marcaFornecedor: marca.trim() || undefined,
+      ...(tipo === 'ingrediente' ? { categoria: detalhe.trim() || undefined } : { usadoEm: detalhe.trim() || undefined }),
     };
     if (insumo) {
       // O estoque muda pelo mesmo caminho do ajuste (−/+), para não pular o registro
-      salvarInsumo({ ...insumo, ...base, tipo: insumo.tipo === 'outro' ? 'outro' : tipo });
+      salvarInsumo({ ...insumo, ...base });
       const delta = Number((estoqueNum - insumo.quantidadeEstoque).toFixed(3));
       if (delta !== 0) ajustarEstoqueInsumo(insumo.id, delta);
       aoSalvo('Insumo atualizado!');
@@ -136,7 +142,7 @@ export default function InsumoFormMobile({
       ...base,
       quantidadeEstoque: estoqueNum,
       status: 'ativo',
-      emoji: tipo === 'ingrediente' ? '🥫' : '📦',
+      emoji: tipo === 'ingrediente' ? '🥫' : tipo === 'outro' ? '🧷' : '📦',
       ultimaCompra: new Date().toLocaleDateString('pt-BR'),
     });
     aoSalvo('Insumo cadastrado!');
@@ -170,7 +176,8 @@ export default function InsumoFormMobile({
             <View style={s.linha}>
               {([
                 ['ingrediente', '🥫', 'Ingrediente', 'Farinha, chocolate, laticínio…'],
-                ['embalagem', '📦', 'Embalagem', 'Caixa, fita, saco, forminha…'],
+                ['embalagem', '📦', 'Embalagem', 'Caixa, fita, saco…'],
+                ['outro', '🧷', 'Outro', 'Vela, topper, etiqueta…'],
               ] as const).map(([id, emoji, rotulo, sub]) => {
                 const on = tipo === id;
                 return (
@@ -185,8 +192,14 @@ export default function InsumoFormMobile({
 
             {/* COMPRA */}
             <View style={s.bloco}>
-              <Campo rotulo="Nome *" value={nome} onChangeText={setNome} placeholder={tipo === 'ingrediente' ? 'Ex: Chocolate Belga 54% Callebaut' : 'Ex: Caixa Kraft c/ Visor 6 Cookies'} />
+              <Campo rotulo="Nome *" value={nome} onChangeText={setNome} placeholder={tipo === 'ingrediente' ? 'Ex: Chocolate Belga 54% Callebaut' : tipo === 'outro' ? 'Ex: Topper de aniversário' : 'Ex: Caixa Kraft c/ Visor 6 Cookies'} />
               <Campo rotulo="Marca / fornecedor" value={marca} onChangeText={setMarca} placeholder="Ex: Callebaut, Nestlé, Cromus…" />
+              <Campo
+                rotulo={tipo === 'ingrediente' ? 'Categoria (opcional)' : 'Usado em (opcional)'}
+                value={detalhe}
+                onChangeText={setDetalhe}
+                placeholder={tipo === 'ingrediente' ? 'Ex: Laticínio' : 'Ex: Bolos de aniversário'}
+              />
               <View style={{ gap: 8 }}>
                 <T style={s.rotulo}>Como você compra *</T>
                 <View style={s.chips}>
@@ -258,7 +271,7 @@ const s = StyleSheet.create({
   input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   dica: { fontSize: 11, color: cor.textoSuave },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
-  tipo: { flex: 1, minHeight: 76, padding: 12, borderRadius: 20, borderWidth: 1.5, borderColor: '#FFFFFF', backgroundColor: '#FFFFFF', gap: 4 },
+  tipo: { flex: 1, minHeight: 76, padding: 10, borderRadius: 20, borderWidth: 1.5, borderColor: '#FFFFFF', backgroundColor: '#FFFFFF', gap: 4 },
   tipoOn: { borderColor: cor.azulBotao, backgroundColor: cor.azulClaro },
   tipoTitulo: { fontSize: 14, fontWeight: '800' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

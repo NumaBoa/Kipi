@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import Sidebar from '@/components/Sidebar';
+import { useEhCelular } from '@/lib/layout';
+import EstoqueMobile from '@/components/estoque-mobile/EstoqueMobile';
 import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
 import {
   useEstoqueVitrine,
@@ -186,7 +188,13 @@ function Indicador({
   );
 }
 
+// Celular: produtos, materiais e compras próprios; computador: tela completa abaixo
 export default function EstoqueCentralScreen() {
+  const celular = useEhCelular();
+  return celular ? <EstoqueMobile /> : <EstoqueCentralDesktop />;
+}
+
+function EstoqueCentralDesktop() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
