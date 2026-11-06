@@ -3,7 +3,8 @@ import { Image, Linking, Modal, Platform, ScrollView, StyleSheet, TextInput, Tou
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
-import ClienteFormModal, { type ClienteCadastrado } from '@/components/ClienteFormModal';
+import { type ClienteCadastrado } from '@/components/ClienteFormModal';
+import ClienteFormMobile from '@/components/clientes-mobile/ClienteFormMobile';
 import { useEstoqueVitrine, produtoAtivo } from '@/lib/estoqueVitrine';
 import {
   useClientes,
@@ -45,10 +46,12 @@ const doisDig = (n: number) => String(n).padStart(2, '0');
 
 export default function NovoPedidoMobile({
   pedidoEditando = null,
+  clienteInicialId,
   aoFechar,
   aoSalvo,
 }: {
   pedidoEditando?: Pedido | null;
+  clienteInicialId?: string; // aberto pela ficha do cliente: já vem escolhido
   aoFechar: () => void;
   aoSalvo: (p: Pedido, editado: boolean) => void;
 }) {
@@ -93,7 +96,7 @@ export default function NovoPedidoMobile({
   const [busca, setBusca] = useState('');
   const [categoria, setCategoria] = useState('Todos');
   const [soDisponiveis, setSoDisponiveis] = useState(true);
-  const [clienteId, setClienteId] = useState<string>(inicial?.cliente ?? '');
+  const [clienteId, setClienteId] = useState<string>(inicial?.cliente ?? clienteInicialId ?? '');
   const [buscaCliente, setBuscaCliente] = useState('');
   const [gavetaClientes, setGavetaClientes] = useState(false);
   const [formCliente, setFormCliente] = useState(false);
@@ -751,7 +754,7 @@ export default function NovoPedidoMobile({
           ))}
         </Gaveta>
 
-        <ClienteFormModal visible={formCliente} onClose={() => setFormCliente(false)} onSalvo={cadastrado} revendedoraFixa={escopo.revendedoraId} />
+        <ClienteFormMobile visible={formCliente} onClose={() => setFormCliente(false)} onSalvo={cadastrado} revendedoraFixa={escopo.revendedoraId} />
       </SafeAreaView>
     </Modal>
   );

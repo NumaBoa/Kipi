@@ -52,7 +52,7 @@ interface Props {
 }
 
 // MÁSCARAS
-const formatarTelefone = (valor: string) => {
+export const formatarTelefone = (valor: string) => {
   const limpo = valor.replace(/\D/g, '').slice(0, 11);
   if (limpo.length <= 2) return limpo;
   if (limpo.length <= 6) return `(${limpo.slice(0, 2)}) ${limpo.slice(2)}`;
@@ -60,13 +60,13 @@ const formatarTelefone = (valor: string) => {
   return `(${limpo.slice(0, 2)}) ${limpo.slice(2, 7)}-${limpo.slice(7)}`;
 };
 
-const formatarCep = (valor: string) => {
+export const formatarCep = (valor: string) => {
   const limpo = valor.replace(/\D/g, '').slice(0, 8);
   if (limpo.length <= 5) return limpo;
   return `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
 };
 
-const formatarData = (valor: string) => {
+export const formatarData = (valor: string) => {
   const limpo = valor.replace(/\D/g, '').slice(0, 8);
   if (limpo.length <= 2) return limpo;
   if (limpo.length <= 4) return `${limpo.slice(0, 2)}/${limpo.slice(2)}`;
@@ -74,7 +74,7 @@ const formatarData = (valor: string) => {
 };
 
 // CPF até 11 dígitos, CNPJ a partir do 12º
-const formatarCpfCnpj = (valor: string) => {
+export const formatarCpfCnpj = (valor: string) => {
   const d = valor.replace(/\D/g, '').slice(0, 14);
   if (d.length <= 11) {
     if (d.length <= 3) return d;

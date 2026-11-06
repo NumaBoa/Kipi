@@ -28,6 +28,8 @@ import {
   type ClienteCadastro,
 } from '@/lib/clientesPedidos';
 import { useEscopoRevendedora, pedidosDoEscopo } from '@/lib/minhaRevenda';
+import { useEhCelular } from '@/lib/layout';
+import ClientesMobile from '@/components/clientes-mobile/ClientesMobile';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (ATELIÊ SAGE / LOVABLE)
@@ -42,7 +44,13 @@ const ATELIE_SUCCESS = '#228658';
 export type ViewMode = 'grid' | 'lista' | 'cards';
 export type StatusFilter = 'todos' | 'ativos' | 'inativos' | 'aniversariantes';
 
+// Celular: lista, ficha e cadastro próprios; computador: tela completa abaixo
 export default function ClientesScreen() {
+  const celular = useEhCelular();
+  return celular ? <ClientesMobile /> : <ClientesDesktop />;
+}
+
+function ClientesDesktop() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 900;
 
