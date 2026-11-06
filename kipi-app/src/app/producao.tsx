@@ -26,6 +26,8 @@ import { useInsumos, useFichas, receitaDoProduto, congelarMassas, assarDoFreezer
 import { useHistoricoProducao, type RegistroProducao } from '@/lib/historicoProducao';
 import { resumoDePerdas, ultimosDias, EMOJI_MOTIVO } from '@/lib/descarte';
 import DescarteModal from '@/components/DescarteModal';
+import ProducaoMobile from '@/components/producao-mobile/ProducaoMobile';
+import { useEhCelular } from '@/lib/layout';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -111,7 +113,13 @@ const PROXIMO_STATUS_COZINHA: Record<string, { id: 'em_producao' | 'pronto'; lab
   em_producao: { id: 'pronto', label: 'Marcar pronto' },
 };
 
+// Celular (app e navegador do celular): layout mobile; computador: layout com menu lateral
 export default function ProducaoScreen() {
+  const celular = useEhCelular();
+  return celular ? <ProducaoMobile /> : <ProducaoDesktop />;
+}
+
+function ProducaoDesktop() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
 
