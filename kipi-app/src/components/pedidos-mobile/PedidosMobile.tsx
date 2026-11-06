@@ -2,13 +2,13 @@ import React, { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { atualizarPedido, chaveDoDia, useClientes, usePedidos, type Pedido } from '@/lib/clientesPedidos';
+import { atualizarPedido, chaveDoDia, rotuloEntrega, useClientes, usePedidos, type Pedido } from '@/lib/clientesPedidos';
 import { pedidosDoEscopo, useEscopoRevendedora } from '@/lib/minhaRevenda';
 import { produtoAtivo, useEstoqueVitrine } from '@/lib/estoqueVitrine';
 import { useConfigLoja } from '@/lib/configuracoes';
 import TabBar from '@/components/mobile/TabBar';
 import { Aviso, Botao, Etiqueta, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
-import { brl, cor, ETAPAS_PRODUCAO, NOME_FORMA, numeros, sombra } from '@/components/mobile/tema';
+import { brl, cor, ETAPAS_PRODUCAO, numeros, sombra } from '@/components/mobile/tema';
 import { abrirWhatsApp, copiarComprovante } from './acoes';
 import { GavetaAcoes, GavetaCancelar, GavetaReceber, type AcaoPedido } from './GavetasPedido';
 import DetalhePedidoMobile from './DetalhePedidoMobile';
@@ -104,9 +104,11 @@ export default function PedidosMobile() {
   const totalAnterior = doAnterior.reduce((a, p) => a + p.total, 0);
   const variacao = totalAnterior > 0 ? Math.round(((totalVendido - totalAnterior) / totalAnterior) * 100) : null;
   const itensVendidos = visiveis.reduce((a, p) => a + p.itens.reduce((b, it) => b + it.quantidade, 0), 0);
-  const pendentesPeriodo = visiveis.filter((p) => p.status === 'pendente');
-  const aReceber = pendentesPeriodo.reduce((a, p) => a + saldo(p), 0);
-  const temReceber = pendentesPeriodo.length > 0;
+  // A receber não "vence" com o período: soma tudo o que está pendente (igual à lista que abre ao tocar)
+  const pendentesTodos = pedidos.filter((p) => p.status === 'pendente');
+  const aReceber = pendentesTodos.reduce((a, p) => a + saldo(p), 0);
+  const temReceber = pendentesTodos.length > 0;
+  const clientesDevendo = new Set(pendentesTodos.map((p) => p.clienteId ?? p.clienteNome)).size;
   const comissao = visiveis.reduce((a, p) => a + escopo.comissaoDoPedido(p), 0);
 
   const estoque = useMemo(
@@ -165,7 +167,7 @@ export default function PedidosMobile() {
 
   const todosPendentes = pedidos.filter((p) => p.status === 'pendente').sort((a, b) => saldo(b) - saldo(a));
   const vendedores = [...new Set(pedidos.map((p) => p.vendedor))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  const nFiltros = (tipo !== 'todos' ? 1 : 0) + (pag !== 'todos' ? 1 : 0) + (vendedor !== 'todos' ? 1 : 0);
+  const nFiltros = (tipo !== 'todos' ? 1 : 0) + (vendedor !== 'todos' ? 1 : 0);
   const limpar = () => {
     setTipo('todos');
     setPag('todos');
@@ -194,13 +196,15 @@ export default function PedidosMobile() {
     if (a === 'cancelar') setCancelar(p);
   };
 
-  const atalhos: { rotulo: string; on: boolean; tocar: () => void }[] = [
-    { rotulo: 'Pendentes', on: pag === 'pendentes', tocar: () => setPag(pag === 'pendentes' ? 'todos' : 'pendentes') },
-    ...(rev ? [] : [{ rotulo: 'Encomendas', on: tipo === 'sob_encomenda', tocar: () => setTipo(tipo === 'sob_encomenda' ? 'todos' : 'sob_encomenda') }]),
-    { rotulo: 'Pagos', on: pag === 'pagos', tocar: () => setPag(pag === 'pagos' ? 'todos' : 'pagos') },
+  // Contagem por situação de pagamento, dentro do período e dos outros filtros
+  const semPag = pedidos.filter((p) => noIntervalo(p, atual) && (tipo === 'todos' || p.tipoPedido === tipo) && (vendedor === 'todos' || p.vendedor === vendedor));
+  const abasPagamento: { id: Pagamento; rotulo: string; qtd: number; cor: string }[] = [
+    { id: 'todos', rotulo: 'Todos', qtd: semPag.length, cor: cor.texto },
+    { id: 'pendentes', rotulo: 'A receber', qtd: semPag.filter((p) => p.status === 'pendente').length, cor: cor.vermelho },
+    { id: 'pagos', rotulo: 'Pagos', qtd: semPag.filter((p) => p.status === 'pago').length, cor: cor.verde },
   ];
   const etiquetasExtras = [
-    ...(tipo === 'pronta_entrega' ? [{ rotulo: 'Pronta entrega', limpar: () => setTipo('todos') }] : []),
+    ...(tipo !== 'todos' ? [{ rotulo: tipo === 'sob_encomenda' ? 'Encomendas' : 'Pronta entrega', limpar: () => setTipo('todos') }] : []),
     ...(vendedor !== 'todos' ? [{ rotulo: `Vendedor: ${vendedor}`, limpar: () => setVendedor('todos') }] : []),
   ];
   const rotuloPeriodo = periodo === 'personalizar' && chaveValida(dataIni) && chaveValida(dataFim) ? `${dataIni.slice(8)}/${dataIni.slice(5, 7)} – ${dataFim.slice(8)}/${dataFim.slice(5, 7)}` : ROTULO_PERIODO[periodo];
@@ -222,31 +226,36 @@ export default function PedidosMobile() {
           if (compacto !== fabCompacto) setFabCompacto(compacto);
           ultimoY.current = y;
         }}>
-        {/* TOPO */}
+        {/* TOPO: título, período (texto) e filtros; embaixo, a situação de pagamento */}
         <View style={s.topo}>
-          <View style={{ flex: 1 }}>
-            <T style={s.etiquetaTopo}>{rev ? 'Revenda · meus pedidos' : 'Ateliê · pedidos e vendas'}</T>
+          <View style={{ flex: 1, gap: 2 }}>
             <T titulo style={s.titulo}>Pedidos</T>
+            <TouchableOpacity style={s.periodo} onPress={() => setGaveta('periodo')} accessibilityRole="button" accessibilityLabel={`Período: ${rotuloPeriodo}. Trocar`}>
+              <T style={s.periodoTexto}>{rotuloPeriodo}</T>
+              <Feather name="chevron-down" size={16} color={cor.azulTexto} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={[s.redondo, sombra]} onPress={() => setGaveta('filtros')} accessibilityRole="button" accessibilityLabel={`Filtros, ${nFiltros} ativos`}>
-            <Feather name="sliders" size={18} color={nFiltros ? cor.azulBotao : cor.texto} />
+          {!rev && <TouchableOpacity style={[s.redondo, sombra]} onPress={() => setGaveta('filtros')} accessibilityRole="button" accessibilityLabel={`Filtros, ${nFiltros} ativos`}>
+            <Feather name="filter" size={18} color={nFiltros ? cor.azulBotao : cor.texto} />
             {nFiltros > 0 && (
               <View style={s.seloFiltro}>
                 <T style={s.seloFiltroTexto}>{nFiltros}</T>
               </View>
             )}
-          </TouchableOpacity>
+          </TouchableOpacity>}
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.faixa}>
-          <TouchableOpacity style={s.periodo} onPress={() => setGaveta('periodo')} accessibilityRole="button" accessibilityLabel={`Período: ${rotuloPeriodo}`}>
-            <T style={s.periodoTexto}>{rotuloPeriodo}</T>
-            <Feather name="chevron-down" size={15} color="#FFFFFF" />
-          </TouchableOpacity>
-          {atalhos.map((a) => (
-            <Opcao key={a.rotulo} rotulo={a.rotulo} ativo={a.on} aoTocar={a.tocar} style={s.atalho} />
-          ))}
-        </ScrollView>
+        <View style={s.segmento} accessibilityRole="tablist">
+          {abasPagamento.map((a) => {
+            const on = pag === a.id;
+            return (
+              <TouchableOpacity key={a.id} style={[s.segItem, on && s.segItemOn]} onPress={() => setPag(a.id)} accessibilityRole="tab" accessibilityState={{ selected: on }}>
+                <T style={[s.segTexto, on && s.segTextoOn]}>{a.rotulo}</T>
+                <T style={[s.segNum, on && { color: a.cor }]}>{a.qtd}</T>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         {/* RESUMO */}
         <View style={[s.resumo, sombra]}>
@@ -254,23 +263,24 @@ export default function PedidosMobile() {
             <TouchableOpacity style={s.resumoCelula} onPress={() => setGaveta('resumo')} accessibilityRole="button">
               <T style={s.resumoRotulo}>Vendido</T>
               <T titulo style={[s.resumoValor, numeros]}>{brl(totalVendido)}</T>
-              <T style={[s.resumoNota, { color: variacao === null ? cor.textoSuave : variacao >= 0 ? cor.pistacheTexto : cor.vermelho }]}>
+              <T style={[s.resumoNota, { color: variacao === null ? cor.textoSuave : variacao >= 0 ? cor.verde : cor.vermelho }]}>
                 {variacao === null ? 'Sem período anterior' : `${variacao >= 0 ? '+' : ''}${variacao}% vs anterior`}
               </T>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.resumoCelula, temReceber && { backgroundColor: cor.vermelhoClaro }]} onPress={() => setGaveta('receber')} accessibilityRole="button">
-              <T style={[s.resumoRotulo, temReceber && { color: cor.vermelho }]}>A receber</T>
-              <T titulo style={[s.resumoValor, numeros, temReceber && { color: cor.vermelho }]}>{brl(aReceber)}</T>
+            <TouchableOpacity
+              style={[s.resumoCelula, { backgroundColor: temReceber ? cor.vermelhoClaro : cor.verdeClaro }]}
+              onPress={() => setGaveta('receber')}
+              accessibilityRole="button">
+              <T style={[s.resumoRotulo, { color: temReceber ? cor.vermelho : cor.verde }]}>A receber</T>
+              <T titulo style={[s.resumoValor, numeros, { color: temReceber ? cor.vermelho : cor.verde }]}>{brl(aReceber)}</T>
               <T style={[s.resumoNota, { color: temReceber ? cor.vermelho : cor.verde }]}>
-                {temReceber ? `${pendentesPeriodo.length} ${pendentesPeriodo.length === 1 ? 'aguarda baixa' : 'aguardam baixa'} ›` : 'Tudo recebido'}
+                {temReceber ? `${clientesDevendo} ${clientesDevendo === 1 ? 'cliente' : 'clientes'} ›` : 'Tudo recebido ✓'}
               </T>
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={s.resumoRodape} onPress={() => setGaveta('resumo')} accessibilityRole="button">
-            <T style={[s.resumoRodapeTexto, numeros]}>
-              <T style={s.forte}>{rev ? brl(comissao) : `${itensVendidos} un.`}</T> {rev ? 'de comissão' : 'vendidos'}  ·  <T style={s.forte}>{totalEstoque} un.</T> em estoque
-            </T>
-            <T style={s.link}>Resumo ›</T>
+            <T style={s.link}>Ver resumo do período</T>
+            <Feather name="chevron-right" size={16} color={cor.azulTexto} />
           </TouchableOpacity>
         </View>
 
@@ -285,77 +295,76 @@ export default function PedidosMobile() {
           </ScrollView>
         )}
 
-        {/* LISTA POR DIA */}
+        {/* LISTA POR DIA: cliente e valor em destaque; o resto fica no detalhe */}
         {grupos.map((g) => {
           const { titulo, data } = tituloDoDia(g.chave);
-          const pend = g.lista.filter((p) => p.status === 'pendente').length;
           return (
             <View key={g.chave} style={s.grupo}>
               <View style={s.grupoTopo}>
                 <T titulo style={s.grupoTitulo}>{titulo}</T>
                 <T style={s.grupoData}>{data}</T>
-                <T style={[s.grupoTotal, numeros]}>
-                  {g.lista.length} {g.lista.length === 1 ? 'pedido' : 'pedidos'} · {brl(g.lista.reduce((a, p) => a + p.total, 0))}
-                </T>
+                <T style={[s.grupoTotal, numeros]}>{brl(g.lista.reduce((a, p) => a + p.total, 0))}</T>
               </View>
-              {pend > 0 && <T style={s.grupoPend}>{pend} {pend === 1 ? 'pendente' : 'pendentes'} de pagamento</T>}
               <View style={[s.lista, sombra]}>
                 {g.lista.map((p, i) => {
                   const pendente = p.status === 'pendente';
                   const iE = ETAPAS_PRODUCAO.findIndex((e) => e.id === p.statusProducao);
                   const e = ETAPAS_PRODUCAO[Math.max(0, iE)];
                   const tag = tagDoCliente(p);
-                  // Revenda já pago não tem etapa nem cobrança: o "…" vai para o lado do valor
-                  const temLinhaAcoes = !p.revendedoraId || pendente;
-                  const tipoTxt = p.revendedoraId ? 'Revenda' : p.tipoPedido === 'sob_encomenda' ? 'Encomenda' : 'Pronta entrega';
+                  const parcial = pendente && p.valorSinalPago > 0;
+                  const encomenda = !p.revendedoraId && p.tipoPedido === 'sob_encomenda';
+                  // Etapa de produção só em pedido do ateliê que ainda não foi entregue
+                  const mostraEtapa = !p.revendedoraId && iE < 3;
+                  const temAcoes = mostraEtapa || pendente;
                   return (
                     <View key={p.id} style={[s.pedido, i > 0 && s.pedidoBorda]}>
-                      <TouchableOpacity style={s.pedidoInfo} activeOpacity={0.7} onPress={() => setDetalheId(p.id)} accessibilityRole="button" accessibilityLabel={`Pedido de ${p.clienteNome}, ${brl(p.total)}`}>
-                        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                      <TouchableOpacity
+                        style={s.pedidoInfo}
+                        activeOpacity={0.7}
+                        onPress={() => setDetalheId(p.id)}
+                        onLongPress={() => setAcoes(p)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Pedido de ${p.clienteNome}, ${brl(p.total)}, ${pendente ? 'pendente' : 'pago'}`}
+                        accessibilityHint="Toque para ver detalhes; toque e segure para mais ações">
+                        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
                           <View style={s.linhaNome}>
                             <T style={s.cliente} numberOfLines={1}>{p.clienteNome}</T>
                             {!!tag && <Etiqueta texto={tag} />}
                           </View>
                           <T style={s.itens} numberOfLines={1}>{p.itens.map((it) => `${it.quantidade}x ${it.nome}`).join(' • ')}</T>
-                          <T style={s.meta} numberOfLines={1}>
-                            {tipoTxt} · {p.codigoDisplay} · {p.horaDisplay}{rev ? '' : ` · ${p.vendedor}`}
-                          </T>
+                          {encomenda && (
+                            <View style={s.entrega}>
+                              <Feather name="calendar" size={12} color={cor.ambar} />
+                              <T style={s.entregaTexto}>Encomenda · {rotuloEntrega(p.dataEntrega)}</T>
+                            </View>
+                          )}
                         </View>
-                        <View style={{ alignItems: 'flex-end', gap: 3 }}>
-                          <T titulo style={[s.valor, numeros]}>{brl(p.total)}</T>
-                          <T style={[s.pag, numeros, { color: pendente ? cor.vermelho : cor.verde }]}>
-                            {pendente ? `Falta ${brl(saldo(p))}` : `Pago · ${NOME_FORMA[p.formaPagamento]}`}
-                          </T>
+                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                          <T titulo style={[s.valor, numeros, { color: pendente ? cor.vermelho : cor.verde }]}>{brl(p.total)}</T>
+                          {parcial && <T style={[s.falta, numeros]}>falta {brl(saldo(p))}</T>}
                         </View>
-                        {!temLinhaAcoes && (
-                          <TouchableOpacity style={[s.mais, { alignSelf: 'center' }]} onPress={() => setAcoes(p)} accessibilityRole="button" accessibilityLabel={`Mais ações do pedido ${p.codigoDisplay}`}>
-                            <Feather name="more-horizontal" size={18} color={cor.textoMedio} />
-                          </TouchableOpacity>
-                        )}
                       </TouchableOpacity>
-                      {temLinhaAcoes && <View style={s.pedidoAcoes}>
-                        {!p.revendedoraId && (
-                          <TouchableOpacity
-                            style={[s.status, { backgroundColor: e.bg }]}
-                            onPress={() => avancar(p)}
-                            disabled={iE >= 3}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Produção: ${e.label}${iE < 3 ? '. Tocar avança a etapa' : ''}`}>
-                            <View style={[s.statusPonto, { backgroundColor: e.fg }]} />
-                            <T style={[s.statusTexto, { color: e.fg }]}>{e.label}</T>
-                            {iE < 3 && <Feather name="chevron-right" size={13} color={e.fg} />}
-                          </TouchableOpacity>
-                        )}
-                        <View style={{ flex: 1 }} />
-                        {pendente && (
-                          <TouchableOpacity style={s.receber} onPress={() => setReceber(p)} accessibilityRole="button">
-                            <T style={s.receberTexto}>Receber</T>
-                          </TouchableOpacity>
-                        )}
-                        <TouchableOpacity style={s.mais} onPress={() => setAcoes(p)} accessibilityRole="button" accessibilityLabel={`Mais ações do pedido ${p.codigoDisplay}`}>
-                          <Feather name="more-horizontal" size={18} color={cor.textoMedio} />
-                        </TouchableOpacity>
-                      </View>}
+                      {temAcoes && (
+                        <View style={s.pedidoAcoes}>
+                          {mostraEtapa && (
+                            <TouchableOpacity
+                              style={[s.status, { backgroundColor: e.bg }]}
+                              onPress={() => avancar(p)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Produção: ${e.label}. Tocar avança a etapa`}>
+                              <View style={[s.statusPonto, { backgroundColor: e.fg }]} />
+                              <T style={[s.statusTexto, { color: e.fg }]}>{e.label}</T>
+                              <Feather name="chevron-right" size={13} color={e.fg} />
+                            </TouchableOpacity>
+                          )}
+                          <View style={{ flex: 1 }} />
+                          {pendente && (
+                            <TouchableOpacity style={s.receber} onPress={() => setReceber(p)} accessibilityRole="button" accessibilityLabel={`Receber de ${p.clienteNome}`}>
+                              <T style={s.receberTexto}>Receber</T>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      )}
                     </View>
                   );
                 })}
@@ -415,7 +424,7 @@ export default function PedidosMobile() {
       </Gaveta>
 
       {/* GAVETA: FILTROS */}
-      <Gaveta aberta={gaveta === 'filtros'} aoFechar={() => setGaveta(null)} titulo="Filtros" subtitulo={rev ? 'Pagamento' : 'Tipo, pagamento e vendedor'}>
+      <Gaveta aberta={gaveta === 'filtros'} aoFechar={() => setGaveta(null)} titulo="Filtros" subtitulo="Tipo de pedido e vendedor">
         {!rev && (
           <View style={{ gap: 8 }}>
             <T style={s.rotuloCampo}>Tipo</T>
@@ -426,14 +435,6 @@ export default function PedidosMobile() {
             </View>
           </View>
         )}
-        <View style={{ gap: 8 }}>
-          <T style={s.rotuloCampo}>Pagamento</T>
-          <View style={s.wrap}>
-            {([['todos', 'Todos'], ['pendentes', 'Pendentes'], ['pagos', 'Pagos']] as [Pagamento, string][]).map(([id, r]) => (
-              <Opcao key={id} rotulo={r} ativo={pag === id} aoTocar={() => setPag(id)} forte />
-            ))}
-          </View>
-        </View>
         {!rev && (
           <View style={{ gap: 8 }}>
             <T style={s.rotuloCampo}>Vendedor</T>
@@ -468,7 +469,7 @@ export default function PedidosMobile() {
           <TouchableOpacity style={[s.kpi, { backgroundColor: cor.vermelhoClaro }]} onPress={() => setGaveta('receber')}>
             <T style={[s.kpiRotulo, { color: cor.vermelho }]}>A receber ›</T>
             <T titulo style={[s.kpiValor, numeros, { color: cor.vermelho }]}>{brl(aReceber)}</T>
-            <T style={[s.kpiNota, { color: cor.vermelho }]}>{pendentesPeriodo.length} pendentes</T>
+            <T style={[s.kpiNota, { color: cor.vermelho }]}>{pendentesTodos.length} pendentes</T>
             <T style={[s.kpiSub, { color: '#7F1D1D' }]}>Ver clientes devedores</T>
           </TouchableOpacity>
           <TouchableOpacity style={s.kpi} onPress={() => setGaveta('estoque')}>
@@ -638,43 +639,52 @@ export default function PedidosMobile() {
 
 const s = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cor.fundo },
-  topo: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingRight: 16 },
+  topo: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingRight: 16 },
   etiquetaTopo: { fontSize: 12, fontWeight: '700', color: cor.textoSuave },
-  titulo: { fontSize: 26, fontWeight: '700', letterSpacing: -0.6 },
+  titulo: { fontSize: 28, fontWeight: '700', letterSpacing: -0.6 },
   redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   seloFiltro: { position: 'absolute', top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: cor.azulBotao, alignItems: 'center', justifyContent: 'center' },
   seloFiltroTexto: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
   faixa: { gap: 8, paddingHorizontal: 20, paddingTop: 14 },
-  periodo: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: cor.escuro },
-  periodoTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  periodo: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', minHeight: 32 },
+  periodoTexto: { color: cor.azulTexto, fontSize: 14, fontWeight: '700' },
+  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#E8EEF5' },
+  segItem: { flex: 1, height: 40, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segTexto: { fontSize: 13, fontWeight: '600', color: cor.textoMedio },
+  segTextoOn: { fontWeight: '800', color: cor.texto },
+  segNum: { fontSize: 12, fontWeight: '800', color: cor.textoSuave },
   atalho: { minHeight: 38, borderRadius: 19, borderWidth: 1 },
   resumo: { marginHorizontal: 16, marginTop: 14, padding: 4, borderRadius: 22, backgroundColor: '#FFFFFF' },
   resumoLinha: { flexDirection: 'row', gap: 4 },
   resumoCelula: { flex: 1, padding: 12, borderRadius: 18, gap: 4 },
-  resumoRotulo: { fontSize: 12, fontWeight: '700', color: cor.textoSuave },
-  resumoValor: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
+  resumoRotulo: { fontSize: 13, fontWeight: '600', color: cor.textoSuave },
+  resumoValor: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
   resumoNota: { fontSize: 12, fontWeight: '800' },
-  resumoRodape: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: cor.bordaSuave },
+  resumoRodape: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, minHeight: 44, paddingHorizontal: 12 },
   resumoRodapeTexto: { flex: 1, fontSize: 13, color: cor.textoMedio },
   forte: { fontSize: 13, fontWeight: '800', color: cor.texto },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
   etqFiltro: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 32, paddingLeft: 12, paddingRight: 8, borderRadius: 16, backgroundColor: cor.azulClaro },
   etqFiltroTexto: { fontSize: 12, fontWeight: '800', color: cor.azulTexto },
   grupo: { paddingHorizontal: 16, paddingTop: 22 },
-  grupoTopo: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 4, paddingBottom: 8 },
-  grupoTitulo: { fontSize: 16, fontWeight: '700' },
-  grupoData: { fontSize: 13, fontWeight: '600', color: cor.textoSuave },
-  grupoTotal: { marginLeft: 'auto', fontSize: 13, fontWeight: '700', color: cor.textoMedio },
+  grupoTopo: { flexDirection: 'row', alignItems: 'baseline', gap: 6, paddingHorizontal: 4, paddingBottom: 8 },
+  grupoTitulo: { fontSize: 15, fontWeight: '700', color: cor.textoMedio },
+  grupoData: { fontSize: 13, fontWeight: '500', color: cor.textoSuave },
+  grupoTotal: { marginLeft: 'auto', fontSize: 13, fontWeight: '600', color: cor.textoSuave },
   grupoPend: { paddingHorizontal: 4, paddingBottom: 8, fontSize: 12, fontWeight: '800', color: cor.vermelho },
   lista: { backgroundColor: '#FFFFFF', borderRadius: 22, overflow: 'hidden' },
-  pedido: { paddingTop: 14, paddingBottom: 12, paddingLeft: 16, paddingRight: 14, gap: 10 },
+  pedido: { paddingVertical: 14, paddingLeft: 16, paddingRight: 16, gap: 10 },
   pedidoBorda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   pedidoInfo: { flexDirection: 'row', gap: 12 },
   linhaNome: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
-  cliente: { flexShrink: 1, fontSize: 16, fontWeight: '800' },
-  itens: { fontSize: 13, color: cor.textoMedio },
+  cliente: { flexShrink: 1, fontSize: 16, fontWeight: '700' },
+  itens: { fontSize: 13, color: cor.textoSuave },
+  entrega: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  entregaTexto: { fontSize: 12, fontWeight: '700', color: cor.ambar },
+  falta: { fontSize: 12, fontWeight: '700', color: cor.vermelho },
   meta: { fontSize: 12, color: cor.textoSuave },
-  valor: { fontSize: 16, fontWeight: '700' },
+  valor: { fontSize: 17, fontWeight: '700' },
   pag: { fontSize: 12, fontWeight: '800' },
   pedidoAcoes: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingLeft: 10, paddingRight: 10, borderRadius: 17 },
