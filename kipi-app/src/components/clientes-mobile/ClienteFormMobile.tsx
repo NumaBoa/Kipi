@@ -19,8 +19,6 @@ import { Botao, Opcao, T } from '@/components/mobile/ui';
 // dígitos, endereço pelo CEP (ViaCEP), origem direto ou de revendedora.
 // ============================================================================
 
-const TAGS = ['VIP', 'Noiva', 'Corporativo', 'Festa Infantil', 'Frequente'];
-const OUTRA = '__outra__';
 
 function Campo({ rotulo, style, ...props }: TextInputProps & { rotulo: string }) {
   const [foco, setFoco] = useState(false);
@@ -69,7 +67,6 @@ export default function ClienteFormMobile({
   const [email, setEmail] = useState('');
   const [preferencias, setPreferencias] = useState('');
   const [tag, setTag] = useState('');
-  const [tagLivre, setTagLivre] = useState(false);
   const [revendedoraId, setRevendedoraId] = useState<string | null>(null);
   const [mostrarEndereco, setMostrarEndereco] = useState(false);
   const [cep, setCep] = useState('');
@@ -94,7 +91,6 @@ export default function ClienteFormMobile({
     setEmail(c?.email || '');
     setPreferencias(c?.observacoes || '');
     setTag(c?.tag || '');
-    setTagLivre(!!c?.tag && !TAGS.includes(c.tag));
     setRevendedoraId(revendedoraFixa ?? c?.revendedoraId ?? null);
     setCep(c?.cep || '');
     setRua(c?.rua || '');
@@ -199,7 +195,10 @@ export default function ClienteFormMobile({
 
             <View style={s.bloco}>
               <Campo rotulo="Nome *" value={nome} onChangeText={setNome} placeholder="Ex: Mariana Albuquerque" autoCapitalize="words" />
-              <Campo rotulo="WhatsApp *" value={telefone} onChangeText={(t) => setTelefone(formatarTelefone(t))} placeholder="(21) 98844-3321" keyboardType="phone-pad" />
+              <View style={s.linha}>
+                <Campo style={{ flex: 1.25 }} rotulo="WhatsApp *" value={telefone} onChangeText={(t) => setTelefone(formatarTelefone(t))} placeholder="(21) 98844-3321" keyboardType="phone-pad" />
+                <Campo style={{ flex: 1 }} rotulo="Tag" value={tag} onChangeText={setTag} placeholder="Ex: Vizinha" />
+              </View>
               <View style={s.linha}>
                 <Campo style={{ flex: 1 }} rotulo="Aniversário" value={aniversario} onChangeText={(t) => setAniversario(formatarData(t))} placeholder="DD/MM/AAAA" keyboardType="numeric" />
                 <Campo style={{ flex: 1 }} rotulo="CPF / CNPJ" value={doc} onChangeText={(t) => setDoc(formatarCpfCnpj(t))} placeholder="Opcional" keyboardType="numeric" />
@@ -220,30 +219,17 @@ export default function ClienteFormMobile({
               <T style={s.dica}>Aparece em destaque na ficha do cliente.</T>
             </View>
 
-            <View style={[s.bloco, { gap: 10 }]}>
-              <T style={s.rotulo}>Tag</T>
-              <View style={s.chips}>
-                <Opcao rotulo="Sem tag" ativo={!tag && !tagLivre} aoTocar={() => { setTag(''); setTagLivre(false); }} style={s.chip} textoStyle={s.chipTexto} />
-                {TAGS.map((t) => (
-                  <Opcao key={t} rotulo={t} ativo={!tagLivre && tag === t} aoTocar={() => { setTag(t); setTagLivre(false); }} style={s.chip} textoStyle={s.chipTexto} />
-                ))}
-                <Opcao rotulo="Outra…" ativo={tagLivre} aoTocar={() => { setTagLivre(true); if (TAGS.includes(tag)) setTag(''); }} style={s.chip} textoStyle={s.chipTexto} />
+            {/* ORIGEM: só a dona escolhe (a revendedora cadastra sempre cliente dela) */}
+            {!revendedoraFixa && (
+              <View style={[s.bloco, { gap: 10 }]}>
+                <T style={s.rotulo}>De quem é a cliente?</T>
+                <View style={s.chips}>
+                  {origens.map((o) => (
+                    <Opcao key={o.id ?? 'direto'} rotulo={o.nome} ativo={revendedoraId === o.id} aoTocar={() => setRevendedoraId(o.id)} style={s.chip} textoStyle={s.chipTexto} />
+                  ))}
+                </View>
               </View>
-              {tagLivre && (
-                <TextInput value={tag} onChangeText={setTag} placeholder="Escreva a tag" placeholderTextColor="#94A3B8" style={s.input} accessibilityLabel="Tag personalizada" autoFocus />
-              )}
-
-              {!revendedoraFixa && (
-                <>
-                  <T style={[s.rotulo, { marginTop: 6 }]}>De quem é a cliente?</T>
-                  <View style={s.chips}>
-                    {origens.map((o) => (
-                      <Opcao key={o.id ?? OUTRA} rotulo={o.nome} ativo={revendedoraId === o.id} aoTocar={() => setRevendedoraId(o.id)} style={s.chip} textoStyle={s.chipTexto} />
-                    ))}
-                  </View>
-                </>
-              )}
-            </View>
+            )}
 
             {!mostrarEndereco ? (
               <TouchableOpacity style={s.addEndereco} onPress={() => setMostrarEndereco(true)} activeOpacity={0.85} accessibilityRole="button">

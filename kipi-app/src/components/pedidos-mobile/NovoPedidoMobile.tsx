@@ -42,6 +42,7 @@ const FORMAS: { id: Forma; rotulo: string; icone: keyof typeof Feather.glyphMap 
 ];
 const ICONE_MODO: Record<Modo, keyof typeof Feather.glyphMap> = { Retirada: 'shopping-bag', Delivery: 'truck', Encomenda: 'calendar' };
 const reais = (centavos: number) => brl(centavos / 100);
+const MAX_SUGESTOES = 4;
 const doisDig = (n: number) => String(n).padStart(2, '0');
 
 export default function NovoPedidoMobile({
@@ -98,7 +99,7 @@ export default function NovoPedidoMobile({
   const [soDisponiveis, setSoDisponiveis] = useState(true);
   const [clienteId, setClienteId] = useState<string>(inicial?.cliente ?? clienteInicialId ?? '');
   const [buscaCliente, setBuscaCliente] = useState('');
-  const [gavetaClientes, setGavetaClientes] = useState(false);
+  const [listaClientes, setListaClientes] = useState(false);
   const [formCliente, setFormCliente] = useState(false);
   const [promo, setPromo] = useState<Record<string, Motivo>>(inicial?.promo ?? {});
   const [promoEscolhendo, setPromoEscolhendo] = useState<string | null>(null);
@@ -282,7 +283,8 @@ export default function NovoPedidoMobile({
     salvarCliente(cadastroDoFormulario(c));
     setClienteId(c.id);
     setFormCliente(false);
-    setGavetaClientes(false);
+    setListaClientes(false);
+    setBuscaCliente('');
   };
 
   const modos: Modo[] = escopo.ehRevendedora ? ['Retirada', 'Delivery'] : ['Retirada', 'Delivery', 'Encomenda'];
@@ -291,7 +293,7 @@ export default function NovoPedidoMobile({
   const clientesFiltrados = clientesDb.filter(
     (c) => !termo || c.nome.toLowerCase().includes(termo) || (!!digitos && (c.telefone ?? '').replace(/\D/g, '').includes(digitos)) || (c.tag ?? '').toLowerCase().includes(termo)
   );
-  const rotuloCliente = clienteId === BALCAO ? 'Balcão avulso' : clienteSel?.nome ?? '';
+  const rotuloCliente = clienteId === BALCAO ? 'Compra avulsa' : clienteSel?.nome ?? '';
   const titulo = editando ? `Editar pedido ${editando.codigoDisplay}` : escopo.ehRevendedora ? 'Nova venda' : 'Novo pedido';
   const rodapeBase = Math.max(insets.bottom, 12) + 8;
 
@@ -388,7 +390,7 @@ export default function NovoPedidoMobile({
           </TouchableOpacity>
           <View style={{ flex: 1, alignItems: 'center' }}>
             <T style={s.topoTitulo}>{naEtapa1 ? titulo : 'Finalizar pedido'}</T>
-            <T style={s.topoSub}>{naEtapa1 ? 'Etapa 1 de 2 · Produtos' : 'Etapa 2 de 2 · Cliente e pagamento'}</T>
+            <T style={s.topoSub}>{naEtapa1 ? 'Etapa 1 de 2 · Produtos' : (modo === 'Retirada' ? 'Etapa 2 de 2 · Retirada no ateliê' : 'Etapa 2 de 2 · Cliente e pagamento')}</T>
           </View>
           <View style={s.icone44} />
         </View>
@@ -504,31 +506,112 @@ export default function NovoPedidoMobile({
                 <T titulo style={s.blocoTitulo}>
                   Quem está comprando? <T style={{ color: cor.vermelhoForte }}>*</T>
                 </T>
-                <TouchableOpacity
-                  style={[s.cliente, clienteId ? s.clienteOk : s.clienteVazio]}
-                  onPress={() => setGavetaClientes(true)}
-                  accessibilityRole="button">
-                  <View style={[s.avatar, { backgroundColor: clienteId ? cor.azulClaro : '#FFFFFF' }]}>
-                    {clienteId ? <T style={s.avatarTexto}>{(rotuloCliente[0] ?? '?').toUpperCase()}</T> : <Feather name="plus" size={18} color={cor.azulTexto} />}
+                {clienteId ? (
+                  <View style={[s.cliente, s.clienteOk]}>
+                    <View style={[s.avatar, { backgroundColor: clienteId === BALCAO ? cor.cinzaClaro : cor.azulClaro }]}>
+                      {clienteId === BALCAO ? <Feather name="shopping-bag" size={17} color={cor.textoMedio} /> : <T style={s.avatarTexto}>{(rotuloCliente[0] ?? '?').toUpperCase()}</T>}
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <T style={s.produtoNome} numberOfLines={1}>
+                        {rotuloCliente}
+                        {clienteSel?.tag ? <T style={s.suave}>  {clienteSel.tag}</T> : null}
+                      </T>
+                      <T style={s.suave} numberOfLines={1}>
+                        {clienteId === BALCAO
+                          ? 'Venda sem cadastro'
+                          : `${clienteSel?.telefone || 'Sem telefone'}${clienteSel?.revendedoraId && !escopo.ehRevendedora ? ' · cliente de revendedora' : ''}`}
+                      </T>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setClienteId('');
+                        setBuscaCliente('');
+                        setListaClientes(true);
+                      }}
+                      style={{ minHeight: 40, justifyContent: 'center' }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Trocar cliente">
+                      <T style={s.link}>Trocar</T>
+                    </TouchableOpacity>
                   </View>
-                  <View style={{ flex: 1, minWidth: 0 }}>
-                    <T style={[s.produtoNome, !clienteId && { color: cor.azulTexto }]}>
-                      {rotuloCliente || 'Escolher cliente'}
-                      {clienteSel?.tag ? <T style={s.suave}>  {clienteSel.tag}</T> : null}
-                    </T>
-                    <T style={s.suave}>
-                      {clienteId === BALCAO
-                        ? 'Venda sem cadastro'
-                        : clienteSel
-                        ? `${clienteSel.telefone || 'Sem telefone'}${clienteSel.revendedoraId && !escopo.ehRevendedora ? ' · cliente de revendedora' : ''}`
-                        : 'Buscar, cadastrar ou balcão avulso'}
-                    </T>
-                  </View>
-                  {!!clienteId && <T style={s.link}>Trocar</T>}
-                </TouchableOpacity>
+                ) : (
+                  <>
+                    <View style={s.linha}>
+                      <View style={s.buscaCliente}>
+                        <Feather name="search" size={16} color={cor.textoSuave} />
+                        <TextInput
+                          value={buscaCliente}
+                          onChangeText={(t) => {
+                            setBuscaCliente(t);
+                            setListaClientes(true);
+                          }}
+                          onFocus={() => setListaClientes(true)}
+                          placeholder="Digite o nome do cliente"
+                          placeholderTextColor={cor.textoSuave}
+                          style={s.buscaInput}
+                          accessibilityLabel="Buscar cliente"
+                        />
+                      </View>
+                      <TouchableOpacity style={s.cadastrarCliente} onPress={() => setFormCliente(true)} accessibilityRole="button" accessibilityLabel="Cadastrar cliente">
+                        <Feather name="user-plus" size={19} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                    {(listaClientes || !!buscaCliente) && (
+                      <View style={s.sugestoes}>
+                        <TouchableOpacity
+                          style={s.clienteLinha}
+                          onPress={() => {
+                            setClienteId(BALCAO);
+                            setListaClientes(false);
+                            setBuscaCliente('');
+                          }}
+                          accessibilityRole="button">
+                          <View style={[s.avatar, { backgroundColor: cor.cinzaClaro }]}>
+                            <Feather name="shopping-bag" size={17} color={cor.textoMedio} />
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <T style={s.produtoNome}>Compra avulsa</T>
+                            <T style={s.suave}>Venda sem cadastro</T>
+                          </View>
+                        </TouchableOpacity>
+                        {clientesFiltrados.slice(0, MAX_SUGESTOES).map((c) => (
+                          <TouchableOpacity
+                            key={c.id}
+                            style={[s.clienteLinha, s.borda]}
+                            onPress={() => {
+                              setClienteId(c.id);
+                              setListaClientes(false);
+                              setBuscaCliente('');
+                            }}
+                            accessibilityRole="button">
+                            <View style={[s.avatar, { backgroundColor: cor.azulClaro }]}>
+                              <T style={s.avatarTexto}>{c.nome.slice(0, 1).toUpperCase()}</T>
+                            </View>
+                            <View style={{ flex: 1, minWidth: 0 }}>
+                              <T style={s.produtoNome} numberOfLines={1}>{c.nome}</T>
+                              <T style={s.suave} numberOfLines={1}>{c.telefone || 'Sem telefone'}</T>
+                            </View>
+                            {!!c.tag && <Etiqueta texto={c.tag} />}
+                          </TouchableOpacity>
+                        ))}
+                        {clientesFiltrados.length === 0 && (
+                          <TouchableOpacity style={[s.clienteLinha, s.borda]} onPress={() => setFormCliente(true)} accessibilityRole="button">
+                            <T style={[s.link, { flex: 1 }]}>Ninguém com esse nome. Cadastrar “{buscaCliente.trim()}” ›</T>
+                          </TouchableOpacity>
+                        )}
+                        {clientesFiltrados.length > MAX_SUGESTOES && (
+                          <T style={[s.suave, s.borda, { paddingVertical: 10 }]}>
+                            Digite o nome para ver os outros {clientesFiltrados.length - MAX_SUGESTOES} clientes
+                          </T>
+                        )}
+                      </View>
+                    )}
+                  </>
+                )}
               </View>
 
-              {/* ENTREGA */}
+              {/* ENTREGA (retirada não tem nada a preencher) */}
+              {modo !== 'Retirada' && (
               <View style={[s.bloco, sombra]}>
                 <View style={s.linhaEntre}>
                   <T titulo style={s.blocoTitulo}>{modo}</T>
@@ -548,8 +631,8 @@ export default function NovoPedidoMobile({
                     <TextInput value={endereco} onChangeText={setEndereco} placeholder="Endereço de entrega" placeholderTextColor={cor.textoSuave} style={[s.campo, !endereco && { borderColor: cor.azul }]} />
                   </View>
                 )}
-                {modo === 'Retirada' && <T style={s.suave}>O cliente retira no ateliê.</T>}
               </View>
+              )}
 
               {/* SEU PEDIDO */}
               <View style={[s.bloco, sombra, { gap: 4 }]}>
@@ -571,8 +654,14 @@ export default function NovoPedidoMobile({
                       </View>
                       <View style={s.linha}>
                         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                          <T style={[s.suave, numeros]}>{ep ? `${reais(precoEf(p))} un. (era ${reais(p.preco)})` : `${reais(p.preco)} un.`}</T>
-                          {ep && <T style={s.promoTexto}>Promoção −{reais(p.desconto)}/un · {promo[p.id]}</T>}
+                          {ep ? (
+                            <T style={[s.suave, numeros]}>
+                              <T style={[s.suave, { textDecorationLine: 'line-through' }]}>{reais(p.preco)}</T>{'  '}
+                              <T style={[s.promoTexto, { fontSize: 12 }]}>{reais(precoEf(p))} un.</T>
+                            </T>
+                          ) : (
+                            <T style={[s.suave, numeros]}>{reais(p.preco)} un.</T>
+                          )}
                           {com > 0 && <T style={[s.comissaoTexto, numeros]}>Comissão {brl(com)}</T>}
                           {!enc && n >= p.estoque && <T style={s.limite}>{escopo.ehRevendedora ? `Você tem só ${p.estoque} com você` : `Só ${p.estoque} no estoque`}</T>}
                         </View>
@@ -602,19 +691,49 @@ export default function NovoPedidoMobile({
                           </TouchableOpacity>
                         </View>
                       </View>
+                      {ep && (
+                        <View style={s.seloPromo}>
+                          <T style={[s.seloPromoTexto, numeros]}>
+                            {promo[p.id] === 'Compra em lote' ? '📦' : '⏳'} {promo[p.id]} · −{reais(p.desconto)}/un
+                          </T>
+                          <TouchableOpacity
+                            style={s.seloPromoFechar}
+                            onPress={() => {
+                              const np = { ...promo };
+                              delete np[p.id];
+                              setPromo(np);
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Tirar promoção de ${p.nome}`}>
+                            <Feather name="x" size={11} color={cor.ambarTexto} />
+                          </TouchableOpacity>
+                        </View>
+                      )}
                       {promoEscolhendo === p.id && (
                         <View style={s.motivo}>
-                          <T style={s.promoTexto}>Motivo da promoção:</T>
                           <View style={s.linha}>
-                            {(['Próximo a vencer', 'Compra em lote'] as Motivo[]).map((m) => (
+                            <T style={[s.motivoTitulo, { flex: 1 }]}>Por que está em promoção?</T>
+                            <T style={[s.promoTexto, numeros]}>−{reais(p.desconto)}/un</T>
+                            <TouchableOpacity style={s.motivoFechar} onPress={() => setPromoEscolhendo(null)} accessibilityRole="button" accessibilityLabel="Cancelar promoção">
+                              <Feather name="x" size={13} color={cor.ambarTexto} />
+                            </TouchableOpacity>
+                          </View>
+                          <View style={s.linha}>
+                            {([
+                              ['Próximo a vencer', '⏳', 'Para sair mais rápido'],
+                              ['Compra em lote', '📦', 'Quantidade grande'],
+                            ] as [Motivo, string, string][]).map(([m, icone, sub]) => (
                               <TouchableOpacity
                                 key={m}
                                 style={s.motivoBotao}
                                 onPress={() => {
                                   setPromo({ ...promo, [p.id]: m });
                                   setPromoEscolhendo(null);
-                                }}>
-                                <T style={s.promoTexto}>{m}</T>
+                                }}
+                                accessibilityRole="button">
+                                <T style={{ fontSize: 18 }}>{icone}</T>
+                                <T style={s.motivoNome}>{m}</T>
+                                <T style={[s.suave, { fontSize: 11 }]}>{sub}</T>
                               </TouchableOpacity>
                             ))}
                           </View>
@@ -708,51 +827,6 @@ export default function NovoPedidoMobile({
           </>
         )}
 
-        {/* QUEM ESTÁ COMPRANDO */}
-        <Gaveta aberta={gavetaClientes} aoFechar={() => setGavetaClientes(false)} titulo="Quem está comprando?">
-          <View style={s.busca}>
-            <Feather name="search" size={16} color={cor.textoSuave} />
-            <TextInput value={buscaCliente} onChangeText={setBuscaCliente} placeholder="Nome, telefone ou tag" placeholderTextColor={cor.textoSuave} style={s.buscaInput} accessibilityLabel="Buscar cliente" />
-          </View>
-          <View style={s.linha}>
-            <TouchableOpacity style={[s.atalhoCliente, { backgroundColor: cor.azulClaro }]} onPress={() => setFormCliente(true)} accessibilityRole="button">
-              <Feather name="user-plus" size={17} color={cor.azulTexto} />
-              <T style={[s.forte, { color: cor.azulTexto }]}>Novo cliente</T>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[s.atalhoCliente, { backgroundColor: cor.pistacheClaro }]}
-              onPress={() => {
-                setClienteId(BALCAO);
-                setGavetaClientes(false);
-              }}
-              accessibilityRole="button">
-              <View style={{ alignItems: 'center' }}>
-                <T style={[s.forte, { color: cor.pistacheTexto }]}>Balcão avulso</T>
-                <T style={[s.suave, { color: cor.pistacheTexto }]}>Venda sem cadastro</T>
-              </View>
-            </TouchableOpacity>
-          </View>
-          {clientesFiltrados.length === 0 && <T style={s.suave}>Nenhum cliente encontrado.</T>}
-          {clientesFiltrados.map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              style={[s.clienteLinha, s.borda]}
-              onPress={() => {
-                setClienteId(c.id);
-                setGavetaClientes(false);
-              }}
-              accessibilityRole="button">
-              <View style={[s.avatar, { backgroundColor: cor.azulClaro }]}>
-                <T style={s.avatarTexto}>{c.nome.slice(0, 1).toUpperCase()}</T>
-              </View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <T style={s.produtoNome} numberOfLines={1}>{c.nome}</T>
-                <T style={s.suave} numberOfLines={1}>{c.telefone || 'Sem telefone'}</T>
-              </View>
-              {!!c.tag && <Etiqueta texto={c.tag} />}
-            </TouchableOpacity>
-          ))}
-        </Gaveta>
 
         <ClienteFormMobile visible={formCliente} onClose={() => setFormCliente(false)} onSalvo={cadastrado} revendedoraFixa={escopo.revendedoraId} />
       </SafeAreaView>
@@ -774,7 +848,7 @@ const s = StyleSheet.create({
   segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   segTexto: { fontSize: 13, fontWeight: '600' },
   busca: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, marginHorizontal: 16, paddingHorizontal: 14, borderRadius: 23, backgroundColor: '#FFFFFF' },
-  buscaInput: { flex: 1, minWidth: 0, fontSize: 14, color: cor.texto, padding: 0 },
+  buscaInput: { flex: 1, minWidth: 0, fontSize: 14, color: cor.texto, padding: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
   faixa: { gap: 6, paddingHorizontal: 16, alignItems: 'center' },
   chip: { minHeight: 36, borderRadius: 18, borderWidth: 1 },
   separador: { width: 1, height: 22, backgroundColor: cor.apagado, marginHorizontal: 2 },
@@ -836,8 +910,14 @@ const s = StyleSheet.create({
   comissaoTexto: { fontSize: 12, fontWeight: '700', color: cor.azulTexto },
   etiquetaPromo: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: '#FCD34D', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   etiquetaPromoOn: { backgroundColor: '#D97706', borderColor: '#D97706' },
-  motivo: { padding: 12, borderRadius: 16, backgroundColor: cor.ambarFundo, gap: 8 },
-  motivoBotao: { flex: 1, height: 42, borderRadius: 14, borderWidth: 1, borderColor: '#FCD34D', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  motivo: { padding: 12, borderRadius: 18, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A', gap: 10 },
+  motivoTitulo: { fontSize: 13, fontWeight: '800', color: cor.ambarTexto },
+  motivoFechar: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
+  motivoNome: { fontSize: 13, fontWeight: '800' },
+  seloPromo: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingLeft: 10, paddingRight: 5, borderRadius: 15, backgroundColor: cor.ambarClaro },
+  seloPromoTexto: { fontSize: 12, fontWeight: '800', color: cor.ambarTexto },
+  seloPromoFechar: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(146,64,14,0.12)', alignItems: 'center', justifyContent: 'center' },
+  motivoBotao: { flex: 1, minHeight: 66, padding: 10, borderRadius: 14, backgroundColor: '#FFFFFF', gap: 2, shadowColor: '#92400E', shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   grade2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   formaCelula: { width: '48.5%', minHeight: 52, borderRadius: 16, justifyContent: 'flex-start', paddingHorizontal: 14 },
   caixa: { padding: 12, borderRadius: 16, backgroundColor: cor.fundo, gap: 8 },
@@ -849,7 +929,10 @@ const s = StyleSheet.create({
   dicaRodape: { flex: 1, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   totalRodape: { fontSize: 18, fontWeight: '700' },
   atalhoCliente: { flex: 1, height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  clienteLinha: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62, paddingVertical: 8 },
+  clienteLinha: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingVertical: 8 },
+  buscaCliente: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1.5, borderColor: cor.azul, backgroundColor: '#F5F9FD' },
+  cadastrarCliente: { width: 48, height: 48, borderRadius: 16, backgroundColor: cor.azulBotao, alignItems: 'center', justifyContent: 'center' },
+  sugestoes: { borderRadius: 16, borderWidth: 1, borderColor: cor.borda, paddingHorizontal: 10, backgroundColor: '#FFFFFF' },
   ok: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' },
   okTitulo: { fontSize: 24, fontWeight: '700' },
   divisa: { borderTopWidth: 1, borderTopColor: cor.borda, paddingTop: 10 },
