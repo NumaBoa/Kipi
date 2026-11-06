@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import Sidebar from '@/components/Sidebar';
+import { useEhCelular } from '@/lib/layout';
+import AcessosMobile from '@/components/acessos-mobile/AcessosMobile';
 import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
 import { useConfigLoja } from '@/lib/configuracoes';
 import { acessoDaRevendedora, SENHA_PADRAO_REVENDEDORA } from '@/lib/acesso';
@@ -127,7 +129,13 @@ const cpfValido = (cpf: string) => {
   return digito(d.slice(0, 9), 10) === Number(d[9]) && digito(d.slice(0, 10), 11) === Number(d[10]);
 };
 
+// Celular: lista, ficha, entrega e acerto próprios; computador: tela completa abaixo
 export default function AcessosScreen() {
+  const celular = useEhCelular();
+  return celular ? <AcessosMobile /> : <AcessosDesktop />;
+}
+
+function AcessosDesktop() {
   const { config } = useConfigLoja();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 900;
