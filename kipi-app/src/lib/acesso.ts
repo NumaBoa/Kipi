@@ -321,7 +321,7 @@ export const trocarSenhaDoUsuario = async (senhaAtual: string, novaSenha: string
 export const ROTAS_DO_PERFIL: Record<Perfil, { inicio: string; rotas: string[] }> = {
   admin: { inicio: '/admin', rotas: ['/admin'] },
   // Revendedora usa as mesmas telas da dona, só com os dados dela
-  revendedora: { inicio: '/visao-geral', rotas: ['/visao-geral', '/pedidos', '/clientes'] },
+  revendedora: { inicio: '/visao-geral', rotas: ['/visao-geral', '/pedidos', '/clientes', '/mais'] },
   dona: {
     inicio: '/visao-geral',
     rotas: [
@@ -335,6 +335,7 @@ export const ROTAS_DO_PERFIL: Record<Perfil, { inicio: string; rotas: string[] }
       '/acessos',
       '/configuracoes',
       '/explore',
+      '/mais', // menu "Mais" do celular
     ],
   },
 };

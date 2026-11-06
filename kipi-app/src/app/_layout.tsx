@@ -86,6 +86,7 @@ export default function RootLayout() {
         <Stack.Screen name="estoque" options={{ headerShown: false }} />
         <Stack.Screen name="explore" options={{ headerShown: false }} />
         <Stack.Screen name="admin" options={{ headerShown: false }} />
+        <Stack.Screen name="mais" options={{ headerShown: false, animation: 'none' }} />
       </Stack>
       <GuardaDeRotas />
       <StatusBanco />

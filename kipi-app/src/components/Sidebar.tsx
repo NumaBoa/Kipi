@@ -84,8 +84,8 @@ export const MENU_ADMIN: MenuGroup[] = [
   },
 ];
 
-const MENU_DO_PERFIL: Record<Perfil, MenuGroup[]> = { dona: MENU_GROUPS, revendedora: MENU_REVENDEDORA, admin: MENU_ADMIN };
-const CARGO_DO_PERFIL: Record<Perfil, string> = { dona: 'PROPRIETÁRIA', revendedora: 'REVENDEDORA', admin: 'ADMIN KIPI' };
+export const MENU_DO_PERFIL: Record<Perfil, MenuGroup[]> = { dona: MENU_GROUPS, revendedora: MENU_REVENDEDORA, admin: MENU_ADMIN };
+export const CARGO_DO_PERFIL: Record<Perfil, string> = { dona: 'PROPRIETÁRIA', revendedora: 'REVENDEDORA', admin: 'ADMIN KIPI' };
 
 interface SidebarProps {
   activeRoute: '/visao-geral' | '/pedidos' | '/clientes' | string;

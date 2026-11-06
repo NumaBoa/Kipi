@@ -17,6 +17,8 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { KipiPalette, Fonts } from '@/constants/theme';
 import NovoPedidoModal from '@/components/NovoPedidoModal';
+import PedidosMobile from '@/components/pedidos-mobile/PedidosMobile';
+import { useEhCelular } from '@/lib/layout';
 import Sidebar from '@/components/Sidebar';
 import { PageHeaderTitulo } from '@/components/PageHeader';
 import { useConfigLoja } from '@/lib/configuracoes';
@@ -71,7 +73,13 @@ const FORMAS_PAGAMENTO_PEDIDO: { id: Pedido['formaPagamento']; label: string; ic
   { id: 'pendente', label: 'Pendente', icon: 'clock' },
 ];
 
+// Celular (app das lojas e navegador do celular): layout mobile; computador: layout com menu lateral
 export default function PedidosScreen() {
+  const celular = useEhCelular();
+  return celular ? <PedidosMobile /> : <PedidosDesktop />;
+}
+
+function PedidosDesktop() {
   const router = useRouter();
   // Nome da loja e chave PIX da mensagem de WhatsApp vêm de Configurações
   const { config } = useConfigLoja();
