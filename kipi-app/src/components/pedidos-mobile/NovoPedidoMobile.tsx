@@ -562,12 +562,33 @@ export default function NovoPedidoMobile({
                   const com = comissaoItem(p);
                   return (
                     <View key={p.id} style={[s.itemCarrinho, s.borda]}>
+                      <View style={[s.linha, { alignItems: 'baseline' }]}>
+                        <T style={[s.produtoNome, { flex: 1, minWidth: 0 }]}>{p.nome}</T>
+                        <T style={[s.forte, numeros, { fontSize: 14 }]}>{reais(n * precoEf(p))}</T>
+                      </View>
                       <View style={s.linha}>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <T style={s.produtoNome}>{p.nome}</T>
+                        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                           <T style={[s.suave, numeros]}>{ep ? `${reais(precoEf(p))} un. (era ${reais(p.preco)})` : `${reais(p.preco)} un.`}</T>
+                          {ep && <T style={s.promoTexto}>Promoção −{reais(p.desconto)}/un · {promo[p.id]}</T>}
+                          {com > 0 && <T style={[s.comissaoTexto, numeros]}>Comissão {brl(com)}</T>}
                           {!enc && n >= p.estoque && <T style={s.limite}>{escopo.ehRevendedora ? `Você tem só ${p.estoque} com você` : `Só ${p.estoque} no estoque`}</T>}
                         </View>
+                        {p.desconto > 0 && (
+                          <TouchableOpacity
+                            style={[s.etiquetaPromo, ep && s.etiquetaPromoOn]}
+                            onPress={() => {
+                              if (ep) {
+                                const np = { ...promo };
+                                delete np[p.id];
+                                setPromo(np);
+                              } else setPromoEscolhendo(promoEscolhendo === p.id ? null : p.id);
+                            }}
+                            accessibilityRole="button"
+                            accessibilityState={{ selected: ep }}
+                            accessibilityLabel={ep ? `Tirar promoção de ${p.nome}` : `Marcar promoção em ${p.nome} (−${reais(p.desconto)} por unidade)`}>
+                            <Feather name="tag" size={17} color={ep ? '#FFFFFF' : cor.ambar} />
+                          </TouchableOpacity>
+                        )}
                         <View style={s.passoClaro}>
                           <TouchableOpacity style={s.passoBotao} onPress={() => mudar(p, -1)} accessibilityLabel={`Tirar um ${p.nome}`}>
                             <Feather name="minus" size={14} color={cor.texto} />
@@ -577,31 +598,7 @@ export default function NovoPedidoMobile({
                             <Feather name="plus" size={14} color={cor.texto} />
                           </TouchableOpacity>
                         </View>
-                        <T style={[s.forte, numeros, { width: 78, textAlign: 'right' }]}>{reais(n * precoEf(p))}</T>
                       </View>
-                      {(p.desconto > 0 || com > 0) && (
-                        <View style={s.wrap}>
-                          {p.desconto > 0 && (
-                            <TouchableOpacity
-                              style={[s.promo, ep && s.promoOn]}
-                              onPress={() => {
-                                if (ep) {
-                                  const np = { ...promo };
-                                  delete np[p.id];
-                                  setPromo(np);
-                                } else setPromoEscolhendo(p.id);
-                              }}
-                              accessibilityRole="button">
-                              <T style={s.promoTexto}>{ep ? `Promoção · ${promo[p.id]}  ✕` : `Aplicar promoção −${reais(p.desconto)}/un`}</T>
-                            </TouchableOpacity>
-                          )}
-                          {com > 0 && (
-                            <View style={s.comissao}>
-                              <T style={[s.comissaoTexto, numeros]}>Comissão {brl(com)}</T>
-                            </View>
-                          )}
-                        </View>
-                      )}
                       {promoEscolhendo === p.id && (
                         <View style={s.motivo}>
                           <T style={s.promoTexto}>Motivo da promoção:</T>
@@ -833,7 +830,9 @@ const s = StyleSheet.create({
   promoOn: { backgroundColor: cor.ambarClaro, borderColor: '#FCD34D' },
   promoTexto: { fontSize: 12, fontWeight: '800', color: cor.ambarTexto },
   comissao: { height: 30, paddingHorizontal: 10, borderRadius: 15, backgroundColor: cor.azulClaro, justifyContent: 'center' },
-  comissaoTexto: { fontSize: 12, fontWeight: '800', color: cor.azulTexto },
+  comissaoTexto: { fontSize: 12, fontWeight: '700', color: cor.azulTexto },
+  etiquetaPromo: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: '#FCD34D', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  etiquetaPromoOn: { backgroundColor: '#D97706', borderColor: '#D97706' },
   motivo: { padding: 12, borderRadius: 16, backgroundColor: cor.ambarFundo, gap: 8 },
   motivoBotao: { flex: 1, height: 42, borderRadius: 14, borderWidth: 1, borderColor: '#FCD34D', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   grade2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

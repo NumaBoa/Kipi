@@ -373,6 +373,8 @@ export default function PedidosMobile() {
           );
         })}
 
+        {grupos.length > 0 && <T style={s.dicaLista}>Toque no pedido para ver detalhes. Toque e segure para mais ações.</T>}
+
         {grupos.length === 0 && (
           <View style={[s.vazio, sombra]}>
             <Feather name="inbox" size={34} color={cor.apagado} />
@@ -694,6 +696,7 @@ const s = StyleSheet.create({
   receberGrande: { height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: cor.azulBotao, justifyContent: 'center' },
   receberTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   mais: { width: 38, height: 38, borderRadius: 19, backgroundColor: cor.fundo, alignItems: 'center', justifyContent: 'center' },
+  dicaLista: { marginTop: 14, marginHorizontal: 20, fontSize: 12, color: cor.textoSuave, textAlign: 'center' },
   vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 6 },
   vazioTitulo: { fontSize: 15, fontWeight: '700' },
   vazioTexto: { fontSize: 13, color: cor.textoSuave, marginBottom: 8 },

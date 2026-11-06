@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { atualizarPedido, rotuloEntrega, useClientes, usePedidos, type Pedido } from '@/lib/clientesPedidos';
+import { atualizarPedido, chaveDoDia, rotuloEntrega, useClientes, usePedidos, type Pedido } from '@/lib/clientesPedidos';
 import { custoUnitarioProduto } from '@/lib/estoqueVitrine';
 import { useConfigLoja } from '@/lib/configuracoes';
 import { Aviso, Botao, Etiqueta, T, useAviso } from '@/components/mobile/ui';
@@ -52,6 +52,8 @@ export default function DetalhePedidoMobile({
   const lucro = pedido.total - custo;
   const margem = pedido.total > 0 ? Math.round((lucro / pedido.total) * 100) : 0;
   const qtdItens = pedido.itens.reduce((a, it) => a + it.quantidade, 0);
+  const tipoTexto = pedido.revendedoraId ? 'Revenda' : encomenda ? 'Encomenda' : 'Pronta entrega';
+  const iniciais = pedido.clienteNome.split(' ').filter(Boolean).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
 
   const mudarEtapa = (i: number) => {
     const e = ETAPAS_PRODUCAO[i];
@@ -77,50 +79,117 @@ export default function DetalhePedidoMobile({
           <TouchableOpacity onPress={aoFechar} style={s.icone44} accessibilityRole="button" accessibilityLabel="Voltar para pedidos">
             <Feather name="chevron-left" size={24} color={cor.texto} />
           </TouchableOpacity>
-          <T style={s.topoTitulo}>Pedido {pedido.codigoDisplay}</T>
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <T style={s.topoTitulo}>Pedido {pedido.codigoDisplay}</T>
+            <T style={s.topoSub}>{pedido.diaChave === chaveDoDia(new Date()) ? 'Hoje' : pedido.dataDisplay}, {pedido.horaDisplay}</T>
+          </View>
           <TouchableOpacity onPress={() => setAcoes(pedido)} style={s.icone44} accessibilityRole="button" accessibilityLabel="Mais ações">
             <Feather name="more-horizontal" size={22} color={cor.texto} />
           </TouchableOpacity>
         </View>
 
         <ScrollView contentContainerStyle={[s.conteudo, { paddingBottom: 130 + insets.bottom }]} showsVerticalScrollIndicator={false}>
-          {/* QUEM, QUANDO */}
-          <View style={[s.bloco, sombra]}>
-            <View style={s.linha}>
-              <View style={{ flex: 1, gap: 4 }}>
-                <View style={s.linhaWrap}>
-                  <T titulo style={s.nome}>{pedido.clienteNome}</T>
-                  {!!tag && <Etiqueta texto={tag} />}
+          {/* 1. O QUE FOI PEDIDO */}
+          <View style={[s.bloco, sombra, { gap: 14 }]}>
+            <View style={s.linhaWrap}>
+              <Etiqueta texto={tipoTexto} bg={encomenda ? cor.ambarClaro : cor.azulClaro} fg={encomenda ? cor.ambarTexto : cor.azulTexto} />
+              <Etiqueta texto={endereco ? 'Delivery' : 'Retirada'} />
+            </View>
+            {encomenda && (
+              <View style={[s.entrega, { backgroundColor: cor.ambarFundo }]}>
+                <Feather name="calendar" size={20} color={cor.ambar} />
+                <View style={{ flex: 1 }}>
+                  <T style={[s.entregaSub, { color: cor.ambarTexto, fontWeight: '700' }]}>Entregar em</T>
+                  <T style={[s.entregaTitulo, { color: '#78350F' }]}>{rotuloEntrega(pedido.dataEntrega)}</T>
                 </View>
-                <T style={s.suave}>{pedido.clienteTelefone || 'Telefone não cadastrado'}</T>
               </View>
-              {!!pedido.clienteTelefone && (
-                <TouchableOpacity style={[s.redondo, { backgroundColor: cor.fundo }]} onPress={() => ligar(pedido.clienteTelefone)} accessibilityLabel="Ligar">
-                  <Feather name="phone" size={18} color={cor.texto} />
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={[s.redondo, { backgroundColor: cor.verdeClaro }]} onPress={() => abrirWhatsApp(pedido, config)} accessibilityLabel="WhatsApp">
-                <Feather name="message-circle" size={18} color={cor.verde} />
-              </TouchableOpacity>
-            </View>
-            <View style={[s.entrega, { backgroundColor: encomenda ? cor.ambarFundo : cor.fundo }]}>
-              <Feather name={encomenda ? 'calendar' : endereco ? 'truck' : 'shopping-bag'} size={20} color={encomenda ? cor.ambar : cor.textoMedio} />
-              <View style={{ flex: 1 }}>
-                <T style={[s.entregaTitulo, encomenda && { color: '#78350F' }]}>
-                  {encomenda ? rotuloEntrega(pedido.dataEntrega) : endereco ? endereco : 'Retirada no ateliê'}
-                </T>
-                <T style={[s.entregaSub, encomenda && { color: cor.ambarTexto }]}>
-                  {pedido.revendedoraId ? 'Revenda' : encomenda ? 'Sob encomenda' : endereco ? 'Pronta entrega · Delivery' : 'Pronta entrega'}
-                </T>
+            )}
+            {!!endereco && (
+              <View style={[s.entrega, { backgroundColor: cor.fundo }]}>
+                <Feather name="truck" size={18} color={cor.textoMedio} />
+                <T style={[s.entregaTitulo, { flex: 1, fontWeight: '700' }]}>{endereco}</T>
               </View>
+            )}
+            {pedido.itens.map((it) => (
+              <View key={it.id} style={s.item}>
+                <View style={s.qtd}>
+                  <T style={[s.qtdTexto, numeros]}>{it.quantidade}x</T>
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <T style={s.itemNome}>{it.nome}</T>
+                  <T style={[s.suavePequeno, numeros]}>
+                    {it.categoria} · {brl(it.precoUnitario)} un.
+                    {it.comDesconto && !!it.desconto ? ` (era ${brl(it.precoUnitario + it.desconto)})` : ''}
+                  </T>
+                  {it.comDesconto && !!it.desconto && (
+                    <T style={s.promo}>Promoção{it.motivoPromocao ? ` · ${it.motivoPromocao}` : ''}</T>
+                  )}
+                </View>
+                <T style={[s.itemTotal, numeros]}>{brl(it.totalItem)}</T>
+              </View>
+            ))}
+            {!!cuidado && (
+              <View style={s.nota}>
+                <Feather name="edit-3" size={17} color={cor.textoMedio} />
+                <T style={s.notaTexto}>{cuidado}</T>
+              </View>
+            )}
+            <View style={[s.linhaEntre, s.divisa]}>
+              <T style={s.medio}>Total · {qtdItens} {qtdItens === 1 ? 'item' : 'itens'}</T>
+              <T titulo style={[s.total, numeros]}>{brl(pedido.total)}</T>
             </View>
-            <T style={s.suavePequeno}>
-              Criado em {pedido.dataDisplay} às {pedido.horaDisplay} · Atendido por <T style={s.forte}>{pedido.vendedor}</T>
-            </T>
           </View>
 
-          {/* PRODUÇÃO */}
-          {temProducao && (
+          {/* 2. PAGAMENTO: a cor já diz a situação */}
+          <View style={[s.bloco, sombra, { gap: 10, backgroundColor: pendente ? cor.vermelhoClaro : cor.verdeClaro }]}>
+            <View style={s.linha}>
+              <View style={[s.redondo, { width: 40, height: 40, backgroundColor: pendente ? '#FFFFFF' : '#DCFCE7' }]}>
+                <Feather name={pendente ? 'clock' : 'check'} size={20} color={pendente ? cor.vermelho : cor.verde} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <T style={[s.pagTitulo, { color: pendente ? cor.vermelho : cor.verde }]}>{pendente ? `Falta receber ${brl(falta)}` : 'Pago'}</T>
+                <T style={[s.medio, numeros, { fontWeight: '500' }]}>
+                  {pendente
+                    ? pedido.valorSinalPago > 0
+                      ? `Sinal pago ${brl(pedido.valorSinalPago)} de ${brl(pedido.total)}`
+                      : 'Nada pago ainda'
+                    : `${brl(pedido.total)} no ${NOME_FORMA[pedido.formaPagamento]}`}
+                </T>
+              </View>
+            </View>
+            {pendente && (
+              <View style={[s.trilho, { backgroundColor: '#FFFFFF' }]}>
+                <View style={[s.trilhoCheio, { width: `${pct}%` }]} />
+              </View>
+            )}
+            {!ocultarCustos && (
+              <>
+                <TouchableOpacity
+                  style={[s.expandir, { borderTopColor: pendente ? '#FECACA' : cor.verdeBorda }]}
+                  onPress={() => setVerLucro((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: verLucro }}>
+                  <T style={s.medio}>Custo e lucro deste pedido</T>
+                  <Feather name={verLucro ? 'chevron-up' : 'chevron-down'} size={18} color={cor.textoMedio} />
+                </TouchableOpacity>
+                {verLucro && (
+                  <View style={s.linha}>
+                    <View style={[s.mini, { backgroundColor: '#FFFFFF' }]}>
+                      <T style={s.miniRotulo}>Custo (ficha técnica)</T>
+                      <T style={[s.miniValor, numeros]}>{brl(custo)}</T>
+                    </View>
+                    <View style={[s.mini, { backgroundColor: '#FFFFFF' }]}>
+                      <T style={[s.miniRotulo, { color: cor.verde }]}>Lucro estimado</T>
+                      <T style={[s.miniValor, numeros, { color: cor.verde }]}>{brl(lucro)} · {margem}%</T>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+          </View>
+
+          {/* 3. PRODUÇÃO (encomenda: 4 etapas) / ENTREGA (pronta entrega: uma linha) */}
+          {temProducao && encomenda && (
             <View style={[s.bloco, sombra]}>
               <View style={s.linhaEntre}>
                 <T titulo style={s.blocoTitulo}>Produção</T>
@@ -136,100 +205,74 @@ export default function DetalhePedidoMobile({
               </View>
             </View>
           )}
-
-          {/* PAGAMENTO */}
-          <View style={[s.bloco, sombra, { gap: 10 }]}>
-            <View style={s.linhaEntre}>
-              <T titulo style={s.blocoTitulo}>Pagamento</T>
-              <T style={[s.forte, { color: pendente ? cor.vermelho : cor.verde }]}>{pendente ? 'Pendente' : `Pago · ${NOME_FORMA[pedido.formaPagamento]}`}</T>
-            </View>
-            <View style={s.linhaEntre}>
-              <T titulo style={[s.total, numeros]}>{brl(pedido.total)}</T>
-              {pendente && pedido.valorSinalPago > 0 && <T style={[s.medio, numeros]}>Sinal pago {brl(pedido.valorSinalPago)}</T>}
-            </View>
-            <View style={s.trilho}>
-              <View style={[s.trilhoCheio, { width: `${pendente ? pct : 100}%` }]} />
-            </View>
-            {pendente && <T style={[s.falta, numeros]}>{brl(falta)} pendente de pagamento</T>}
-            {!ocultarCustos && (
-              <>
-                <TouchableOpacity style={s.expandir} onPress={() => setVerLucro((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: verLucro }}>
-                  <T style={s.medio}>Custo e lucro deste pedido</T>
-                  <Feather name={verLucro ? 'chevron-up' : 'chevron-down'} size={18} color={cor.textoMedio} />
+          {temProducao && !encomenda && (
+            <View style={[s.blocoBaixo, sombra]}>
+              <View style={[s.ponto, { backgroundColor: etapa.fg }]} />
+              <T style={[s.itemNome, { flex: 1 }]}>{etapa.label}</T>
+              {idxEtapa < 3 && (
+                <TouchableOpacity style={s.botaoPequeno} onPress={() => mudarEtapa(3)} accessibilityRole="button">
+                  <T style={s.forte}>Marcar entregue</T>
                 </TouchableOpacity>
-                {verLucro && (
-                  <View style={s.linha}>
-                    <View style={[s.mini, { backgroundColor: cor.fundo }]}>
-                      <T style={s.miniRotulo}>Custo (ficha técnica)</T>
-                      <T style={[s.miniValor, numeros]}>{brl(custo)}</T>
-                    </View>
-                    <View style={[s.mini, { backgroundColor: cor.verdeClaro }]}>
-                      <T style={[s.miniRotulo, { color: cor.verde }]}>Lucro estimado</T>
-                      <T style={[s.miniValor, numeros, { color: cor.verde }]}>{brl(lucro)} · {margem}%</T>
-                    </View>
-                  </View>
-                )}
+              )}
+            </View>
+          )}
+
+          {/* 4. CLIENTE (discreto) */}
+          <View style={[s.blocoBaixo, sombra, { flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>
+            <View style={s.linha}>
+              <View style={s.avatar}>
+                <T style={s.avatarTexto}>{iniciais}</T>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <View style={s.linhaWrap}>
+                  <T style={s.itemNome} numberOfLines={1}>{pedido.clienteNome}</T>
+                  {!!tag && <Etiqueta texto={tag} />}
+                </View>
+                <T style={s.suavePequeno}>{pedido.clienteTelefone || 'Telefone não cadastrado'}</T>
+              </View>
+              {!!pedido.clienteTelefone && (
+                <TouchableOpacity style={[s.redondo, { width: 40, height: 40, backgroundColor: cor.fundo }]} onPress={() => ligar(pedido.clienteTelefone)} accessibilityLabel="Ligar">
+                  <Feather name="phone" size={17} color={cor.textoMedio} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={[s.redondo, { width: 40, height: 40, backgroundColor: cor.verdeClaro }]} onPress={() => abrirWhatsApp(pedido, config)} accessibilityLabel="WhatsApp">
+                <Feather name="message-circle" size={17} color={cor.verde} />
+              </TouchableOpacity>
+            </View>
+            <T style={s.suavePequeno}>
+              Atendido por <T style={[s.suavePequeno, { fontWeight: '800', color: cor.textoMedio }]}>{pedido.vendedor}</T>
+            </T>
+          </View>
+
+          {/* 5. COMPROVANTE (fechado) */}
+          <View style={[s.blocoBaixo, sombra, { flexDirection: 'column', alignItems: 'stretch', gap: 12 }]}>
+            <TouchableOpacity style={s.linha} onPress={() => setVerMsg((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: verMsg }}>
+              <Feather name="message-circle" size={18} color={cor.verde} />
+              <T style={[s.itemNome, { flex: 1, fontSize: 14 }]}>Comprovante para WhatsApp</T>
+              <Feather name={verMsg ? 'chevron-up' : 'chevron-down'} size={18} color={cor.textoMedio} />
+            </TouchableOpacity>
+            {verMsg && (
+              <>
+                <View style={s.mensagem}>
+                  <T style={s.mensagemTexto}>{textoWhatsApp(pedido, config)}</T>
+                </View>
+                <View style={s.linha}>
+                  <Botao rotulo="Copiar texto" variante="secundario" altura={44} aoTocar={copiar} style={{ flex: 1, borderColor: cor.verdeBorda }} />
+                  <Botao rotulo="Abrir WhatsApp" variante="verde" altura={44} aoTocar={() => abrirWhatsApp(pedido, config)} style={{ flex: 1 }} />
+                </View>
               </>
             )}
           </View>
-
-          {/* ITENS */}
-          <View style={[s.bloco, sombra]}>
-            <T titulo style={s.blocoTitulo}>Itens · {qtdItens}</T>
-            {pedido.itens.map((it) => (
-              <View key={it.id} style={s.item}>
-                <View style={s.qtd}>
-                  <T style={s.qtdTexto}>{it.quantidade}x</T>
-                </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <T style={s.itemNome}>{it.nome}</T>
-                  <T style={[s.suavePequeno, numeros]}>{it.categoria} · {brl(it.precoUnitario)} un.</T>
-                  {it.comDesconto && !!it.desconto && (
-                    <T style={s.promo}>Promoção −{brl(it.desconto)}/un{it.motivoPromocao ? ` · ${it.motivoPromocao}` : ''}</T>
-                  )}
-                </View>
-                <T style={[s.itemTotal, numeros]}>{brl(it.totalItem)}</T>
-              </View>
-            ))}
-            {!!cuidado && (
-              <View style={s.nota}>
-                <Feather name="edit-3" size={17} color={cor.textoMedio} />
-                <T style={s.notaTexto}>{cuidado}</T>
-              </View>
-            )}
-          </View>
-
-          {/* COMPROVANTE */}
-          <View style={[s.bloco, sombra]}>
-            <View style={s.linhaEntre}>
-              <T titulo style={s.blocoTitulo}>Comprovante com Pix</T>
-              <TouchableOpacity style={s.chip} onPress={() => setVerMsg((v) => !v)} accessibilityRole="button">
-                <T style={s.chipTexto}>{verMsg ? 'Recolher' : 'Ver mensagem'}</T>
-              </TouchableOpacity>
-            </View>
-            <View style={[s.mensagem, !verMsg && { maxHeight: 78, overflow: 'hidden' }]}>
-              <T style={s.mensagemTexto}>{textoWhatsApp(pedido, config)}</T>
-            </View>
-            <View style={s.linha}>
-              <Botao rotulo="Copiar texto" variante="secundario" altura={46} aoTocar={copiar} style={{ flex: 1, borderColor: cor.verdeBorda }} />
-              <Botao rotulo="Abrir WhatsApp" variante="verde" altura={46} aoTocar={() => abrirWhatsApp(pedido, config)} style={{ flex: 1 }} />
-            </View>
-          </View>
         </ScrollView>
 
-        {/* AÇÃO PRINCIPAL */}
+        {/* AÇÃO PRINCIPAL: o que falta fazer; se já está tudo feito, enviar o comprovante */}
         <View style={[s.rodape, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]}>
-          {temProducao && idxEtapa < 3 && (
-            <Botao
-              rotulo={['Iniciar produção', 'Marcar pronto', 'Marcar entregue'][idxEtapa]}
-              variante="secundario"
-              aoTocar={() => mudarEtapa(idxEtapa + 1)}
-              style={{ flex: 1 }}
-            />
+          {temProducao && encomenda && idxEtapa < 3 && (
+            <Botao rotulo={['Iniciar produção', 'Marcar pronto', 'Marcar entregue'][idxEtapa]} variante="secundario" aoTocar={() => mudarEtapa(idxEtapa + 1)} style={{ flex: 1 }} />
           )}
           {pendente && <Botao rotulo={`Receber ${brl(falta)}`} aoTocar={() => setReceber(pedido)} style={{ flex: 1.3 }} />}
-          {!pendente && (!temProducao || idxEtapa === 3) && (
-            <Botao rotulo="Entregue e pago · voltar" variante="secundario" aoTocar={aoFechar} style={{ flex: 1 }} />
+          {!pendente && !(temProducao && encomenda && idxEtapa < 3) && (
+            <Botao rotulo="Enviar comprovante" icone="message-circle" variante="verde" aoTocar={() => abrirWhatsApp(pedido, config)} style={{ flex: 1 }} />
           )}
         </View>
 
@@ -245,7 +288,15 @@ export default function DetalhePedidoMobile({
 const s = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cor.fundo },
   topo: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
-  topoTitulo: { flex: 1, textAlign: 'center', fontSize: 15, fontWeight: '800' },
+  topoTitulo: { textAlign: 'center', fontSize: 15, fontWeight: '800' },
+  topoSub: { fontSize: 12, fontWeight: '600', color: cor.textoSuave },
+  blocoBaixo: { backgroundColor: '#FFFFFF', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ponto: { width: 10, height: 10, borderRadius: 5 },
+  botaoPequeno: { height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: cor.apagado, justifyContent: 'center' },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: cor.azulClaro, alignItems: 'center', justifyContent: 'center' },
+  avatarTexto: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
+  pagTitulo: { fontSize: 15, fontWeight: '800' },
+  divisa: { borderTopWidth: 1, borderTopColor: cor.bordaSuave, paddingTop: 12 },
   icone44: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   conteudo: { paddingHorizontal: 16, paddingTop: 6, gap: 12 },
   bloco: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 18, gap: 12 },
