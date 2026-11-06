@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import Sidebar from '@/components/Sidebar';
+import { useEhCelular } from '@/lib/layout';
+import InsumosMobile from '@/components/insumos-mobile/InsumosMobile';
 import {
   useInsumos,
   salvarInsumo,
@@ -105,7 +107,13 @@ const ARMAZENAMENTOS_LIST = [
   { id: 'in_natura', label: 'In Natura', emoji: '🍃', desc: 'Hortifrúti / Fresco' },
 ];
 
+// Celular: insumos, receitas, detalhe e cadastro próprios; computador: tela completa abaixo
 export default function InsumosReceitasScreen() {
+  const celular = useEhCelular();
+  return celular ? <InsumosMobile /> : <InsumosReceitasDesktop />;
+}
+
+function InsumosReceitasDesktop() {
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const isTablet = width >= 768 && width < 1024;

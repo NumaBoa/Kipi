@@ -22,7 +22,7 @@ const LARANJA_ESCURO = '#9A3412';
 const LARANJA_CLARO = '#FFEDD5';
 
 // Ícone de cada produto (o mesmo da versão de computador); escolhas novas ficam guardadas aqui
-const FOTOS: Record<string, string> = {
+export const FOTOS: Record<string, string> = {
   'prod-1': '🍪', 'prod-2': '🍪', 'prod-3': '🍪', 'prod-4': '🎂', 'prod-5': '🎂', 'prod-6': '✨', 'prod-7': '✨',
   'prod-8': '🍰', 'prod-9': '🍬', 'prod-10': '🎁', 'prod-11': '🥐', 'prod-12': '🍯', 'prod-13': '🥧', 'prod-14': '☕',
 };
