@@ -73,7 +73,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 8,
     paddingHorizontal: 6,
-    backgroundColor: 'rgba(255,255,255,0.97)',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: cor.borda,
   },

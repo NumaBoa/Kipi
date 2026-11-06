@@ -295,7 +295,7 @@ const s = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.97)',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: cor.borda,
   },

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
@@ -83,6 +83,8 @@ export default function PedidosMobile() {
   const [acoes, setAcoes] = useState<Pedido | null>(null);
   const [cancelar, setCancelar] = useState<Pedido | null>(null);
   const [detalheId, setDetalheId] = useState<string | null>(null);
+  const [fabCompacto, setFabCompacto] = useState(false);
+  const ultimoY = useRef(0);
   const [novo, setNovo] = useState<{ aberto: boolean; editando: Pedido | null }>({ aberto: false, editando: null });
 
   const tagDoCliente = (p: Pedido) => (p.clienteId ? clientes.find((c) => c.id === p.clienteId)?.tag || null : null);
@@ -104,6 +106,7 @@ export default function PedidosMobile() {
   const itensVendidos = visiveis.reduce((a, p) => a + p.itens.reduce((b, it) => b + it.quantidade, 0), 0);
   const pendentesPeriodo = visiveis.filter((p) => p.status === 'pendente');
   const aReceber = pendentesPeriodo.reduce((a, p) => a + saldo(p), 0);
+  const temReceber = pendentesPeriodo.length > 0;
   const comissao = visiveis.reduce((a, p) => a + escopo.comissaoDoPedido(p), 0);
 
   const estoque = useMemo(
@@ -208,7 +211,17 @@ export default function PedidosMobile() {
 
   return (
     <SafeAreaView style={s.tela} edges={['top']}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: 110 }}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={64}
+        onScroll={(e) => {
+          // Rolando para baixo: o botão vira só "+" para não cobrir os pedidos
+          const y = e.nativeEvent.contentOffset.y;
+          const compacto = y > ultimoY.current && y > 80;
+          if (compacto !== fabCompacto) setFabCompacto(compacto);
+          ultimoY.current = y;
+        }}>
         {/* TOPO */}
         <View style={s.topo}>
           <View style={{ flex: 1 }}>
@@ -245,11 +258,11 @@ export default function PedidosMobile() {
                 {variacao === null ? 'Sem período anterior' : `${variacao >= 0 ? '+' : ''}${variacao}% vs anterior`}
               </T>
             </TouchableOpacity>
-            <TouchableOpacity style={[s.resumoCelula, { backgroundColor: cor.vermelhoClaro }]} onPress={() => setGaveta('receber')} accessibilityRole="button">
-              <T style={[s.resumoRotulo, { color: cor.vermelho }]}>A receber</T>
-              <T titulo style={[s.resumoValor, numeros, { color: cor.vermelho }]}>{brl(aReceber)}</T>
-              <T style={[s.resumoNota, { color: cor.vermelho }]}>
-                {pendentesPeriodo.length} {pendentesPeriodo.length === 1 ? 'aguarda baixa' : 'aguardam baixa'} ›
+            <TouchableOpacity style={[s.resumoCelula, temReceber && { backgroundColor: cor.vermelhoClaro }]} onPress={() => setGaveta('receber')} accessibilityRole="button">
+              <T style={[s.resumoRotulo, temReceber && { color: cor.vermelho }]}>A receber</T>
+              <T titulo style={[s.resumoValor, numeros, temReceber && { color: cor.vermelho }]}>{brl(aReceber)}</T>
+              <T style={[s.resumoNota, { color: temReceber ? cor.vermelho : cor.verde }]}>
+                {temReceber ? `${pendentesPeriodo.length} ${pendentesPeriodo.length === 1 ? 'aguarda baixa' : 'aguardam baixa'} ›` : 'Tudo recebido'}
               </T>
             </TouchableOpacity>
           </View>
@@ -292,6 +305,8 @@ export default function PedidosMobile() {
                   const iE = ETAPAS_PRODUCAO.findIndex((e) => e.id === p.statusProducao);
                   const e = ETAPAS_PRODUCAO[Math.max(0, iE)];
                   const tag = tagDoCliente(p);
+                  // Revenda já pago não tem etapa nem cobrança: o "…" vai para o lado do valor
+                  const temLinhaAcoes = !p.revendedoraId || pendente;
                   const tipoTxt = p.revendedoraId ? 'Revenda' : p.tipoPedido === 'sob_encomenda' ? 'Encomenda' : 'Pronta entrega';
                   return (
                     <View key={p.id} style={[s.pedido, i > 0 && s.pedidoBorda]}>
@@ -312,8 +327,13 @@ export default function PedidosMobile() {
                             {pendente ? `Falta ${brl(saldo(p))}` : `Pago · ${NOME_FORMA[p.formaPagamento]}`}
                           </T>
                         </View>
+                        {!temLinhaAcoes && (
+                          <TouchableOpacity style={[s.mais, { alignSelf: 'center' }]} onPress={() => setAcoes(p)} accessibilityRole="button" accessibilityLabel={`Mais ações do pedido ${p.codigoDisplay}`}>
+                            <Feather name="more-horizontal" size={18} color={cor.textoMedio} />
+                          </TouchableOpacity>
+                        )}
                       </TouchableOpacity>
-                      <View style={s.pedidoAcoes}>
+                      {temLinhaAcoes && <View style={s.pedidoAcoes}>
                         {!p.revendedoraId && (
                           <TouchableOpacity
                             style={[s.status, { backgroundColor: e.bg }]}
@@ -335,7 +355,7 @@ export default function PedidosMobile() {
                         <TouchableOpacity style={s.mais} onPress={() => setAcoes(p)} accessibilityRole="button" accessibilityLabel={`Mais ações do pedido ${p.codigoDisplay}`}>
                           <Feather name="more-horizontal" size={18} color={cor.textoMedio} />
                         </TouchableOpacity>
-                      </View>
+                      </View>}
                     </View>
                   );
                 })}
@@ -355,9 +375,14 @@ export default function PedidosMobile() {
       </ScrollView>
 
       {/* NOVO PEDIDO */}
-      <TouchableOpacity style={[s.fab, { bottom: 78 + Math.max(insets.bottom, 8) }]} onPress={() => setNovo({ aberto: true, editando: null })} accessibilityRole="button" activeOpacity={0.9}>
-        <Feather name="plus" size={20} color="#FFFFFF" />
-        <T style={s.fabTexto}>Novo pedido</T>
+      <TouchableOpacity
+        style={[s.fab, fabCompacto && s.fabCompacto, { bottom: 78 + Math.max(insets.bottom, 8) }]}
+        onPress={() => setNovo({ aberto: true, editando: null })}
+        accessibilityRole="button"
+        accessibilityLabel="Novo pedido"
+        activeOpacity={0.9}>
+        <Feather name="plus" size={22} color="#FFFFFF" />
+        {!fabCompacto && <T style={s.fabTexto}>Novo pedido</T>}
       </TouchableOpacity>
 
       <Aviso msg={msg} base={150 + insets.bottom} />
@@ -679,6 +704,7 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 6,
   },
+  fabCompacto: { width: 56, paddingLeft: 0, paddingRight: 0, justifyContent: 'center' },
   fabTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
   opcaoLarga: { minHeight: 52, borderRadius: 16, justifyContent: 'flex-start', paddingHorizontal: 16 },
   rotuloCampo: { fontSize: 13, fontWeight: '800', color: cor.textoMedio },

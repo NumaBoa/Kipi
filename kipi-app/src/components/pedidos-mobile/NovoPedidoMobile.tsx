@@ -445,6 +445,7 @@ export default function NovoPedidoMobile({
                             <T style={s.forte}>{reais(p.preco)}</T>
                             <T style={[s.dispTexto, { color: p.estoque > 0 ? (p.estoque <= 5 ? cor.ambar : cor.verde) : cor.textoSuave }]}> · {disp}</T>
                           </T>
+                          {noMax && <T style={s.limite}>Limite do estoque atingido</T>}
                         </View>
                         {n === 0 ? (
                           <TouchableOpacity
@@ -565,6 +566,7 @@ export default function NovoPedidoMobile({
                         <View style={{ flex: 1, minWidth: 0 }}>
                           <T style={s.produtoNome}>{p.nome}</T>
                           <T style={[s.suave, numeros]}>{ep ? `${reais(precoEf(p))} un. (era ${reais(p.preco)})` : `${reais(p.preco)} un.`}</T>
+                          {!enc && n >= p.estoque && <T style={s.limite}>{escopo.ehRevendedora ? `Você tem só ${p.estoque} com você` : `Só ${p.estoque} no estoque`}</T>}
                         </View>
                         <View style={s.passoClaro}>
                           <TouchableOpacity style={s.passoBotao} onPress={() => mudar(p, -1)} accessibilityLabel={`Tirar um ${p.nome}`}>
@@ -783,6 +785,7 @@ const s = StyleSheet.create({
   foto: { width: 56, height: 56, borderRadius: 16, backgroundColor: cor.pistacheClaro },
   produtoNome: { fontSize: 14, fontWeight: '800', lineHeight: 18 },
   dispTexto: { fontSize: 12, fontWeight: '700' },
+  limite: { fontSize: 12, fontWeight: '700', color: cor.ambar },
   mais: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   passo: { flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: 22, backgroundColor: cor.azulBotao },
   passoClaro: { flexDirection: 'row', alignItems: 'center', height: 38, borderRadius: 19, backgroundColor: cor.cinzaClaro },
@@ -796,7 +799,7 @@ const s = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: 'rgba(255,255,255,0.97)',
+    backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: cor.borda,
   },
@@ -841,7 +844,7 @@ const s = StyleSheet.create({
   campoSinal: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: cor.borda, backgroundColor: '#FFFFFF' },
   inputSinal: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: '800', color: cor.texto, padding: 0 },
   ponto: { width: 8, height: 8, borderRadius: 4 },
-  dicaRodape: { flex: 1, fontSize: 13, fontWeight: '700' },
+  dicaRodape: { flex: 1, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   totalRodape: { fontSize: 18, fontWeight: '700' },
   atalhoCliente: { flex: 1, height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   clienteLinha: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62, paddingVertical: 8 },
