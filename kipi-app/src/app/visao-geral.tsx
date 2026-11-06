@@ -38,6 +38,8 @@ import {
   indicadoresClientes,
 } from '@/lib/indicadores';
 import Sidebar from '@/components/Sidebar';
+import VisaoGeralMobile from '@/components/visao-geral-mobile/VisaoGeralMobile';
+import { useEhCelular } from '@/lib/layout';
 
 type Periodo = PeriodoPainel;
 
@@ -124,7 +126,13 @@ const STATUS_FUNIL = {
   pronto: { titulo: 'PRONTAS', icone: 'box', cor: '#16A34A', fundo: '#DCFCE7' },
 } as const;
 
+// Celular (app e navegador do celular): layout mobile; computador: layout com menu lateral
 export default function VisaoGeralScreen() {
+  const celular = useEhCelular();
+  return celular ? <VisaoGeralMobile /> : <VisaoGeralDesktop />;
+}
+
+function VisaoGeralDesktop() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 1024;
