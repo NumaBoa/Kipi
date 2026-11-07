@@ -176,9 +176,12 @@ export default function NovoPedidoMobile({
   const sinalNum = sinalModo === 'valor' ? lerDinheiro(sinalValor) : parseFloat(sinalValor.replace(',', '.')) || 0;
   const sinalCent = sinalModo === 'porcentagem' ? Math.round((total * sinalNum) / 100) : Math.round(sinalNum * 100);
   const sinalInvalido = sinalModo === 'porcentagem' ? sinalNum > 100 : sinalCent > total;
-  const pagoAgora = forma === 'Pendente' ? (editando ? Math.min(Math.round(editando.valorSinalPago * 100), total) : 0) : enc ? Math.min(sinalCent, total) : total;
-  const saldo = total - pagoAgora;
+  const devidoAgora = forma === 'Pendente' ? (editando ? Math.min(Math.round(editando.valorSinalPago * 100), total) : 0) : enc ? Math.min(sinalCent, total) : total;
   const recebidoCent = Math.round(lerDinheiro(recebido) * 100);
+  // Dinheiro a menos: o pedido entra com o que foi pago e fica devendo o resto
+  const pagoParcial = forma === 'Dinheiro' && recebidoCent > 0 && recebidoCent < devidoAgora;
+  const pagoAgora = pagoParcial ? recebidoCent : devidoAgora;
+  const saldo = total - pagoAgora;
 
   const pendencia =
     qtd === 0
@@ -193,8 +196,8 @@ export default function NovoPedidoMobile({
       ? 'Escolha a forma de pagamento para finalizar'
       : enc && forma !== 'Pendente' && sinalInvalido
       ? 'O sinal não pode passar do total'
-      : forma === 'Dinheiro' && recebidoCent < pagoAgora
-      ? 'Valor recebido menor que o valor a pagar'
+      : forma === 'Dinheiro' && recebidoCent <= 0
+      ? 'Informe quanto recebeu em dinheiro'
       : null;
   const valido = pendencia === null;
 
@@ -440,7 +443,7 @@ export default function NovoPedidoMobile({
                     const n = cart[p.id] ?? 0;
                     const indisp = p.estoque === 0 && !enc;
                     const noMax = !enc && n >= p.estoque;
-                    const disp = p.estoque > 0 ? `${p.estoque - n} disponíveis` : enc ? 'Sob encomenda' : 'Indisponível hoje';
+                    const disp = p.estoque > 0 ? `${p.estoque - n} ${p.estoque - n === 1 ? 'disponível' : 'disponíveis'}` : enc ? 'Sob encomenda' : 'Indisponível hoje';
                     return (
                       <View key={p.id} style={[s.produto, i > 0 && s.borda]}>
                         <Image source={fotoProduto} style={[s.foto, indisp && { opacity: 0.5 }]} />
@@ -792,7 +795,11 @@ export default function NovoPedidoMobile({
                   <View style={s.caixa}>
                     <T style={s.rotuloCampo}>Valor recebido (R$)</T>
                     <TextInput value={recebido} onChangeText={(t) => setRecebido(mascaraDinheiro(t))} placeholder="0,00" placeholderTextColor={cor.textoSuave} keyboardType="decimal-pad" style={[s.campo, { backgroundColor: '#FFFDFA' }]} />
-                    <T style={[s.forte, numeros, { color: cor.verde }]}>Troco: {reais(Math.max(0, recebidoCent - pagoAgora))}</T>
+                    {pagoParcial ? (
+                      <T style={[s.forte, numeros, { color: cor.ambar }]}>Pagou {reais(recebidoCent)} · fica devendo {reais(total - recebidoCent)}</T>
+                    ) : (
+                      <T style={[s.forte, numeros, { color: cor.verde }]}>Troco: {reais(Math.max(0, recebidoCent - pagoAgora))}</T>
+                    )}
                   </View>
                 )}
                 <View style={[s.borda, { paddingTop: 10, gap: 6 }]}>
@@ -807,7 +814,7 @@ export default function NovoPedidoMobile({
                     <T style={[s.forte, numeros, { color: cor.verde }]}>{reais(pagoAgora)}</T>
                   </View>
                   <View style={s.linhaEntre}>
-                    <T style={s.medio}>A receber na entrega</T>
+                    <T style={s.medio}>{enc ? 'A receber na entrega' : 'Falta receber'}</T>
                     <T style={[s.forte, numeros, { color: cor.ambar }]}>{reais(saldo)}</T>
                   </View>
                 </View>

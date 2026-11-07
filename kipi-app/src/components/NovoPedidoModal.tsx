@@ -183,10 +183,14 @@ export default function NovoPedidoModal({
     sinalModo === 'porcentagem' ? Math.round((total * sinalNumero) / 100) : Math.round(sinalNumero * 100);
   const sinalInvalido = sinalModo === 'porcentagem' ? sinalNumero > 100 : sinalCentavos > total;
   // Pendente na edição mantém o que o cliente já tinha pago
-  const pagoAgora =
+  const devidoAgora =
     payment === 'Pendente'
       ? editando ? Math.min(Math.round(editando.valorSinalPago * 100), total) : 0
       : delivery === 'Encomenda' ? Math.min(sinalCentavos, total) : total;
+  // Dinheiro a menos: o pedido entra com o que foi pago e fica devendo o resto
+  const recebidoCentavos = Math.round(lerDinheiro(received) * 100);
+  const pagoParcial = payment === 'Dinheiro' && recebidoCentavos > 0 && recebidoCentavos < devidoAgora;
+  const pagoAgora = pagoParcial ? recebidoCentavos : devidoAgora;
   const saldoNaEntrega = total - pagoAgora;
 
   // Cliente de revendedora: o pedido gera comissão para ela (item na promoção paga metade)
@@ -270,7 +274,7 @@ export default function NovoPedidoModal({
     (delivery !== 'Delivery' || address.trim().length > 0) &&
     (delivery !== 'Encomenda' || date.length > 0) &&
     !(delivery === 'Encomenda' && payment !== 'Pendente' && sinalInvalido) &&
-    (payment !== 'Dinheiro' || Number(received || 0) * 100 >= pagoAgora);
+    (payment !== 'Dinheiro' || recebidoCentavos > 0);
 
   // Pedido recém-criado: mensagem de WhatsApp com a chave PIX das Configurações
   const { config } = useConfigLoja();
@@ -753,7 +757,7 @@ export default function NovoPedidoModal({
                     <View>
                       <Text style={styles.vitrineTitle}>{escopo.ehRevendedora ? 'Meu estoque' : 'Vitrine do ateliê'}</Text>
                       <Text style={styles.vitrineCountHint}>
-                        {products.filter((p) => p.stock > 0).length} opções disponíveis
+                        {products.filter((p) => p.stock > 0).length} {products.filter((p) => p.stock > 0).length === 1 ? 'opção disponível' : 'opções disponíveis'}
                       </Text>
                     </View>
                     <View style={[styles.searchBarBox, styles.searchBarInline]}>
@@ -864,7 +868,7 @@ export default function NovoPedidoModal({
                                     p.stock > 0 ? styles.productStockAvailable : styles.productStockEmpty,
                                   ]}>
                                   {p.stock > 0
-                                    ? `${p.stock - (cart[p.id] ?? 0)} disponíveis`
+                                    ? `${p.stock - (cart[p.id] ?? 0)} ${p.stock - (cart[p.id] ?? 0) === 1 ? 'disponível' : 'disponíveis'}`
                                     : delivery === 'Encomenda'
                                     ? '★ Sob encomenda'
                                     : 'Indisponível hoje'}
@@ -1110,10 +1114,12 @@ export default function NovoPedidoModal({
                         placeholder="0,00"
                         placeholderTextColor="#9A8F87"
                         value={received}
-                        onChangeText={setReceived}
+                        onChangeText={(t) => setReceived(mascaraDinheiro(t))}
                       />
-                      <Text style={styles.changeHintText}>
-                        Troco: {money(Math.max(0, Number(received || 0) * 100 - pagoAgora))}
+                      <Text style={[styles.changeHintText, pagoParcial && { color: '#9A6516' }]}>
+                        {pagoParcial
+                          ? `Pagou ${money(recebidoCentavos)} · fica devendo ${money(total - recebidoCentavos)}`
+                          : `Troco: ${money(Math.max(0, recebidoCentavos - pagoAgora))}`}
                       </Text>
                     </View>
                   )}

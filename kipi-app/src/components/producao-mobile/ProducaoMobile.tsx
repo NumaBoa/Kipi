@@ -85,9 +85,10 @@ export default function ProducaoMobile() {
   const [loteErro, setLoteErro] = useState<string | null>(null);
   const [descProd, setDescProd] = useState<string | null>(null);
   const [descBusca, setDescBusca] = useState('');
-  const [descOrigem, setDescOrigem] = useState<OrigemDescarte>('vitrine');
-  const [descQtd, setDescQtd] = useState(1);
-  const [descMotivo, setDescMotivo] = useState<MotivoDescarte>('Vencido');
+  // Descarte começa sem nada escolhido: origem, quantidade e motivo são obrigatórios
+  const [descOrigem, setDescOrigem] = useState<OrigemDescarte | null>(null);
+  const [descQtd, setDescQtd] = useState(0);
+  const [descMotivo, setDescMotivo] = useState<MotivoDescarte | null>(null);
   const [descObs, setDescObs] = useState('');
   const [descErro, setDescErro] = useState<string | null>(null);
   const [histPer, setHistPer] = useState<PeriodoHist>('tudo');
@@ -196,9 +197,9 @@ export default function ProducaoMobile() {
   };
   const abrirDescarte = (p?: ProdutoCozinha) => {
     setDescProd(p?.id ?? null);
-    setDescOrigem(p && p.vitrine <= 0 ? 'freezer' : 'vitrine');
-    setDescQtd(1);
-    setDescMotivo('Vencido');
+    setDescOrigem(null);
+    setDescQtd(0);
+    setDescMotivo(null);
     setDescObs('');
     setDescBusca('');
     setDescErro(null);
@@ -258,12 +259,15 @@ export default function ProducaoMobile() {
   const produtosComEstoque = produtos.filter((p) => p.freezer + p.vitrine > 0);
   const descAlvo = produtos.find((p) => p.id === descProd) ?? null;
   const descDisponivel = descAlvo ? (descOrigem === 'freezer' ? descAlvo.freezer : descAlvo.vitrine) : 0;
-  const custoUnit = descAlvo ? custoMaterialUnitario(descAlvo.id, descOrigem) : 0;
+  const custoUnit = descAlvo && descOrigem ? custoMaterialUnitario(descAlvo.id, descOrigem) : 0;
   const confirmarDescarte = () => {
     if (!descAlvo) {
       setDescErro('Escolha o produto.');
       return;
     }
+    if (!descOrigem) return setDescErro('Escolha de onde sai: pronto para venda ou freezer.');
+    if (descQtd <= 0) return setDescErro('Informe quantas unidades vai descartar.');
+    if (!descMotivo) return setDescErro('Escolha o motivo do descarte.');
     const erro = registrarDescarte({ produtoId: descAlvo.id, quantidade: descQtd, origem: descOrigem, disponivel: descDisponivel, motivo: descMotivo, observacao: descObs });
     if (erro) {
       setDescErro(erro);
@@ -685,8 +689,8 @@ export default function ProducaoMobile() {
                     style={s.descProduto}
                     onPress={() => {
                       setDescProd(p.id);
-                      setDescOrigem(p.vitrine > 0 ? 'vitrine' : 'freezer');
-                      setDescQtd(1);
+                      setDescOrigem(null);
+                      setDescQtd(0);
                       setDescErro(null);
                     }}
                     accessibilityRole="button"
@@ -737,7 +741,8 @@ export default function ProducaoMobile() {
                     disabled={qtd <= 0}
                     onPress={() => {
                       setDescOrigem(o);
-                      setDescQtd(1);
+                      setDescQtd((q) => Math.min(q, o === 'vitrine' ? descAlvo.vitrine : descAlvo.freezer));
+                      setDescErro(null);
                     }}
                     style={[s.descOrigem, on && s.descOrigemOn, qtd <= 0 && { opacity: 0.4 }]}
                     accessibilityRole="radio"
@@ -751,12 +756,16 @@ export default function ProducaoMobile() {
             </View>
 
             <T style={s.rotulo}>Quantas?</T>
-            <Contador valor={descQtd} min={1} max={Math.max(1, descDisponivel)} aoMudar={setDescQtd} cor={cor.vermelho} fundo={cor.vermelhoClaro} />
+            {descOrigem ? (
+              <Contador valor={descQtd} min={0} max={descDisponivel} aoMudar={(n) => { setDescQtd(n); setDescErro(null); }} cor={cor.vermelho} fundo={cor.vermelhoClaro} />
+            ) : (
+              <T style={s.dicaPequena}>Escolha primeiro de onde sai.</T>
+            )}
 
             <T style={s.rotulo}>Motivo</T>
             <View style={s.wrap}>
               {MOTIVOS_DESCARTE.map((m) => (
-                <Opcao key={m} rotulo={`${EMOJI_MOTIVO[m] ?? ''} ${m}`} ativo={descMotivo === m} aoTocar={() => setDescMotivo(m)} style={{ minHeight: 40 }} />
+                <Opcao key={m} rotulo={`${EMOJI_MOTIVO[m] ?? ''} ${m}`} ativo={descMotivo === m} aoTocar={() => { setDescMotivo(m); setDescErro(null); }} style={{ minHeight: 40 }} />
               ))}
             </View>
 
@@ -766,12 +775,12 @@ export default function ProducaoMobile() {
               <View style={{ flex: 1, gap: 2 }}>
                 <T style={[s.forte, { color: '#8A1C12', fontSize: 13 }]}>Perda de material</T>
                 <T style={[s.dicaPequena, { color: '#8A1C12' }]}>
-                  {brl(custoUnit)}/un · {descOrigem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'}
+                  {!descOrigem ? 'Escolha de onde sai para calcular' : `${brl(custoUnit)}/un · ${descOrigem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'}`}
                 </T>
               </View>
               <T titulo style={[s.forte, numeros, { color: '#8A1C12', fontSize: 20 }]}>{brl(custoUnit * descQtd)}</T>
             </View>
-            <Botao rotulo={`Descartar ${descQtd} ${descOrigem === 'freezer' ? (descQtd === 1 ? 'massa' : 'massas') : 'un'}`} variante="perigo" aoTocar={confirmarDescarte} />
+            <Botao rotulo={descQtd > 0 && descOrigem ? `Descartar ${descQtd} ${descOrigem === 'freezer' ? (descQtd === 1 ? 'massa' : 'massas') : 'un'}` : 'Descartar'} variante="perigo" aoTocar={confirmarDescarte} />
           </>
         )}
       </Gaveta>

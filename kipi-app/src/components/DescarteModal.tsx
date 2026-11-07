@@ -40,9 +40,10 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
   useFichas(); // custo acompanha mudanças na receita
   const [escolhido, setEscolhido] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
-  const [origem, setOrigem] = useState<OrigemDescarte>(origemInicial);
-  const [qtd, setQtd] = useState('1');
-  const [motivo, setMotivo] = useState<MotivoDescarte>('Vencido');
+  // Nada vem escolhido: origem, quantidade e motivo são obrigatórios
+  const [origem, setOrigem] = useState<OrigemDescarte | null>(null);
+  const [qtd, setQtd] = useState('');
+  const [motivo, setMotivo] = useState<MotivoDescarte | null>(null);
   const [obs, setObs] = useState('');
   const [erro, setErro] = useState<string | null>(null);
 
@@ -50,9 +51,9 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
     if (!visible) return;
     setEscolhido(produtoId);
     setBusca('');
-    setOrigem(origemInicial);
-    setQtd('1');
-    setMotivo('Vencido');
+    setOrigem(null);
+    setQtd('');
+    setMotivo(null);
     setObs('');
     setErro(null);
   }, [visible, produtoId, origemInicial]);
@@ -60,9 +61,9 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
   const produto = vitrine.find((p) => p.id === escolhido) ?? null;
   const naVitrine = produto?.estoque ?? 0;
   const noFreezer = produto ? freezer[produto.id] ?? 0 : 0;
-  const disponivel = origem === 'freezer' ? noFreezer : naVitrine;
+  const disponivel = origem === 'freezer' ? noFreezer : origem === 'vitrine' ? naVitrine : 0;
   const quantidade = parseInt(qtd, 10) || 0;
-  const custoUnit = produto ? custoMaterialUnitario(produto.id, origem) : 0;
+  const custoUnit = produto && origem ? custoMaterialUnitario(produto.id, origem) : 0;
 
   // Sem produto definido: lista o que tem na vitrine ou no freezer
   const opcoes = useMemo(
@@ -75,14 +76,17 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
 
   // Ao escolher, se não houver na vitrine mas houver no freezer, já troca a origem
   const escolher = (id: string) => {
-    const p = vitrine.find((x) => x.id === id);
     setEscolhido(id);
-    if (p && p.estoque === 0 && (freezer[id] ?? 0) > 0) setOrigem('freezer');
+    setOrigem(null);
+    setQtd('');
     setErro(null);
   };
 
   const confirmar = () => {
     if (!produto) return setErro('Escolha o produto.');
+    if (!origem) return setErro('Escolha de onde sai: vitrine ou freezer.');
+    if (quantidade <= 0) return setErro('Informe quantas unidades vai descartar.');
+    if (!motivo) return setErro('Escolha o motivo do descarte.');
     const falha = registrarDescarte({ produtoId: produto.id, quantidade, origem, disponivel, motivo, observacao: obs });
     if (falha) return setErro(falha);
     onDescartado?.(`🗑 ${quantidade} un de ${produto.nome} descartadas (${motivo}) · perda de ${money(custoUnit * quantidade)}`);
@@ -185,7 +189,14 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
                     ] as const).map((o) => {
                       const ativo = origem === o.id;
                       return (
-                        <TouchableOpacity key={o.id} style={[s.toggleBtn, ativo && s.toggleBtnAtivo]} onPress={() => setOrigem(o.id)}>
+                        <TouchableOpacity
+                          key={o.id}
+                          style={[s.toggleBtn, ativo && s.toggleBtnAtivo, (o.id === 'vitrine' ? naVitrine : noFreezer) <= 0 && { opacity: 0.4 }]}
+                          disabled={(o.id === 'vitrine' ? naVitrine : noFreezer) <= 0}
+                          onPress={() => {
+                            setOrigem(o.id);
+                            setErro(null);
+                          }}>
                           <Text style={[s.toggleText, ativo && s.toggleTextAtivo]}>{o.label}</Text>
                         </TouchableOpacity>
                       );
@@ -196,10 +207,10 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
                 <View style={s.bloco}>
                   <Text style={s.label}>QUANTIDADE</Text>
                   <View style={s.linha}>
-                    <TouchableOpacity style={s.stepBtn} onPress={() => setQtd(String(Math.max(1, quantidade - 1)))}>
+                    <TouchableOpacity style={s.stepBtn} onPress={() => setQtd(quantidade - 1 > 0 ? String(quantidade - 1) : '')}>
                       <Feather name="minus" size={14} color="#3D312A" />
                     </TouchableOpacity>
-                    <TextInput style={[s.input, s.qtdInput]} keyboardType="numeric" value={qtd} onChangeText={(t) => setQtd(t.replace(/\D/g, ''))} />
+                    <TextInput style={[s.input, s.qtdInput]} keyboardType="numeric" placeholder="0" placeholderTextColor="#9A8F87" value={qtd} onChangeText={(t) => setQtd(t.replace(/\D/g, ''))} />
                     <TouchableOpacity style={s.stepBtn} onPress={() => setQtd(String(Math.min(disponivel, quantidade + 1)))}>
                       <Feather name="plus" size={14} color="#3D312A" />
                     </TouchableOpacity>
@@ -215,7 +226,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
                     {MOTIVOS_DESCARTE.map((m) => {
                       const ativo = motivo === m;
                       return (
-                        <TouchableOpacity key={m} style={[s.chip, ativo && s.chipAtivo]} onPress={() => setMotivo(m)}>
+                        <TouchableOpacity key={m} style={[s.chip, ativo && s.chipAtivo]} onPress={() => { setMotivo(m); setErro(null); }}>
                           <Text style={[s.chipText, ativo && s.chipTextAtivo]}>{EMOJI_MOTIVO[m]} {m}</Text>
                         </TouchableOpacity>
                       );
@@ -232,7 +243,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
                   <Text style={s.resumoLabel}>Perda de material</Text>
                   <Text style={s.resumoVal}>{money(custoUnit * quantidade)}</Text>
                   <Text style={s.resumoHint}>
-                    {money(custoUnit)}/un · {origem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'} · entra em Perdas e desconta do lucro
+                    {!origem ? 'Escolha de onde sai para calcular' : `${money(custoUnit)}/un · ${origem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'} · entra em Perdas e desconta do lucro`}
                   </Text>
                 </View>
               </>
