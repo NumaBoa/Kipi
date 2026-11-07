@@ -149,7 +149,7 @@ export default function NovoPedidoMobile({
     setCart((c) => ({ ...c, [p.id]: Math.max(0, Math.min(enc ? 999 : p.estoque, (c[p.id] ?? 0) + d)) }));
 
   const q = busca.trim().toLowerCase();
-  const visiveis = produtos.filter((p) => (categoria === 'Todos' || p.categoria === categoria) && (!q || p.nome.toLowerCase().includes(q)) && (!soDisponiveis || p.estoque > 0));
+  const visiveis = produtos.filter((p) => (categoria === 'Todos' || p.categoria === categoria) && (!q || p.nome.toLowerCase().includes(q)) && (!soDisponiveis || enc || p.estoque > 0)); // encomenda: tudo aparece, mesmo sem estoque
   const escolhidos = produtos.filter((p) => (cart[p.id] ?? 0) > 0);
   const qtd = escolhidos.reduce((a, p) => a + (cart[p.id] ?? 0), 0);
   const total = escolhidos.reduce((a, p) => a + (cart[p.id] ?? 0) * precoEf(p), 0);

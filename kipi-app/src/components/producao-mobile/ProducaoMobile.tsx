@@ -93,11 +93,11 @@ export default function ProducaoMobile() {
   const [histBusca, setHistBusca] = useState('');
   const [histLimite, setHistLimite] = useState(POR_PAGINA);
 
-  // Produtos produzidos aqui: ativos com ficha técnica ou com massa no freezer (igual ao computador)
+  // Produtos produzidos aqui: todos os ativos (com ou sem receita; sem receita não desconta insumos)
   const produtos: ProdutoCozinha[] = useMemo(
     () =>
       vitrine
-        .filter((v) => produtoEstaAtivo(v) && (fichas.some((f) => f.produtoId === v.id) || (freezer[v.id] ?? 0) > 0))
+        .filter((v) => produtoEstaAtivo(v))
         .map((v) => ({
           id: v.id,
           nome: v.nome,
@@ -526,6 +526,9 @@ export default function ProducaoMobile() {
           <View style={[s.check, descontar && { backgroundColor: AZUL_FREEZER, borderColor: AZUL_FREEZER }]}>{descontar && <Feather name="check" size={13} color="#FFFDFA" />}</View>
           <T style={[s.forte, { flex: 1, fontSize: 14 }]}>Descontar os ingredientes do estoque de insumos</T>
         </TouchableOpacity>
+        {alvo && alvo.receita.length === 0 && (
+          <T style={[s.forte, { fontSize: 13, color: '#9A6516' }]}>Este produto ainda não tem receita: a massa entra no freezer, mas nenhum ingrediente é descontado. Monte a receita em Produtos para o custo e o desconto automático.</T>
+        )}
         {descontar && ingredientes.length > 0 && (
           <View style={{ gap: 6 }}>
             <T style={s.rotulo}>Ingredientes para {qtdPrep} unidades</T>

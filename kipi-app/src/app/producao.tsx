@@ -128,11 +128,11 @@ function ProducaoDesktop() {
   const emojiDe = (produtoId: string) =>
     vitrineProdutos.find((v) => v.id === produtoId)?.emoji ?? EMOJI_CATEGORIA[vitrineProdutos.find((v) => v.id === produtoId)?.categoria ?? ''] ?? '🧁';
   const fornadas: RegistroFornada[] = useHistoricoProducao().map((r) => ({ ...r, fotoEmoji: emojiDe(r.produtoId) }));
-  // Produtos produzidos aqui: ativos da vitrine com ficha técnica ou com massa no freezer
+  // Produtos produzidos aqui: todos os ativos (com ou sem receita; sem receita não desconta insumos)
   const { fichas } = useFichas();
   const freezerAtual = useEstoqueFreezer();
   const produtos: ProdutoProducao[] = vitrineProdutos
-    .filter((v) => produtoEstaAtivo(v) && (fichas.some((f) => f.produtoId === v.id) || (freezerAtual[v.id] ?? 0) > 0))
+    .filter((v) => produtoEstaAtivo(v))
     .map((v) => ({
       id: v.id,
       nome: v.nome,
