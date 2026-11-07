@@ -401,7 +401,7 @@ export default function NovoPedidoModal({
           statusProducao:
             editando.revendedoraId || editando.tipoPedido === tipoPedido
               ? editando.statusProducao
-              : tipoPedido === 'sob_encomenda' ? 'a_fazer' : 'pronto',
+              : tipoPedido === 'sob_encomenda' ? 'a_fazer' : 'entregue',
           observacoes: notes.trim() || (delivery === 'Delivery' && address ? `Entrega: ${address}` : null),
         };
         editarPedido(atualizado);

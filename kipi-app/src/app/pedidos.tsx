@@ -823,7 +823,7 @@ function PedidosDesktop() {
                                   )}
 
                                   {/* STATUS DE PRODUÇÃO: clique avança para a próxima etapa (venda da revendedora já sai entregue) */}
-                                  {!ped.revendedoraId && (() => {
+                                  {!ped.revendedoraId && ped.tipoPedido === 'sob_encomenda' && (() => {
                                     const st = infoStatusProducao(ped.statusProducao);
                                     const ultimo = ped.statusProducao === 'entregue';
                                     return (
@@ -1012,7 +1012,7 @@ function PedidosDesktop() {
                     </View>
 
                     {/* STATUS DE PRODUÇÃO (LINHA DO TEMPO) */}
-                    {!pedidoSelecionado.revendedoraId && (
+                    {!pedidoSelecionado.revendedoraId && pedidoSelecionado.tipoPedido === 'sob_encomenda' && (
                     <View style={{ gap: 8 }}>
                       <Text style={styles.sideDetailSectionLabel}>STATUS DE PRODUÇÃO</Text>
                       <View style={styles.prodTimeline}>
@@ -1043,14 +1043,16 @@ function PedidosDesktop() {
                             <Text style={styles.sideDetailItemName}>
                               {it.quantidade}x {it.nome}
                             </Text>
-                            <Text style={styles.sideDetailItemSub}>
-                              {it.categoria} • R$ {it.precoUnitario.toFixed(2)} un.
-                              {it.comDesconto && it.desconto ? (
-                                <Text style={{ color: '#9A6516', fontWeight: '700' }}>
-                                  {'  '}🏷️ Promoção (-R$ {it.desconto.toFixed(2)}/un)
-                                </Text>
-                              ) : null}
+                            <Text style={styles.sideDetailItemSub} numberOfLines={1}>
+                              {it.comDesconto && it.desconto
+                                ? `${it.categoria} • Valor original ${brl(it.precoUnitario + it.desconto)}`
+                                : `${it.categoria} • ${brl(it.precoUnitario)} un.`}
                             </Text>
+                            {it.comDesconto && !!it.desconto && (
+                              <Text style={[styles.sideDetailItemSub, { color: '#9A6516', fontWeight: '700' }]} numberOfLines={1}>
+                                🏷️ {it.motivoPromocao || 'Promoção'} · −{brl(it.desconto)}/un
+                              </Text>
+                            )}
                           </View>
                           <Text style={styles.sideDetailItemTotal}>
                             R$ {it.totalItem.toFixed(2)}

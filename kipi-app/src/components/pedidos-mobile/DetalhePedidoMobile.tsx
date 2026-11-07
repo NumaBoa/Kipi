@@ -117,12 +117,13 @@ export default function DetalhePedidoMobile({
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <T style={s.itemNome}>{it.nome}</T>
-                  <T style={[s.suavePequeno, numeros]}>
-                    {it.categoria} · {brl(it.precoUnitario)} un.
-                    {it.comDesconto && !!it.desconto ? ` (era ${brl(it.precoUnitario + it.desconto)})` : ''}
+                  <T style={[s.suavePequeno, numeros]} numberOfLines={1}>
+                    {it.comDesconto && !!it.desconto
+                      ? `${it.categoria} · Valor original ${brl(it.precoUnitario + it.desconto)}`
+                      : `${it.categoria} · ${brl(it.precoUnitario)} un.`}
                   </T>
                   {it.comDesconto && !!it.desconto && (
-                    <T style={s.promo}>Promoção{it.motivoPromocao ? ` · ${it.motivoPromocao}` : ''}</T>
+                    <T style={s.promo} numberOfLines={1}>🏷️ {it.motivoPromocao || 'Promoção'} · −{brl(it.desconto)}/un</T>
                   )}
                 </View>
                 <T style={[s.itemTotal, numeros]}>{brl(it.totalItem)}</T>
@@ -205,17 +206,7 @@ export default function DetalhePedidoMobile({
               </View>
             </View>
           )}
-          {temProducao && !encomenda && (
-            <View style={[s.blocoBaixo, sombra]}>
-              <View style={[s.ponto, { backgroundColor: etapa.fg }]} />
-              <T style={[s.itemNome, { flex: 1 }]}>{etapa.label}</T>
-              {idxEtapa < 3 && (
-                <TouchableOpacity style={s.botaoPequeno} onPress={() => mudarEtapa(3)} accessibilityRole="button">
-                  <T style={s.forte}>Marcar entregue</T>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+          {/* Retirada/delivery: entregue na hora, sem etapa para registrar */}
 
           {/* 4. CLIENTE (discreto) */}
           <View style={[s.blocoBaixo, sombra, { flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>

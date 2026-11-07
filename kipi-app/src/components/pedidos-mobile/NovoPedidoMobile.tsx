@@ -238,7 +238,7 @@ export default function NovoPedidoMobile({
         custoTotal,
         dataEntrega: tipoPedido === 'sob_encomenda' ? lerDataEntrega(data) : null,
         statusProducao:
-          editando.revendedoraId || editando.tipoPedido === tipoPedido ? editando.statusProducao : tipoPedido === 'sob_encomenda' ? 'a_fazer' : 'pronto',
+          editando.revendedoraId || editando.tipoPedido === tipoPedido ? editando.statusProducao : tipoPedido === 'sob_encomenda' ? 'a_fazer' : 'entregue',
         observacoes: notas.trim() || (modo === 'Delivery' && endereco ? `Entrega: ${endereco}` : null),
       };
       editarPedido(atualizado);

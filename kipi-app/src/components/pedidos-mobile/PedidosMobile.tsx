@@ -314,7 +314,7 @@ export default function PedidosMobile() {
                   const parcial = pendente && p.valorSinalPago > 0;
                   const encomenda = !p.revendedoraId && p.tipoPedido === 'sob_encomenda';
                   // Etapa de produção só em pedido do ateliê que ainda não foi entregue
-                  const mostraEtapa = !p.revendedoraId && iE < 3;
+                  const mostraEtapa = encomenda && iE < 3; // retirada/delivery já sai entregue
                   const temAcoes = mostraEtapa || pendente;
                   return (
                     <View key={p.id} style={[s.pedido, i > 0 && s.pedidoBorda]}>

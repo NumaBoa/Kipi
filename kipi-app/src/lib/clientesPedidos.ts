@@ -1036,7 +1036,8 @@ export const criarPedido = (dados: NovoPedidoDados): Pedido => {
     valorSinalPago: dados.valorSinalPago,
     saldoNaEntrega: dados.saldoNaEntrega,
     custoTotal: dados.custoTotal,
-    statusProducao: dados.revendedoraId ? 'entregue' : dados.tipoPedido === 'sob_encomenda' ? 'a_fazer' : 'pronto',
+    // Retirada e delivery são feitos e entregues na hora: já nascem entregues
+    statusProducao: dados.tipoPedido === 'sob_encomenda' && !dados.revendedoraId ? 'a_fazer' : 'entregue',
     revendedoraId: dados.revendedoraId ?? null,
     itens: dados.itens.map((it, idx) => ({ ...it, id: `it-${numero}-${idx}` })),
     observacoes: dados.observacoes ?? null,

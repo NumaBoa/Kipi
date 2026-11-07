@@ -16,6 +16,8 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import Sidebar from '@/components/Sidebar';
+import { useEhCelular } from '@/lib/layout';
+import ConfiguracoesMobile from '@/components/configuracoes-mobile/ConfiguracoesMobile';
 import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
 import type { TipoComissao } from '@/lib/revenda';
 import {
@@ -133,7 +135,13 @@ function CampoSenha({
   );
 }
 
+// Celular: lista com gavetas (components/configuracoes-mobile); computador: tela completa
 export default function ConfiguracoesScreen() {
+  const celular = useEhCelular();
+  return celular ? <ConfiguracoesMobile /> : <ConfiguracoesDesktop />;
+}
+
+function ConfiguracoesDesktop() {
   const router = useRouter();
   const { config, sessao } = useConfigLoja();
 
