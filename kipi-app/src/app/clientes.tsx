@@ -451,17 +451,14 @@ function ClientesDesktop() {
                         </View>
                       )}
 
-                      {/* RODAPÉ: ENDEREÇO E ANIVERSÁRIO */}
+                      {/* RODAPÉ: ANIVERSÁRIO (o endereço fica só na ficha) */}
                       <View style={styles.ccRodape}>
-                        <Text style={styles.ccRodapeTexto} numberOfLines={1}>
-                          📍 {cli.bairro || cli.rua ? [cli.bairro, cli.rua].filter(Boolean).join(' · ') : 'Sem endereço'}
-                        </Text>
                         {cli.aniversario && (
                           <Text style={[styles.ccRodapeTexto, styles.ccNiver, isAniverMes && styles.dossierBdayHighlight]} numberOfLines={1}>
                             🎂 {cli.aniversario}{isAniverMes ? ' ★ este mês' : ''}
                           </Text>
                         )}
-                        <Feather name="chevron-right" size={14} color={ATELIE_GREEN} />
+                        <Feather name="chevron-right" size={14} color={ATELIE_GREEN} style={{ marginLeft: 'auto' }} />
                       </View>
 
                     </TouchableOpacity>

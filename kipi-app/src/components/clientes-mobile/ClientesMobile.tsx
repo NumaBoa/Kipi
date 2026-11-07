@@ -274,7 +274,6 @@ export default function ClientesMobile() {
                 ? [`Aniversário ${c.aniversario?.slice(0, 5) ?? ''}`, c.telefone]
                 : [
                     `${c.quantidadePedidos} ${c.quantidadePedidos === 1 ? 'pedido' : 'pedidos'}`,
-                    c.bairro || null,
                     !rev && c.revendedoraId ? `de ${c.revendedoraNome?.split(' ')[0] || 'revendedora'}` : null,
                   ];
               return (

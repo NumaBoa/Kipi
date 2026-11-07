@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useEstoqueVitrine, useEstoqueFreezer, produtoAtivo as produtoEstaAtivo } from '@/lib/estoqueVitrine';
 import { usePedidos, encomendasEmAberto, resumoItens, rotuloEntrega, atualizarPedido, type Pedido } from '@/lib/clientesPedidos';
 import { useInsumos, useFichas, receitaDoProduto, congelarMassas, assarDoFreezer } from '@/lib/insumos';
 import { useHistoricoProducao, type RegistroProducao } from '@/lib/historicoProducao';
-import { resumoDePerdas, ultimosDias, registrarDescarte, custoMaterialUnitario, MOTIVOS_DESCARTE, type MotivoDescarte, type OrigemDescarte } from '@/lib/descarte';
+import { resumoDePerdas, ultimosDias, registrarDescarte, custoMaterialUnitario, MOTIVOS_DESCARTE, EMOJI_MOTIVO, type MotivoDescarte, type OrigemDescarte } from '@/lib/descarte';
+import ReceitaMobile from '@/components/produtos-mobile/ReceitaMobile';
 import TabBar from '@/components/mobile/TabBar';
 import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
 import { brl, cor, numeros, sombra } from '@/components/mobile/tema';
@@ -55,6 +56,7 @@ type ProdutoCozinha = {
   id: string;
   nome: string;
   categoria: string;
+  emoji: string;
   tempo: number;
   freezer: number;
   vitrine: number;
@@ -102,6 +104,7 @@ export default function ProducaoMobile() {
           id: v.id,
           nome: v.nome,
           categoria: v.categoria,
+          emoji: v.emoji ?? '🧁',
           tempo: TEMPO_FORNO[v.id] ?? TEMPO_FORNO_PADRAO,
           freezer: freezer[v.id] ?? 0,
           vitrine: v.estoque,
@@ -181,7 +184,8 @@ export default function ProducaoMobile() {
   // Ações
   const abrirPreparar = (p: ProdutoCozinha) => {
     setAlvoId(p.id);
-    setQtdPrep(12);
+    setQtdPrep(0); // sem sugestão: a pessoa informa quantas massas vai modelar
+    setPrepErro(null);
     setGaveta('preparar');
   };
   const abrirAssar = (p: ProdutoCozinha) => {
@@ -207,15 +211,19 @@ export default function ProducaoMobile() {
     setGaveta('lote');
   };
 
+  const [prepErro, setPrepErro] = useState<string | null>(null);
+  const [receitaDe, setReceitaDe] = useState<string | null>(null);
   const ingredientes = (alvo?.receita ?? []).map((i) => {
     const precisa = i.quantidadePorUnidade * qtdPrep;
     return { ...i, precisa, ok: i.estoqueAtual >= precisa };
   });
   const faltaIngrediente = descontar && ingredientes.some((i) => !i.ok);
 
+  const semReceita = !!alvo && alvo.receita.length === 0;
   const confirmarPreparo = () => {
-    if (!alvo || qtdPrep <= 0) return;
-    congelarMassas(alvo.id, qtdPrep, descontar, 'preparo na Produção');
+    if (!alvo) return;
+    if (qtdPrep <= 0) return setPrepErro('Informe quantas massas vai modelar.');
+    congelarMassas(alvo.id, qtdPrep, descontar && !semReceita, 'preparo na Produção');
     setGaveta(null);
     avisar(`${qtdPrep} massas de ${alvo.nome} no freezer`);
   };
@@ -520,16 +528,48 @@ export default function ProducaoMobile() {
 
       {/* PREPARAR MASSA (um produto) */}
       <Gaveta aberta={gaveta === 'preparar' && !!alvo} aoFechar={() => setGaveta(null)} titulo="Preparar massa" subtitulo={alvo ? `${alvo.nome} · vai para o freezer` : ''}>
-        <T style={s.rotulo}>Quantas unidades de massa vai modelar?</T>
-        <Contador valor={qtdPrep} min={1} aoMudar={setQtdPrep} cor={AZUL_FREEZER_ESCURO} fundo={AZUL_FREEZER_CLARO} />
-        <TouchableOpacity style={s.checkLinha} onPress={() => setDescontar((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: descontar }}>
-          <View style={[s.check, descontar && { backgroundColor: AZUL_FREEZER, borderColor: AZUL_FREEZER }]}>{descontar && <Feather name="check" size={13} color="#FFFDFA" />}</View>
-          <T style={[s.forte, { flex: 1, fontSize: 14 }]}>Descontar os ingredientes do estoque de insumos</T>
-        </TouchableOpacity>
-        {alvo && alvo.receita.length === 0 && (
-          <T style={[s.forte, { fontSize: 13, color: '#9A6516' }]}>Este produto ainda não tem receita: a massa entra no freezer, mas nenhum ingrediente é descontado. Monte a receita em Produtos para o custo e o desconto automático.</T>
+        {!!prepErro && (
+          <View style={s.erro}>
+            <T style={s.erroTexto}>{prepErro}</T>
+          </View>
         )}
-        {descontar && ingredientes.length > 0 && (
+        <T style={s.rotulo}>Quantas massas vai modelar?</T>
+        <Contador
+          valor={qtdPrep}
+          min={0}
+          aoMudar={(n) => {
+            setQtdPrep(n);
+            setPrepErro(null);
+          }}
+          cor={AZUL_FREEZER_ESCURO}
+          fundo={AZUL_FREEZER_CLARO}
+        />
+        {semReceita ? (
+          <View style={s.semReceita}>
+            <View style={s.semReceitaIcone}>
+              <Feather name="book-open" size={18} color="#9A6516" />
+            </View>
+            <View style={{ flex: 1, gap: 4 }}>
+              <T style={[s.forte, { fontSize: 14, color: '#6E4A10' }]}>Produto sem receita</T>
+              <T style={[s.medio, { color: '#7A5A20', lineHeight: 19 }]}>A massa entra no freezer, mas nenhum ingrediente é descontado do estoque.</T>
+              <TouchableOpacity
+                onPress={() => {
+                  setGaveta(null);
+                  setReceitaDe(alvo!.id);
+                }}
+                accessibilityRole="button"
+                style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
+                <T style={[s.link, { color: '#7A4520' }]}>Montar receita agora →</T>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity style={s.checkLinha} onPress={() => setDescontar((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: descontar }}>
+            <View style={[s.check, descontar && { backgroundColor: AZUL_FREEZER, borderColor: AZUL_FREEZER }]}>{descontar && <Feather name="check" size={13} color="#FFFDFA" />}</View>
+            <T style={[s.forte, { flex: 1, fontSize: 14 }]}>Descontar os ingredientes do estoque de insumos</T>
+          </TouchableOpacity>
+        )}
+        {!semReceita && descontar && ingredientes.length > 0 && qtdPrep > 0 && (
           <View style={{ gap: 6 }}>
             <T style={s.rotulo}>Ingredientes para {qtdPrep} unidades</T>
             {faltaIngrediente && (
@@ -549,8 +589,11 @@ export default function ProducaoMobile() {
             ))}
           </View>
         )}
-        <Botao rotulo={faltaIngrediente ? 'Produzir mesmo assim' : 'Confirmar e congelar'} aoTocar={confirmarPreparo} style={{ backgroundColor: AZUL_FREEZER }} />
+        <Botao rotulo={!semReceita && faltaIngrediente ? 'Produzir mesmo assim' : 'Confirmar e congelar'} aoTocar={confirmarPreparo} style={{ backgroundColor: AZUL_FREEZER }} />
       </Gaveta>
+
+      {/* Receita aberta direto da Produção (produto sem receita) */}
+      <ReceitaMobile produtoId={receitaDe} aoFechar={() => setReceitaDe(null)} aoSalvo={avisar} />
 
       {/* REGISTRAR FORNADA (um produto) */}
       <Gaveta aberta={gaveta === 'assar' && !!alvo} aoFechar={() => setGaveta(null)} titulo="Registrar fornada" subtitulo={alvo ? `${alvo.nome} · sai do freezer e fica pronto para venda` : ''}>
@@ -615,84 +658,122 @@ export default function ProducaoMobile() {
         <Botao rotulo={loteModo === 'assar' ? 'Registrar fornadas' : 'Preparar'} aoTocar={confirmarLote} style={{ backgroundColor: loteModo === 'assar' ? LARANJA : AZUL_FREEZER }} />
       </Gaveta>
 
-      {/* DESCARTAR */}
-      <Gaveta aberta={gaveta === 'descartar'} aoFechar={() => setGaveta(null)} titulo="Descartar produto" subtitulo="Escolha o produto, de onde sai e o motivo">
+      {/* DESCARTAR: 1) escolhe o produto · 2) de onde, quanto e por quê */}
+      <Gaveta
+        aberta={gaveta === 'descartar'}
+        aoFechar={() => setGaveta(null)}
+        titulo="Descartar produto"
+        subtitulo={descAlvo ? 'De onde sai, quanto e por quê' : 'Qual produto vai descartar?'}>
         {!!descErro && (
           <View style={s.erro}>
             <T style={s.erroTexto}>{descErro}</T>
           </View>
         )}
-        <T style={s.rotulo}>Produto</T>
-        {descAlvo ? (
-          <View style={[s.linha, s.faixa]}>
-            <T style={[s.produtoNome, { flex: 1 }]}>{descAlvo.nome}</T>
-            <TouchableOpacity onPress={() => setDescProd(null)} accessibilityRole="button">
-              <T style={s.link}>Trocar</T>
-            </TouchableOpacity>
-          </View>
-        ) : (
+        {!descAlvo ? (
           <>
             <View style={[s.busca, { marginHorizontal: 0, marginTop: 0, backgroundColor: cor.fundo }]}>
               <Feather name="search" size={16} color={cor.textoSuave} />
               <TextInput value={descBusca} onChangeText={setDescBusca} placeholder="Buscar produto..." placeholderTextColor={cor.textoSuave} style={s.buscaInput} accessibilityLabel="Buscar produto para descartar" />
             </View>
-            {produtosComEstoque.length === 0 && <T style={s.dica}>Nenhum produto com estoque.</T>}
-            {produtosComEstoque
-              .filter((p) => !descBusca.trim() || p.nome.toLowerCase().includes(descBusca.trim().toLowerCase()))
-              .map((p) => (
-                <TouchableOpacity
-                  key={p.id}
-                  style={[s.linha, s.borda, { paddingVertical: 12 }]}
-                  onPress={() => {
-                    setDescProd(p.id);
-                    setDescOrigem(p.vitrine > 0 ? 'vitrine' : 'freezer');
-                    setDescErro(null);
-                  }}
-                  accessibilityRole="button">
-                  <T style={[s.produtoNome, { flex: 1, fontSize: 14 }]}>{p.nome}</T>
-                  <T style={[s.dicaPequena, numeros]}>{p.vitrine} prontos · {p.freezer} massas</T>
-                </TouchableOpacity>
-              ))}
-          </>
-        )}
-        {descAlvo && (
-          <>
-            <T style={s.rotulo}>Sai de onde?</T>
-            <View style={s.linha}>
-              {(['vitrine', 'freezer'] as OrigemDescarte[]).map((o) => (
-                <Opcao
-                  key={o}
-                  rotulo={`${o === 'vitrine' ? 'Pronto para venda' : 'Freezer'} · ${o === 'vitrine' ? descAlvo.vitrine : descAlvo.freezer}`}
-                  ativo={descOrigem === o}
-                  aoTocar={() => setDescOrigem(o)}
-                  style={{ flex: 1, minHeight: 50, borderRadius: 16 }}
-                />
-              ))}
+            {produtosComEstoque.length === 0 && <T style={s.dica}>Nenhum produto com estoque para descartar.</T>}
+            <View style={{ gap: 8 }}>
+              {produtosComEstoque
+                .filter((p) => !descBusca.trim() || p.nome.toLowerCase().includes(descBusca.trim().toLowerCase()))
+                .map((p) => (
+                  <TouchableOpacity
+                    key={p.id}
+                    style={s.descProduto}
+                    onPress={() => {
+                      setDescProd(p.id);
+                      setDescOrigem(p.vitrine > 0 ? 'vitrine' : 'freezer');
+                      setDescQtd(1);
+                      setDescErro(null);
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Descartar ${p.nome}`}>
+                    <View style={s.descEmoji}>
+                      <T style={{ fontSize: 22 }}>{p.emoji}</T>
+                    </View>
+                    <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                      <T style={[s.produtoNome, { fontSize: 14 }]} numberOfLines={1}>{p.nome}</T>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {p.vitrine > 0 && (
+                          <View style={[s.descPill, { backgroundColor: cor.verdeClaro }]}>
+                            <T style={[s.descPillTexto, numeros, { color: cor.verde }]}>✓ {p.vitrine} prontos</T>
+                          </View>
+                        )}
+                        {p.freezer > 0 && (
+                          <View style={[s.descPill, { backgroundColor: AZUL_FREEZER_FUNDO }]}>
+                            <T style={[s.descPillTexto, numeros, { color: AZUL_FREEZER_ESCURO }]}>❄ {p.freezer} massas</T>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                    <Feather name="chevron-right" size={18} color={cor.textoSuave} />
+                  </TouchableOpacity>
+                ))}
             </View>
-            <T style={s.rotulo}>Quantidade</T>
-            <Contador valor={descQtd} min={1} max={Math.max(1, descDisponivel)} aoMudar={setDescQtd} cor={cor.texto} fundo={cor.cinzaClaro} />
+          </>
+        ) : (
+          <>
+            <View style={s.descSelecionado}>
+              <View style={s.descEmoji}>
+                <T style={{ fontSize: 22 }}>{descAlvo.emoji}</T>
+              </View>
+              <T style={[s.produtoNome, { flex: 1 }]} numberOfLines={2}>{descAlvo.nome}</T>
+              <TouchableOpacity onPress={() => setDescProd(null)} accessibilityRole="button" style={{ paddingVertical: 6, paddingLeft: 8 }}>
+                <T style={s.link}>Trocar</T>
+              </TouchableOpacity>
+            </View>
+
+            <T style={s.rotulo}>Sai de onde?</T>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {(['vitrine', 'freezer'] as OrigemDescarte[]).map((o) => {
+                const qtd = o === 'vitrine' ? descAlvo.vitrine : descAlvo.freezer;
+                const on = descOrigem === o;
+                return (
+                  <TouchableOpacity
+                    key={o}
+                    disabled={qtd <= 0}
+                    onPress={() => {
+                      setDescOrigem(o);
+                      setDescQtd(1);
+                    }}
+                    style={[s.descOrigem, on && s.descOrigemOn, qtd <= 0 && { opacity: 0.4 }]}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on, disabled: qtd <= 0 }}>
+                    <T style={{ fontSize: 18 }}>{o === 'vitrine' ? '🧁' : '❄️'}</T>
+                    <T style={[s.forte, { fontSize: 14 }]}>{o === 'vitrine' ? 'Pronto p/ venda' : 'Freezer'}</T>
+                    <T style={[s.dicaPequena, numeros]}>{qtd} {o === 'vitrine' ? 'un' : 'massas'}</T>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <T style={s.rotulo}>Quantas?</T>
+            <Contador valor={descQtd} min={1} max={Math.max(1, descDisponivel)} aoMudar={setDescQtd} cor={cor.vermelho} fundo={cor.vermelhoClaro} />
+
             <T style={s.rotulo}>Motivo</T>
             <View style={s.wrap}>
               {MOTIVOS_DESCARTE.map((m) => (
-                <Opcao key={m} rotulo={m} ativo={descMotivo === m} aoTocar={() => setDescMotivo(m)} style={{ minHeight: 40 }} />
+                <Opcao key={m} rotulo={`${EMOJI_MOTIVO[m] ?? ''} ${m}`} ativo={descMotivo === m} aoTocar={() => setDescMotivo(m)} style={{ minHeight: 40 }} />
               ))}
             </View>
-            <T style={s.rotulo}>
-              Observação <T style={[s.dicaPequena, { fontWeight: '500' }]}>(opcional)</T>
-            </T>
-            <TextInput value={descObs} onChangeText={setDescObs} placeholder="Ex.: doado para a feira do bairro" placeholderTextColor={cor.textoSuave} style={s.campo} />
-            <View style={[s.faixa, { backgroundColor: cor.vermelhoClaro, gap: 2 }]}>
-              <View style={s.linha}>
-                <T style={[s.forte, { flex: 1, color: '#8A1C12', fontSize: 14 }]}>Perda de material</T>
-                <T style={[s.forte, numeros, { color: '#8A1C12', fontSize: 14 }]}>{brl(custoUnit * descQtd)}</T>
+
+            <TextInput value={descObs} onChangeText={setDescObs} placeholder="Observação (opcional). Ex.: doado para a feira" placeholderTextColor={cor.textoSuave} style={s.campo} />
+
+            <View style={s.descPerda}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <T style={[s.forte, { color: '#8A1C12', fontSize: 13 }]}>Perda de material</T>
+                <T style={[s.dicaPequena, { color: '#8A1C12' }]}>
+                  {brl(custoUnit)}/un · {descOrigem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'}
+                </T>
               </View>
-              <T style={[s.dicaPequena, { color: '#8A1C12' }]}>
-                {brl(custoUnit)}/un · {descOrigem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'} · entra em Perdas e desconta do estoque
-              </T>
+              <T titulo style={[s.forte, numeros, { color: '#8A1C12', fontSize: 20 }]}>{brl(custoUnit * descQtd)}</T>
             </View>
+            <Botao rotulo={`Descartar ${descQtd} ${descOrigem === 'freezer' ? (descQtd === 1 ? 'massa' : 'massas') : 'un'}`} variante="perigo" aoTocar={confirmarDescarte} />
           </>
         )}
-        <Botao rotulo="Descartar" variante="perigo" aoTocar={confirmarDescarte} desativado={!descAlvo} />
       </Gaveta>
 
       {/* FILTRO DO HISTÓRICO */}
@@ -751,7 +832,9 @@ function Contador({ valor, min, max, aoMudar, cor: c, fundo }: { valor: number; 
         <Feather name="minus" size={22} color={cor.texto} />
       </TouchableOpacity>
       <TextInput
-        value={String(valor)}
+        value={valor ? String(valor) : ''}
+        placeholder="0"
+        placeholderTextColor={cor.apagado}
         onChangeText={(t) => {
           const n = parseInt(t.replace(/\D/g, ''), 10) || 0;
           aoMudar(Math.max(min, max !== undefined ? Math.min(max, n) : n));
@@ -834,5 +917,15 @@ const s = StyleSheet.create({
   contador: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   contadorMenos: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: cor.borda, alignItems: 'center', justifyContent: 'center' },
   contadorMais: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  contadorValor: { flex: 1, textAlign: 'center', fontSize: 32, fontWeight: '700', color: cor.texto, padding: 0 },
+  contadorValor: { flex: 1, minWidth: 0, width: '100%', textAlign: 'center', fontSize: 30, fontWeight: '700', color: cor.texto, padding: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
+  semReceita: { flexDirection: 'row', gap: 12, padding: 14, borderRadius: 18, backgroundColor: '#FBF0DC', borderWidth: 1, borderColor: '#F2DDB0' },
+  semReceitaIcone: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#F6E3BD', alignItems: 'center', justifyContent: 'center' },
+  descProduto: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA' },
+  descEmoji: { width: 44, height: 44, borderRadius: 14, backgroundColor: cor.fundo, alignItems: 'center', justifyContent: 'center' },
+  descPill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
+  descPillTexto: { fontSize: 11, fontWeight: '800' },
+  descSelecionado: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: cor.fundo },
+  descOrigem: { flex: 1, padding: 12, borderRadius: 18, borderWidth: 1.5, borderColor: cor.borda, gap: 2 },
+  descOrigemOn: { borderColor: cor.vermelho, backgroundColor: cor.vermelhoClaro },
+  descPerda: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: cor.vermelhoClaro },
 });

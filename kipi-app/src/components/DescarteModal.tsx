@@ -121,6 +121,9 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
               <View style={s.bloco}>
                 <Text style={s.label}>PRODUTO</Text>
                 <View style={s.escolhido}>
+                  <View style={s.emoji}>
+                    <Text style={{ fontSize: 20 }}>{produto.emoji ?? '🧁'}</Text>
+                  </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={s.escolhidoNome} numberOfLines={1}>{produto.nome}</Text>
                     <Text style={s.opcaoQtd}>🧁 {naVitrine} na vitrine · 🧊 {noFreezer} no freezer</Text>
@@ -136,7 +139,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
               <View style={s.bloco}>
                 <Text style={s.label}>PRODUTO</Text>
                 <TextInput style={s.input} placeholder="Buscar produto..." placeholderTextColor="#9A8F87" value={busca} onChangeText={setBusca} />
-                <ScrollView style={s.lista} contentContainerStyle={{ gap: 4 }} nestedScrollEnabled>
+                <ScrollView style={s.lista} contentContainerStyle={{ gap: 6 }} nestedScrollEnabled>
                   {opcoes.length === 0 ? (
                     <Text style={s.hint}>Nenhum produto com estoque.</Text>
                   ) : (
@@ -144,10 +147,25 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
                       const ativo = p.id === escolhido;
                       return (
                         <TouchableOpacity key={p.id} style={[s.opcao, ativo && s.opcaoAtiva]} onPress={() => escolher(p.id)}>
-                          <Text style={[s.opcaoNome, ativo && { color: '#FFFDFA' }]} numberOfLines={1}>{p.nome}</Text>
-                          <Text style={[s.opcaoQtd, ativo && { color: '#FFFDFA' }]}>
-                            {p.estoque} vitrine · {freezer[p.id] ?? 0} freezer
-                          </Text>
+                          <View style={s.emoji}>
+                            <Text style={{ fontSize: 18 }}>{p.emoji ?? '🧁'}</Text>
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                            <Text style={s.opcaoNome} numberOfLines={1}>{p.nome}</Text>
+                            <View style={{ flexDirection: 'row', gap: 6 }}>
+                              {p.estoque > 0 && (
+                                <View style={[s.pill, { backgroundColor: '#E4F1E9' }]}>
+                                  <Text style={[s.pillTexto, { color: '#2F7D55' }]}>✓ {p.estoque} prontos</Text>
+                                </View>
+                              )}
+                              {(freezer[p.id] ?? 0) > 0 && (
+                                <View style={[s.pill, { backgroundColor: '#ECEBFA' }]}>
+                                  <Text style={[s.pillTexto, { color: '#3A3D9E' }]}>❄ {freezer[p.id]} massas</Text>
+                                </View>
+                              )}
+                            </View>
+                          </View>
+                          <Feather name="chevron-right" size={16} color="#9A8F87" />
                         </TouchableOpacity>
                       );
                     })
@@ -250,12 +268,15 @@ const s = paraCelular(StyleSheet.create({
   label: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#4A3E37', letterSpacing: 0.4, marginBottom: 6 },
   hint: { fontFamily: FONT_SANS, fontSize: 12, color: '#9A8F87', paddingVertical: 6 },
   input: { fontFamily: FONT_SANS, fontSize: 13, color: '#2E211A', backgroundColor: '#F8F6F2', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-  lista: { marginTop: 6, maxHeight: 220 },
+  lista: { marginTop: 8, maxHeight: 320 },
   escolhido: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8F6F2', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },
   escolhidoNome: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '700', color: '#2E211A' },
-  opcao: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#F8F6F2' },
-  opcaoAtiva: { backgroundColor: KIPI_BLUE },
-  opcaoNome: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#2E211A' },
+  opcao: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, borderWidth: 1, borderColor: '#E8E0D6', backgroundColor: '#FFFDFA' },
+  opcaoAtiva: { borderColor: '#B42318', backgroundColor: '#FBE7E4' },
+  opcaoNome: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '700', color: '#2E211A' },
+  emoji: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#F8F6F2', alignItems: 'center', justifyContent: 'center' },
+  pill: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 },
+  pillTexto: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800' },
   opcaoQtd: { fontFamily: FONT_SANS, fontSize: 10, color: '#6B615A' },
   toggle: { flexDirection: 'row', backgroundColor: '#F3EEE7', borderRadius: 8, padding: 2 },
   toggleBtn: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 6 },

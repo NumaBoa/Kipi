@@ -28,6 +28,7 @@ import { resumoDePerdas, ultimosDias, EMOJI_MOTIVO } from '@/lib/descarte';
 import DescarteModal from '@/components/DescarteModal';
 import ProducaoMobile from '@/components/producao-mobile/ProducaoMobile';
 import { useEhCelular } from '@/lib/layout';
+import FichaTecnicaModal from '@/components/FichaTecnicaModal';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -157,7 +158,8 @@ function ProducaoDesktop() {
   const [descarteId, setDescarteId] = useState<string | null>(null);
 
   // Formulário: Preparar Massa (Congelar)
-  const [qtdPreparoInput, setQtdPreparoInput] = useState('12');
+  const [qtdPreparoInput, setQtdPreparoInput] = useState(''); // sem sugestão: a pessoa informa
+  const [receitaDe, setReceitaDe] = useState<string | null>(null);
   const [erroPreparo, setErroPreparo] = useState<string | null>(null);
   const [descontarIngredientes, setDescontarIngredientes] = useState(true);
 
@@ -204,7 +206,7 @@ function ProducaoDesktop() {
     const prodPreparo = preparar ? produtosView.find((p) => p.id === preparar) : undefined;
     if (prodPreparo) {
       setProdutoAtivo(prodPreparo);
-      setQtdPreparoInput('12');
+      setQtdPreparoInput('');
       setErroPreparo(null);
       setModalPreparoVisible(true);
     }
@@ -334,7 +336,7 @@ function ProducaoDesktop() {
     // Desconto opcional dos ingredientes na lista única de insumos (Estoque Central e
     // Insumos & Receitas já mostram o novo estoque); se faltar, o insumo para em zero
     // 2. O preparo entra no histórico compartilhado (congelarMassas)
-    congelarMassas(produtoAtivo.id, qtd, descontarIngredientes, 'preparo na Produção');
+    congelarMassas(produtoAtivo.id, qtd, descontarIngredientes && !!produtoAtivoView?.receitaIngredientes.length, 'preparo na Produção');
 
     setModalPreparoVisible(false);
   };
@@ -566,7 +568,7 @@ function ProducaoDesktop() {
                           style={styles.cardBtnPreparo}
                           onPress={() => {
                             setProdutoAtivo(prod);
-                            setQtdPreparoInput('12');
+                            setQtdPreparoInput('');
                             setErroPreparo(null);
                             setModalPreparoVisible(true);
                           }}>
@@ -803,7 +805,26 @@ function ProducaoDesktop() {
                   </View>
                 </View>
 
-                {/* Checklist de Validação de Ingredientes em Estoque */}
+                {/* Sem receita: só o aviso (não há o que descontar) */}
+                {(produtoAtivoView?.receitaIngredientes.length ?? 0) === 0 ? (
+                  <View style={{ flexDirection: 'row', gap: 12, padding: 14, borderRadius: 16, backgroundColor: '#FBF0DC', borderWidth: 1, borderColor: '#F2DDB0' }}>
+                    <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: '#F6E3BD', alignItems: 'center', justifyContent: 'center' }}>
+                      <Feather name="book-open" size={17} color="#9A6516" />
+                    </View>
+                    <View style={{ flex: 1, gap: 4 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#6E4A10' }}>Produto sem receita</Text>
+                      <Text style={{ fontSize: 13, lineHeight: 19, color: '#7A5A20' }}>A massa entra no freezer, mas nenhum ingrediente é descontado do estoque.</Text>
+                      <TouchableOpacity
+                        style={{ alignSelf: 'flex-start', paddingVertical: 2 }}
+                        onPress={() => {
+                          setModalPreparoVisible(false);
+                          setReceitaDe(produtoAtivoView?.id ?? null);
+                        }}>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: '#7A4520' }}>Montar receita agora →</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
                 <View style={styles.checklistCard}>
                   <Text style={styles.checklistTitle}>
                     Verificação de Ingredientes no Estoque:
@@ -846,6 +867,7 @@ function ProducaoDesktop() {
                     ))}
                   </View>
                 </View>
+                )}
               </View>
 
               <View style={styles.modalFooter}>
@@ -860,7 +882,7 @@ function ProducaoDesktop() {
                   onPress={handleConfirmarPreparo}>
                   <Feather name="check" size={16} color="#FFFDFA" />
                   <Text style={styles.modalConfirmBtnText}>
-                    {!descontarIngredientes || analiseIngredientesPreparo.viavel ? 'Confirmar & Congelar' : 'Produzir mesmo assim'}
+                    {!descontarIngredientes || (produtoAtivoView?.receitaIngredientes.length ?? 0) === 0 || analiseIngredientesPreparo.viavel ? 'Confirmar & Congelar' : 'Produzir mesmo assim'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1083,6 +1105,7 @@ function ProducaoDesktop() {
           </View>
         </View>
       </Modal>
+      <FichaTecnicaModal visible={!!receitaDe} produtoId={receitaDe} onClose={() => setReceitaDe(null)} />
     </SafeAreaView>
   );
 }
