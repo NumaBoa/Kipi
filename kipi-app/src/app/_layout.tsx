@@ -20,9 +20,9 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
       input:-webkit-autofill:hover,
       input:-webkit-autofill:focus,
       input:-webkit-autofill:active {
-        -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-        box-shadow: 0 0 0 1000px #FFFFFF inset !important;
-        -webkit-text-fill-color: #0F172A !important;
+        -webkit-box-shadow: 0 0 0 1000px #FFFDFA inset !important;
+        box-shadow: 0 0 0 1000px #FFFDFA inset !important;
+        -webkit-text-fill-color: #2E211A !important;
         transition: background-color 50000s ease-in-out 0s;
         background-color: transparent !important;
       }
@@ -33,7 +33,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     document.head.appendChild(style);
   }
 
-  const fontId = 'google-fonts-sora-manrope';
+  const fontId = 'google-fonts-kipi-id';
   if (!document.getElementById(fontId)) {
     const linkPreconnect1 = document.createElement('link');
     linkPreconnect1.rel = 'preconnect';
@@ -49,7 +49,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
     const fontLink = document.createElement('link');
     fontLink.id = fontId;
     fontLink.rel = 'stylesheet';
-    fontLink.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@400;500;600;700;800&display=swap';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:wght@400;500;600;700&display=swap';
     document.head.appendChild(fontLink);
   }
 }
@@ -97,11 +97,11 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#E6F1FA',
+    backgroundColor: '#F8F6F2',
   },
   cobertura: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#F3F6FB',
+    backgroundColor: '#F8F6F2',
     zIndex: 1000,
   },
 });

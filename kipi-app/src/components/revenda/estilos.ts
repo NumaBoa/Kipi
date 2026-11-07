@@ -4,20 +4,20 @@ import { StyleSheet, Platform } from 'react-native';
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
 // ============================================================================
-export const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-export const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+export const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+export const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
-export const KIPI_BLUE = '#5798D7';
-export const KIPI_BLUE_DARK = '#3E7BB8';
-export const KIPI_BLUE_TINT = '#EAF3FA';
-export const KIPI_BLUE_ACCENT = '#2563EB';
-export const KIPI_FROST_BG = '#F8FAFC';
-export const SUCCESS_GREEN = '#16A34A';
-export const SUCCESS_TINT = '#DCFCE7';
-export const WARNING_AMBER = '#D97706';
-export const WARNING_TINT = '#FEF3C7';
-export const DANGER_RED = '#DC2626';
-export const DANGER_TINT = '#FEE2E2';
+export const KIPI_BLUE = '#9E5D25';
+export const KIPI_BLUE_DARK = '#7A4520';
+export const KIPI_BLUE_TINT = '#ECEBFA';
+export const KIPI_BLUE_ACCENT = '#4B4FC4';
+export const KIPI_FROST_BG = '#F8F6F2';
+export const SUCCESS_GREEN = '#2F7D55';
+export const SUCCESS_TINT = '#E4F1E9';
+export const WARNING_AMBER = '#B9781A';
+export const WARNING_TINT = '#FBF0DC';
+export const DANGER_RED = '#B42318';
+export const DANGER_TINT = '#FBE7E4';
 
 const semOutline = Platform.select({ web: { outlineStyle: 'none' } as any });
 
@@ -25,7 +25,7 @@ const semOutline = Platform.select({ web: { outlineStyle: 'none' } as any });
 export const estilosRevenda = paraCelular(StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(43, 36, 33, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -34,10 +34,10 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     width: '100%',
     maxWidth: 760,
     maxHeight: '92%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
     overflow: 'hidden',
   },
@@ -47,7 +47,7 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     gap: 12,
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   modalHeaderIcon: {
     width: 38,
@@ -61,12 +61,12 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   modalScroll: {
@@ -83,7 +83,7 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     gap: 10,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
   },
 
   // KPIs
@@ -97,7 +97,7 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     minWidth: 150,
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 14,
     padding: 12,
   },
@@ -105,20 +105,20 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#9A8F87',
     letterSpacing: 0.6,
   },
   kpiValue: {
     fontFamily: FONT_DISPLAY,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     marginTop: 4,
   },
   kpiSub: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginTop: 2,
   },
 
@@ -135,7 +135,7 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
   emptyText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#9A8F87',
     paddingVertical: 14,
     textAlign: 'center',
   },
@@ -143,7 +143,7 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
   // LISTAS (tabela simples)
   listCard: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -153,29 +153,29 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 11,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
     gap: 10,
   },
   listRowEven: {
-    backgroundColor: '#FAFCFE',
+    backgroundColor: '#F8F6F2',
   },
   listMain: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   listSub: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 1,
   },
   listValue: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     textAlign: 'right',
   },
 
@@ -184,16 +184,16 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 6,
   },
   formInput: {
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -232,13 +232,13 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     gap: 8,
   },
   btnPrimaryDisabled: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#D9CFC4',
   },
   btnPrimaryText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   btnSecondary: {
     flexDirection: 'row',
@@ -248,15 +248,15 @@ export const estilosRevenda = paraCelular(StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
     gap: 6,
   },
   btnSecondaryText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   statusPill: {
     paddingHorizontal: 7,

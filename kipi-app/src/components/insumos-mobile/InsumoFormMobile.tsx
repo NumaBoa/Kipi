@@ -42,7 +42,7 @@ function Campo({ rotulo, style, ...props }: TextInputProps & { rotulo: string })
   return (
     <View style={[{ gap: 6 }, style]}>
       <T style={s.rotulo}>{rotulo}</T>
-      <TextInput placeholderTextColor="#94A3B8" {...props} style={s.input} />
+      <TextInput placeholderTextColor="#9A8F87" {...props} style={s.input} />
     </View>
   );
 }
@@ -261,17 +261,17 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 12, paddingTop: 8, paddingBottom: 6 },
   titulo: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
   sub: { fontSize: 12, color: cor.textoSuave },
-  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   conteudo: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 32 },
   erro: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro },
   erroTexto: { flex: 1, fontSize: 13, fontWeight: '700', color: cor.vermelho },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, gap: 14 },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 22, padding: 16, gap: 14 },
   linha: { flexDirection: 'row', gap: 10 },
   rotulo: { fontSize: 13, fontWeight: '700', color: cor.textoMedio },
-  input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
+  input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   dica: { fontSize: 11, color: cor.textoSuave },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
-  tipo: { flex: 1, minHeight: 76, padding: 10, borderRadius: 20, borderWidth: 1.5, borderColor: '#FFFFFF', backgroundColor: '#FFFFFF', gap: 4 },
+  tipo: { flex: 1, minHeight: 76, padding: 10, borderRadius: 20, borderWidth: 1.5, borderColor: '#FFFDFA', backgroundColor: '#FFFDFA', gap: 4 },
   tipoOn: { borderColor: cor.azulBotao, backgroundColor: cor.azulClaro },
   tipoTitulo: { fontSize: 14, fontWeight: '800' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -282,5 +282,5 @@ const s = StyleSheet.create({
   grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   arm: { width: '31%', flexGrow: 1, minHeight: 64, padding: 6, borderRadius: 16, borderWidth: 1.5, borderColor: cor.borda, alignItems: 'center', justifyContent: 'center', gap: 2 },
   armTitulo: { fontSize: 12, fontWeight: '800' },
-  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
 });

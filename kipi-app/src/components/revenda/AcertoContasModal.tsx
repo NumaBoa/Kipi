@@ -118,7 +118,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
         <View style={s.modalBox}>
           <View style={s.modalHeader}>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="arrow-left" size={18} color="#64748B" />
+              <Feather name="arrow-left" size={18} color="#6B615A" />
             </TouchableOpacity>
             <View style={[s.modalHeaderIcon, { backgroundColor: SUCCESS_TINT }]}>
               <Feather name="dollar-sign" size={18} color={SUCCESS_GREEN} />
@@ -130,7 +130,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Feather name="x" size={20} color="#64748B" />
+              <Feather name="x" size={20} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
@@ -151,7 +151,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
               </View>
               <View style={[s.kpiCard, resumo.saldo > 0 && styles.kpiSaldoAberto]}>
                 <Text style={s.kpiLabel}>SALDO A PAGAR</Text>
-                <Text style={[s.kpiValue, { color: resumo.saldo > 0 ? WARNING_AMBER : '#0F172A' }]}>
+                <Text style={[s.kpiValue, { color: resumo.saldo > 0 ? WARNING_AMBER : '#2E211A' }]}>
                   {formatMoney(resumo.saldo)}
                 </Text>
               </View>
@@ -162,7 +162,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
             <View style={styles.formCard}>
               {erro && (
                 <View style={s.errorAlert}>
-                  <Feather name="alert-circle" size={14} color="#DC2626" />
+                  <Feather name="alert-circle" size={14} color="#B42318" />
                   <Text style={s.errorAlertText}>{erro}</Text>
                 </View>
               )}
@@ -175,7 +175,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
                     <TextInput
                       style={styles.moneyInput}
                       placeholder="0,00"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       keyboardType="decimal-pad"
                       value={valor}
                       onChangeText={(t) => setValor(mascaraDecimal(t))}
@@ -190,7 +190,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
                   <TextInput
                     style={s.formInput}
                     placeholder="DD/MM/AAAA"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={data}
                     onChangeText={(t) => setData(mascaraData(t))}
@@ -207,7 +207,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
                       key={f.id}
                       style={[styles.formaChip, ativo && styles.formaChipActive]}
                       onPress={() => setForma(f.id)}>
-                      <Feather name={f.icon} size={13} color={ativo ? KIPI_BLUE_ACCENT : '#64748B'} />
+                      <Feather name={f.icon} size={13} color={ativo ? KIPI_BLUE_ACCENT : '#6B615A'} />
                       <Text style={[styles.formaChipText, ativo && styles.formaChipTextActive]}>{f.label}</Text>
                     </TouchableOpacity>
                   );
@@ -218,7 +218,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
               <TextInput
                 style={[s.formInput, s.formTextarea]}
                 placeholder="Ex: acerto da 2ª quinzena de outubro"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#9A8F87"
                 multiline
                 value={observacoes}
                 onChangeText={setObservacoes}
@@ -229,10 +229,10 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
                 disabled={salvando}
                 onPress={handleRegistrar}>
                 {salvando ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color="#FFFDFA" />
                 ) : (
                   <>
-                    <Feather name="check" size={16} color="#FFFFFF" />
+                    <Feather name="check" size={16} color="#FFFDFA" />
                     <Text style={s.btnPrimaryText}>Registrar pagamento</Text>
                   </>
                 )}
@@ -266,7 +266,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
                       onPress={() => {
                         if (confirmarExclusao(`Excluir o pagamento de ${formatMoney(p.valor)}? O valor volta para o saldo a pagar.`)) onExcluir(p.id);
                       }}>
-                      <Feather name="trash-2" size={14} color="#94A3B8" />
+                      <Feather name="trash-2" size={14} color="#9A8F87" />
                     </TouchableOpacity>
                   </View>
                 ))
@@ -281,12 +281,12 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
 
 const styles = paraCelular(StyleSheet.create({
   kpiSaldoAberto: {
-    borderColor: '#FDE68A',
-    backgroundColor: '#FFFBEB',
+    borderColor: '#F2DDB0',
+    backgroundColor: '#FBF0DC',
   },
   formCard: {
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 14,
     padding: 14,
   },
@@ -301,7 +301,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     gap: 6,
@@ -310,14 +310,14 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
   },
   moneyInput: {
     flex: 1,
     fontFamily: FONT_DISPLAY,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     paddingVertical: 8,
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
@@ -340,8 +340,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   formaChipActive: {
     borderColor: KIPI_BLUE,
@@ -351,7 +351,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   formaChipTextActive: {
     color: KIPI_BLUE_ACCENT,

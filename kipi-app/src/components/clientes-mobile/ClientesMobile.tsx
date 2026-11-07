@@ -33,8 +33,8 @@ const COR_TAG: Record<string, [string, string]> = {
   VIP: [cor.pistacheClaro, cor.pistacheTexto],
   Corporativo: [cor.azulClaro, cor.azulTexto],
   Noiva: ['#FCE7F3', '#9D174D'],
-  'Festa Infantil': ['#FEF3C7', '#92400E'],
-  Frequente: ['#DCFCE7', cor.verde],
+  'Festa Infantil': ['#FBF0DC', '#9A6516'],
+  Frequente: ['#E4F1E9', cor.verde],
 };
 const corDaTag = (t: string) => COR_TAG[t] ?? [cor.cinzaClaro, cor.textoMedio];
 
@@ -191,12 +191,12 @@ export default function ClientesMobile() {
 
         {/* BUSCA */}
         <View style={[s.busca, sombra]}>
-          <Feather name="search" size={18} color="#94A3B8" />
+          <Feather name="search" size={18} color="#9A8F87" />
           <TextInput
             value={busca}
             onChangeText={setBusca}
             placeholder="Nome, telefone, bairro, tag…"
-            placeholderTextColor="#94A3B8"
+            placeholderTextColor="#9A8F87"
             style={s.buscaInput}
             accessibilityLabel="Buscar cliente"
           />
@@ -286,7 +286,7 @@ export default function ClientesMobile() {
                   accessibilityLabel={`Abrir ficha de ${c.nome}`}
                   activeOpacity={0.7}>
                   <View style={[s.avatar, { backgroundColor: ativo ? cor.azulClaro : cor.cinzaClaro }]}>
-                    <T style={[s.avatarTexto, { color: ativo ? cor.azulTexto : '#94A3B8' }]}>{iniciais(c.nome)}</T>
+                    <T style={[s.avatarTexto, { color: ativo ? cor.azulTexto : '#9A8F87' }]}>{iniciais(c.nome)}</T>
                     {ehNiver && (
                       <View style={s.avatarNiver} accessibilityLabel="Aniversaria este mês">
                         <T style={{ fontSize: 11 }}>🎂</T>
@@ -307,7 +307,7 @@ export default function ClientesMobile() {
                   <View style={{ alignItems: 'flex-end', gap: 2 }}>
                     <T style={[s.total, numeros]}>{c.quantidadePedidos ? brl(c.totalGasto) : '—'}</T>
                     {!ativo ? (
-                      <T style={[s.nota, { color: '#94A3B8' }]}>Inativo</T>
+                      <T style={[s.nota, { color: '#9A8F87' }]}>Inativo</T>
                     ) : deve > 0 ? (
                       <T style={[s.nota, numeros, { color: cor.vermelho }]}>deve {brl(deve)}</T>
                     ) : null}
@@ -326,7 +326,7 @@ export default function ClientesMobile() {
         accessibilityRole="button"
         accessibilityLabel="Novo cliente"
         activeOpacity={0.9}>
-        <Feather name="user-plus" size={20} color="#FFFFFF" />
+        <Feather name="user-plus" size={20} color="#FFFDFA" />
         {!fabCompacto && <T style={s.fabTexto}>Novo cliente</T>}
       </TouchableOpacity>
 
@@ -426,7 +426,7 @@ function FichaCliente({
           {/* IDENTIDADE */}
           <View style={s.identidade}>
             <View style={[s.avatarGrande, { backgroundColor: ativo ? cor.azulClaro : cor.cinzaClaro }]}>
-              <T titulo style={[s.avatarGrandeTexto, { color: ativo ? cor.azulTexto : '#94A3B8' }]}>{iniciais(c.nome)}</T>
+              <T titulo style={[s.avatarGrandeTexto, { color: ativo ? cor.azulTexto : '#9A8F87' }]}>{iniciais(c.nome)}</T>
             </View>
             <T titulo style={s.fichaNome}>{c.nome}</T>
             <View style={s.etiquetas}>
@@ -436,14 +436,14 @@ function FichaCliente({
                 </View>
               )}
               {!rev && (
-                <View style={[s.tagGrande, { backgroundColor: c.revendedoraId ? '#F5F3FF' : cor.azulClaro }]}>
-                  <T style={[s.tagGrandeTexto, { color: c.revendedoraId ? '#6D28D9' : cor.azulTexto }]}>
+                <View style={[s.tagGrande, { backgroundColor: c.revendedoraId ? '#F3F2FC' : cor.azulClaro }]}>
+                  <T style={[s.tagGrandeTexto, { color: c.revendedoraId ? '#3A3D9E' : cor.azulTexto }]}>
                     {c.revendedoraId ? `Cliente de ${c.revendedoraNome?.split(' ')[0] || 'revendedora'}` : 'Cliente direto'}
                   </T>
                 </View>
               )}
               {!ativo && (
-                <View style={[s.tagGrande, { backgroundColor: '#FEE2E2' }]}>
+                <View style={[s.tagGrande, { backgroundColor: '#FBE7E4' }]}>
                   <T style={[s.tagGrandeTexto, { color: cor.vermelho }]}>Inativo</T>
                 </View>
               )}
@@ -461,15 +461,15 @@ function FichaCliente({
               <T style={[s.acaoTexto, { color: cor.azulTexto }]}>Ligar</T>
             </TouchableOpacity>
             <TouchableOpacity style={[s.acao, { backgroundColor: cor.azulBotao }]} onPress={aoNovoPedido} accessibilityRole="button">
-              <Feather name="plus" size={20} color="#FFFFFF" />
-              <T style={[s.acaoTexto, { color: '#FFFFFF' }]}>Novo pedido</T>
+              <Feather name="plus" size={20} color="#FFFDFA" />
+              <T style={[s.acaoTexto, { color: '#FFFDFA' }]}>Novo pedido</T>
             </TouchableOpacity>
           </View>
 
           {/* PREFERÊNCIAS E RESTRIÇÕES */}
-          <View style={[s.pref, { backgroundColor: c.observacoes ? cor.ambarFundo : '#FFFFFF' }]}>
+          <View style={[s.pref, { backgroundColor: c.observacoes ? cor.ambarFundo : '#FFFDFA' }]}>
             <View style={[s.prefIcone, { backgroundColor: c.observacoes ? cor.ambarClaro : cor.cinzaClaro }]}>
-              <Feather name="heart" size={16} color={c.observacoes ? cor.ambar : '#94A3B8'} />
+              <Feather name="heart" size={16} color={c.observacoes ? cor.ambar : '#9A8F87'} />
             </View>
             <View style={{ flex: 1, gap: 3 }}>
               <T style={[s.prefTitulo, { color: c.observacoes ? cor.ambarTexto : cor.textoSuave }]}>Preferências e restrições</T>
@@ -591,7 +591,7 @@ function FichaCliente({
             {dados.map(([r, v]) => (
               <View key={r} style={[s.dadoLinha, s.linhaBorda, { alignItems: 'center', paddingVertical: 12 }]}>
                 <T style={s.dadoRotulo}>{r}</T>
-                <T style={[s.dadoValor, numeros, v === 'Não informado' && { color: '#94A3B8' }]} selectable>{v}</T>
+                <T style={[s.dadoValor, numeros, v === 'Não informado' && { color: '#9A8F87' }]} selectable>{v}</T>
               </View>
             ))}
           </View>
@@ -648,7 +648,7 @@ function FichaCliente({
                   <T style={s.cartaoSub} numberOfLines={1}>{p.itens.map((it) => `${it.quantidade}× ${it.nome}`).join(', ')}</T>
                 </View>
                 <T style={[s.dadoForte, numeros, { color: cor.vermelho }]}>{brl(saldoDoPedido(p))}</T>
-                <Feather name="chevron-right" size={16} color="#94A3B8" />
+                <Feather name="chevron-right" size={16} color="#9A8F87" />
               </TouchableOpacity>
             ))}
           </View>
@@ -683,7 +683,7 @@ const s = StyleSheet.create({
   topo: { paddingHorizontal: 20, paddingTop: 10, gap: 2 },
   titulo: { fontSize: 28, fontWeight: '700', letterSpacing: -0.6 },
   subtitulo: { fontSize: 13, fontWeight: '600', color: cor.textoSuave },
-  busca: { marginHorizontal: 16, marginTop: 14, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  busca: { marginHorizontal: 16, marginTop: 14, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 10 },
   buscaInput: {
     flex: 1,
     minWidth: 0,
@@ -694,24 +694,24 @@ const s = StyleSheet.create({
     ...Platform.select({ web: { outlineStyle: 'none' } as object, default: {} }),
   },
   limpar: { width: 32, height: 32, borderRadius: 16, backgroundColor: cor.cinzaClaro, alignItems: 'center', justifyContent: 'center' },
-  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 10, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#E8EEF5' },
+  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 10, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#F3EEE7' },
   segItem: { flex: 1, height: 40, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segItemOn: { backgroundColor: '#FFFDFA', shadowColor: '#2E211A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   segTexto: { fontSize: 13, fontWeight: '600', color: cor.textoMedio },
   segTextoOn: { fontWeight: '800', color: cor.texto },
   segNum: { fontSize: 12, fontWeight: '800', color: cor.textoSuave },
-  niver: { marginHorizontal: 16, marginTop: 10, minHeight: 52, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: '#FFFFFF', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 12 },
+  niver: { marginHorizontal: 16, marginTop: 10, minHeight: 52, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: '#FFFDFA', backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 12 },
   niverOn: { backgroundColor: '#FDF2F8', borderColor: '#F9A8D4' },
   niverIcone: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FCE7F3', alignItems: 'center', justifyContent: 'center' },
   niverTitulo: { fontSize: 14, fontWeight: '800' },
   niverSub: { fontSize: 12, color: cor.textoSuave },
   niverAcao: { fontSize: 12, fontWeight: '800', color: '#9D174D' },
-  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFDFA', overflow: 'hidden' },
   linha: { minHeight: 72, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   linhaBorda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center' },
   avatarTexto: { fontSize: 14, fontWeight: '800' },
-  avatarNiver: { position: 'absolute', right: -3, bottom: -3, width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  avatarNiver: { position: 'absolute', right: -3, bottom: -3, width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   nomeLinha: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
   nome: { flexShrink: 1, fontSize: 15, fontWeight: '700' },
   tag: { paddingHorizontal: 7, paddingVertical: 1, borderRadius: 7, maxWidth: '55%' },
@@ -719,7 +719,7 @@ const s = StyleSheet.create({
   linhaSub: { fontSize: 12, color: cor.textoSuave },
   total: { fontSize: 14, fontWeight: '800' },
   nota: { fontSize: 11, fontWeight: '700' },
-  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 6 },
+  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', gap: 6 },
   vazioTitulo: { fontSize: 16, fontWeight: '700' },
   vazioTexto: { fontSize: 13, color: cor.textoSuave, marginBottom: 8 },
   fab: {
@@ -740,12 +740,12 @@ const s = StyleSheet.create({
     elevation: 6,
   },
   fabCompacto: { width: 56, paddingLeft: 0, paddingRight: 0, justifyContent: 'center' },
-  fabTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  fabTexto: { color: '#FFFDFA', fontSize: 15, fontWeight: '800' },
 
   // FICHA
   fichaTopo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 6, paddingBottom: 4 },
   fichaTopoTexto: { flex: 1, fontSize: 15, fontWeight: '700', color: cor.textoMedio },
-  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   identidade: { paddingHorizontal: 20, paddingTop: 4, alignItems: 'center', gap: 6 },
   avatarGrande: { width: 68, height: 68, borderRadius: 34, alignItems: 'center', justifyContent: 'center' },
   avatarGrandeTexto: { fontSize: 24, fontWeight: '700' },
@@ -754,7 +754,7 @@ const s = StyleSheet.create({
   tagGrande: { paddingHorizontal: 9, paddingVertical: 2, borderRadius: 8 },
   tagGrandeTexto: { fontSize: 12, fontWeight: '800' },
   acoes: { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 16 },
-  acao: { flex: 1, height: 64, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  acao: { flex: 1, height: 64, borderRadius: 18, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center', gap: 4 },
   acaoTexto: { fontSize: 12, fontWeight: '800' },
   pref: { marginHorizontal: 16, marginTop: 12, paddingVertical: 14, paddingHorizontal: 16, borderRadius: 20, flexDirection: 'row', gap: 12 },
   prefIcone: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
@@ -762,9 +762,9 @@ const s = StyleSheet.create({
   prefTexto: { fontSize: 14, lineHeight: 20 },
   deve: { marginHorizontal: 16, marginTop: 8, minHeight: 56, paddingHorizontal: 16, borderRadius: 20, backgroundColor: cor.vermelhoClaro, flexDirection: 'row', alignItems: 'center', gap: 10 },
   deveTitulo: { fontSize: 12, fontWeight: '800', color: cor.vermelho },
-  deveSub: { fontSize: 12, color: '#7F1D1D' },
+  deveSub: { fontSize: 12, color: '#8A1C12' },
   deveValor: { fontSize: 18, fontWeight: '700', color: cor.vermelho },
-  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 12 },
+  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 12 },
   cartaoTopo: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   cartaoTitulo: { fontSize: 15, fontWeight: '700' },
   cartaoSub: { fontSize: 12, color: cor.textoSuave },
@@ -781,9 +781,9 @@ const s = StyleSheet.create({
   dadoForte: { fontSize: 14, fontWeight: '700' },
   dadoRotulo: { width: 74, fontSize: 12, fontWeight: '700', color: cor.textoSuave },
   dadoValor: { flex: 1, fontSize: 14, fontWeight: '600' },
-  miniBotao: { height: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  miniBotao: { height: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   miniBotaoTexto: { fontSize: 12, fontWeight: '800', color: cor.azulTexto },
-  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
   menuItem: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuTexto: { fontSize: 15, fontWeight: '700' },
   explica: { fontSize: 14, lineHeight: 20, color: cor.textoMedio },

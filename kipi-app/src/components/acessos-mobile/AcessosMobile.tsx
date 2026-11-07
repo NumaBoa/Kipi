@@ -41,9 +41,9 @@ const EMOJI_CATEGORIA: Record<string, string> = {
   Cookies: '🍪', 'Bolos & Bentos': '🎂', Macarons: '✨', Sobremesas: '🥧', 'Doces Finos': '🍬', Presentes: '🎁', Folhados: '🥐', Bebidas: '☕',
 };
 const STATUS_SABOR = {
-  esgotado: { rotulo: 'Esgotado', bg: '#FEE2E2', fg: cor.vermelho },
+  esgotado: { rotulo: 'Esgotado', bg: '#FBE7E4', fg: cor.vermelho },
   baixo: { rotulo: 'acabando', bg: cor.ambarClaro, fg: cor.ambarTexto },
-  abastecido: { rotulo: 'em dia', bg: '#DCFCE7', fg: cor.verde },
+  abastecido: { rotulo: 'em dia', bg: '#E4F1E9', fg: cor.verde },
 };
 const STATUS_VENDA = { pago: ['Pago', cor.verde], pendente: ['Pendente', cor.ambar], cancelado: ['Cancelado', cor.vermelho] } as const;
 const iniciais = (nome: string) => nome.trim().split(/\s+/).slice(0, 2).map((p) => p[0] ?? '').join('').toUpperCase();
@@ -134,8 +134,8 @@ export default function AcessosMobile() {
 
         <View style={s.buscaLinha}>
           <View style={[s.busca, sombra]}>
-            <Feather name="search" size={18} color="#94A3B8" />
-            <TextInput value={busca} onChangeText={setBusca} placeholder="Nome, telefone, e-mail, bairro…" placeholderTextColor="#94A3B8" style={s.buscaInput} accessibilityLabel="Buscar revendedora" />
+            <Feather name="search" size={18} color="#9A8F87" />
+            <TextInput value={busca} onChangeText={setBusca} placeholder="Nome, telefone, e-mail, bairro…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar revendedora" />
           </View>
           <TouchableOpacity style={[s.filtro, sombra, filtro !== 'todas' && { backgroundColor: cor.azulClaro }]} onPress={() => setGaveta('filtro')} accessibilityRole="button" accessibilityLabel="Filtrar comissão">
             <Feather name="filter" size={18} color={filtro !== 'todas' ? cor.azulTexto : cor.textoMedio} />
@@ -144,7 +144,7 @@ export default function AcessosMobile() {
 
         {lista.length === 0 ? (
           <View style={s.vazio}>
-            <Feather name="users" size={30} color="#94A3B8" />
+            <Feather name="users" size={30} color="#9A8F87" />
             <T titulo style={s.vazioTitulo}>Nenhuma revendedora encontrada</T>
             <T style={[s.dica, { textAlign: 'center' }]}>{revendedoras.length === 0 ? 'Cadastre sua primeira revendedora para começar.' : 'Tente alterar a busca ou o filtro de comissão.'}</T>
           </View>
@@ -191,7 +191,7 @@ export default function AcessosMobile() {
       </ScrollView>
 
       <TouchableOpacity style={[s.fab, { bottom: 78 + Math.max(insets.bottom, 8) }]} onPress={() => setNovo(true)} accessibilityRole="button" accessibilityLabel="Nova revendedora" activeOpacity={0.9}>
-        <Feather name="user-plus" size={20} color="#FFFFFF" />
+        <Feather name="user-plus" size={20} color="#FFFDFA" />
         <T style={s.fabTexto}>Nova revendedora</T>
       </TouchableOpacity>
 
@@ -478,12 +478,12 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
               <T style={[s.acaoTexto, { color: cor.verde }]}>WhatsApp</T>
             </TouchableOpacity>
             <TouchableOpacity style={[s.acao, { backgroundColor: cor.azulBotao }]} onPress={() => abrirEntrega()} accessibilityRole="button">
-              <Feather name="truck" size={19} color="#FFFFFF" />
-              <T style={[s.acaoTexto, { color: '#FFFFFF' }]}>Entregar</T>
+              <Feather name="truck" size={19} color="#FFFDFA" />
+              <T style={[s.acaoTexto, { color: '#FFFDFA' }]}>Entregar</T>
             </TouchableOpacity>
             <TouchableOpacity style={[s.acao, { backgroundColor: cor.verde }]} onPress={abrirAcerto} accessibilityRole="button">
-              <Feather name="dollar-sign" size={19} color="#FFFFFF" />
-              <T style={[s.acaoTexto, { color: '#FFFFFF' }]}>Acerto</T>
+              <Feather name="dollar-sign" size={19} color="#FFFDFA" />
+              <T style={[s.acaoTexto, { color: '#FFFDFA' }]}>Acerto</T>
             </TouchableOpacity>
           </View>
 
@@ -534,7 +534,7 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
                 <T style={[s.dica, { fontWeight: '800', color: cor.verde }]}>✓ Tudo em dia</T>
               )}
             </View>
-            <Feather name="chevron-right" size={16} color="#94A3B8" />
+            <Feather name="chevron-right" size={16} color="#9A8F87" />
           </TouchableOpacity>
 
           {/* HISTÓRICO: 3 últimas */}
@@ -652,7 +652,7 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
           )}
           <View style={s.buscaGaveta}>
             <Feather name="search" size={16} color={cor.textoSuave} />
-            <TextInput value={buscaProd} onChangeText={setBuscaProd} placeholder="Buscar produto…" placeholderTextColor="#94A3B8" style={s.buscaInput} accessibilityLabel="Buscar produto" />
+            <TextInput value={buscaProd} onChangeText={setBuscaProd} placeholder="Buscar produto…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar produto" />
           </View>
           <View>
             {produtos
@@ -686,11 +686,11 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1, gap: 4 }}>
               <T style={s.rotuloPeq}>Data</T>
-              <TextInput value={dataEnt} onChangeText={(t) => setDataEnt(mascaraData(t))} placeholder="DD/MM/AAAA" keyboardType="numeric" placeholderTextColor="#94A3B8" style={s.campo} accessibilityLabel="Data da entrega" />
+              <TextInput value={dataEnt} onChangeText={(t) => setDataEnt(mascaraData(t))} placeholder="DD/MM/AAAA" keyboardType="numeric" placeholderTextColor="#9A8F87" style={s.campo} accessibilityLabel="Data da entrega" />
             </View>
             <View style={{ flex: 1.4, gap: 4 }}>
               <T style={s.rotuloPeq}>Observação</T>
-              <TextInput value={obsEnt} onChangeText={setObsEnt} placeholder="Opcional" placeholderTextColor="#94A3B8" style={s.campo} accessibilityLabel="Observação da entrega" />
+              <TextInput value={obsEnt} onChangeText={setObsEnt} placeholder="Opcional" placeholderTextColor="#9A8F87" style={s.campo} accessibilityLabel="Observação da entrega" />
             </View>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -721,7 +721,7 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
           </View>
           <View style={{ gap: 6 }}>
             <T style={s.rotuloPeq}>Valor a pagar</T>
-            <TextInput value={valor} onChangeText={(t) => setValor(t.replace(/[^\d,]/g, ''))} placeholder="R$ 0,00" placeholderTextColor="#94A3B8" keyboardType="decimal-pad" style={[s.campo, { fontSize: 18, fontWeight: '800' }]} accessibilityLabel="Valor a pagar" />
+            <TextInput value={valor} onChangeText={(t) => setValor(t.replace(/[^\d,]/g, ''))} placeholder="R$ 0,00" placeholderTextColor="#9A8F87" keyboardType="decimal-pad" style={[s.campo, { fontSize: 18, fontWeight: '800' }]} accessibilityLabel="Valor a pagar" />
             {resumo.saldo > 0 && (
               <TouchableOpacity style={s.usarSaldo} onPress={() => setValor(resumo.saldo.toFixed(2).replace('.', ','))} accessibilityRole="button">
                 <T style={s.usarSaldoTexto}>Usar saldo {brl(resumo.saldo)}</T>
@@ -737,11 +737,11 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <View style={{ flex: 1, gap: 4 }}>
               <T style={s.rotuloPeq}>Data</T>
-              <TextInput value={dataPag} onChangeText={(t) => setDataPag(mascaraData(t))} placeholder="DD/MM/AAAA" keyboardType="numeric" placeholderTextColor="#94A3B8" style={s.campo} accessibilityLabel="Data do pagamento" />
+              <TextInput value={dataPag} onChangeText={(t) => setDataPag(mascaraData(t))} placeholder="DD/MM/AAAA" keyboardType="numeric" placeholderTextColor="#9A8F87" style={s.campo} accessibilityLabel="Data do pagamento" />
             </View>
             <View style={{ flex: 1.4, gap: 4 }}>
               <T style={s.rotuloPeq}>Observação</T>
-              <TextInput value={obsPag} onChangeText={setObsPag} placeholder="Opcional" placeholderTextColor="#94A3B8" style={s.campo} accessibilityLabel="Observação do pagamento" />
+              <TextInput value={obsPag} onChangeText={setObsPag} placeholder="Opcional" placeholderTextColor="#9A8F87" style={s.campo} accessibilityLabel="Observação do pagamento" />
             </View>
           </View>
           <Botao rotulo="Registrar pagamento" variante="verde" aoTocar={registrar} />
@@ -820,14 +820,14 @@ const s = StyleSheet.create({
   rotuloPeq: { fontSize: 12, fontWeight: '700', color: cor.textoSuave },
   valorMedio: { fontSize: 18, fontWeight: '700' },
   valorGrande: { fontSize: 24, fontWeight: '700' },
-  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 12 },
+  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 12 },
   alerta: { minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: cor.ambarFundo, flexDirection: 'row', alignItems: 'center', gap: 8 },
   alertaTexto: { fontSize: 13, fontWeight: '800', color: cor.ambarTexto, flexShrink: 1 },
   buscaLinha: { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 12 },
-  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 10 },
   buscaInput: { flex: 1, minWidth: 0, height: 44, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
-  filtro: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  filtro: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
+  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFDFA', overflow: 'hidden' },
   linha: { padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: cor.azulClaro, alignItems: 'center', justifyContent: 'center' },
@@ -838,28 +838,28 @@ const s = StyleSheet.create({
   tagTexto: { fontSize: 11, fontWeight: '800', color: cor.textoMedio },
   acessoLinha: { fontSize: 11, fontWeight: '700' },
   saldo: { fontSize: 14, fontWeight: '800' },
-  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 6 },
+  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', gap: 6 },
   vazioTitulo: { fontSize: 16, fontWeight: '700' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   fab: { position: 'absolute', right: 16, height: 56, paddingLeft: 18, paddingRight: 22, borderRadius: 28, backgroundColor: cor.azulBotao, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: cor.azulBotao, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  fabTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
-  grupo: { padding: 12, borderRadius: 18, backgroundColor: '#F8FAFC', gap: 6 },
+  fabTexto: { color: '#FFFDFA', fontSize: 15, fontWeight: '800' },
+  grupo: { padding: 12, borderRadius: 18, backgroundColor: '#F8F6F2', gap: 6 },
   grupoTopo: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   grupoSabor: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 44, paddingTop: 4 },
   sugestao: { width: 34, textAlign: 'right', fontSize: 12, fontWeight: '800', color: cor.azulTexto },
   entregarTudo: { height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: cor.azulBotao, alignItems: 'center', justifyContent: 'center' },
-  entregarTudoTexto: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  entregarTudoTexto: { fontSize: 12, fontWeight: '800', color: '#FFFDFA' },
   // ficha
   fichaTopo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 6, paddingBottom: 4 },
   fichaTopoTexto: { flex: 1, fontSize: 15, fontWeight: '700', color: cor.textoMedio },
-  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  editarTopo: { height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
+  editarTopo: { height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   identidade: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingTop: 4 },
   fichaNome: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
   acesso: { marginHorizontal: 16, marginTop: 14, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 10 },
   acessoTexto: { flex: 1, fontSize: 12 },
   acoes: { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 12 },
-  acao: { flex: 1, height: 62, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  acao: { flex: 1, height: 62, borderRadius: 18, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center', gap: 4 },
   acaoTexto: { fontSize: 12, fontWeight: '800' },
   resumoLinha: { flexDirection: 'row', gap: 6, paddingTop: 10 },
   estoqueResumo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -877,7 +877,7 @@ const s = StyleSheet.create({
   miniBotaoTexto: { fontSize: 12, fontWeight: '800', color: cor.azulTexto },
   obs: { marginHorizontal: 16, marginTop: 12, padding: 14, paddingHorizontal: 16, borderRadius: 22, backgroundColor: cor.ambarFundo, flexDirection: 'row', gap: 12 },
   obsTexto: { fontSize: 14, lineHeight: 20 },
-  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
   mini: { flex: 1, padding: 10, borderRadius: 14, gap: 1 },
   repor: { height: 34, paddingHorizontal: 10, borderRadius: 17, backgroundColor: cor.azulClaro, alignItems: 'center', justifyContent: 'center' },
   reporTexto: { fontSize: 12, fontWeight: '800', color: cor.azulTexto },
@@ -889,6 +889,6 @@ const s = StyleSheet.create({
   passoBotao: { width: 36, height: 38, alignItems: 'center', justifyContent: 'center' },
   passoNum: { minWidth: 22, textAlign: 'center', fontSize: 14, fontWeight: '800' },
   campo: { height: 48, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, paddingHorizontal: 12, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
-  usarSaldo: { alignSelf: 'flex-start', height: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1, borderColor: '#FDE68A', backgroundColor: cor.ambarFundo, alignItems: 'center', justifyContent: 'center' },
+  usarSaldo: { alignSelf: 'flex-start', height: 34, paddingHorizontal: 12, borderRadius: 17, borderWidth: 1, borderColor: '#F2DDB0', backgroundColor: cor.ambarFundo, alignItems: 'center', justifyContent: 'center' },
   usarSaldoTexto: { fontSize: 12, fontWeight: '800', color: cor.ambarTexto },
 });

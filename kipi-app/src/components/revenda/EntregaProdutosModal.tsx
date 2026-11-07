@@ -110,7 +110,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
         <View style={[s.modalBox, { maxWidth: 640 }]}>
           <View style={s.modalHeader}>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="arrow-left" size={18} color="#64748B" />
+              <Feather name="arrow-left" size={18} color="#6B615A" />
             </TouchableOpacity>
             <View style={s.modalHeaderIcon}>
               <Feather name="truck" size={18} color={KIPI_BLUE_ACCENT} />
@@ -122,7 +122,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Feather name="x" size={20} color="#64748B" />
+              <Feather name="x" size={20} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
@@ -137,11 +137,11 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
               </TouchableOpacity>
             )}
             <View style={styles.searchBox}>
-              <Feather name="search" size={15} color="#94A3B8" />
+              <Feather name="search" size={15} color="#9A8F87" />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar produto..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#9A8F87"
                 value={busca}
                 onChangeText={setBusca}
               />
@@ -174,7 +174,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
                           style={styles.stepperBtn}
                           disabled={qtd === 0}
                           onPress={() => definirQuantidade(p, qtd - 1)}>
-                          <Feather name="minus" size={14} color={qtd === 0 ? '#CBD5E1' : '#475569'} />
+                          <Feather name="minus" size={14} color={qtd === 0 ? '#D9CFC4' : '#4A3E37'} />
                         </TouchableOpacity>
                         <TextInput
                           style={styles.stepperInput}
@@ -188,7 +188,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
                           style={styles.stepperBtn}
                           disabled={qtd >= p.estoque}
                           onPress={() => definirQuantidade(p, qtd + 1)}>
-                          <Feather name="plus" size={14} color={qtd >= p.estoque ? '#CBD5E1' : KIPI_BLUE_ACCENT} />
+                          <Feather name="plus" size={14} color={qtd >= p.estoque ? '#D9CFC4' : KIPI_BLUE_ACCENT} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -201,7 +201,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
             <TextInput
               style={s.formInput}
               placeholder="DD/MM/AAAA"
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#9A8F87"
               keyboardType="numeric"
               value={data}
               onChangeText={(t) => setData(mascaraData(t))}
@@ -211,7 +211,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
             <TextInput
               style={[s.formInput, s.formTextarea]}
               placeholder="Ex: retirou no ateliê, entregue no condomínio..."
-              placeholderTextColor="#94A3B8"
+              placeholderTextColor="#9A8F87"
               multiline
               value={observacoes}
               onChangeText={setObservacoes}
@@ -227,7 +227,7 @@ export default function EntregaProdutosModal({ visible, revendedora, produtos, o
               style={[s.btnPrimary, selecionados.length === 0 && s.btnPrimaryDisabled]}
               disabled={selecionados.length === 0}
               onPress={handleConfirmar}>
-              <Feather name="check" size={16} color="#FFFFFF" />
+              <Feather name="check" size={16} color="#FFFDFA" />
               <Text style={s.btnPrimaryText}>Confirmar entrega</Text>
             </TouchableOpacity>
           </View>
@@ -243,7 +243,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -253,7 +253,7 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   rowSelected: {
@@ -263,7 +263,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 9,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -271,9 +271,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   stepperBtn: {
     paddingHorizontal: 9,
@@ -285,11 +285,11 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     paddingVertical: 6,
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   btnSugerido: {
@@ -313,6 +313,6 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
 }));

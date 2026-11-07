@@ -7,9 +7,9 @@ import { FONT_DISPLAY, FONT_SANS, COR } from '@/components/PaginaPortal';
 // GRÁFICOS DO PAINEL KIPI — feitos com Views (passar o mouse / tocar mostra o valor).
 // Uma série = um tom (azul da marca); cores de status sempre com rótulo.
 // ============================================================================
-const SERIE = '#5798D7';
-const SERIE_DESTAQUE = '#2563EB';
-const GRADE = '#EEF2F7';
+const SERIE = '#C08550';
+const SERIE_DESTAQUE = '#4B4FC4';
+const GRADE = '#F3EEE7';
 
 interface Barra {
   rotulo: string;
@@ -136,28 +136,28 @@ export function Progresso({ pct, cor = SERIE_DESTAQUE }: { pct: number; cor?: st
 const g = paraCelular(StyleSheet.create({
   plot: { position: 'relative', justifyContent: 'flex-end' },
   gradeLinha: { position: 'absolute', left: 0, right: 0, borderTopWidth: 1, borderTopColor: GRADE },
-  gradeRotulo: { position: 'absolute', left: 0, top: -14, fontFamily: FONT_SANS, fontSize: 9, color: '#94A3B8' },
+  gradeRotulo: { position: 'absolute', left: 0, top: -14, fontFamily: FONT_SANS, fontSize: 9, color: '#9A8F87' },
   colunas: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingLeft: 52, height: '100%' },
   coluna: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', height: '100%' },
   barra: { width: '100%', maxWidth: 34, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
   dica: { backgroundColor: COR.texto, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, marginBottom: 4, alignItems: 'center' },
-  dicaValor: { fontFamily: FONT_DISPLAY, fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
-  dicaDetalhe: { fontFamily: FONT_SANS, fontSize: 9, color: '#CBD5E1' },
+  dicaValor: { fontFamily: FONT_DISPLAY, fontSize: 10, fontWeight: '800', color: '#FFFDFA' },
+  dicaDetalhe: { fontFamily: FONT_SANS, fontSize: 9, color: '#D9CFC4' },
   eixoX: { flexDirection: 'row', gap: 10, paddingLeft: 52, marginTop: 6 },
-  eixoRotulo: { flex: 1, textAlign: 'center', fontFamily: FONT_SANS, fontSize: 10, fontWeight: '600', color: '#94A3B8' },
+  eixoRotulo: { flex: 1, textAlign: 'center', fontFamily: FONT_SANS, fontSize: 10, fontWeight: '600', color: '#9A8F87' },
   hLinha: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   hRotulo: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: COR.texto },
   hValor: { fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '800', color: COR.texto },
-  hTrilho: { height: 8, borderRadius: 4, backgroundColor: '#F1F5F9', overflow: 'hidden' },
+  hTrilho: { height: 8, borderRadius: 4, backgroundColor: '#F3EEE7', overflow: 'hidden' },
   hBarra: { height: '100%', borderRadius: 4, backgroundColor: SERIE },
   hDetalhe: { fontFamily: FONT_SANS, fontSize: 10, color: COR.suave, marginTop: 3 },
-  segTrilho: { flexDirection: 'row', height: 14, borderRadius: 6, overflow: 'hidden', backgroundColor: '#F1F5F9' },
+  segTrilho: { flexDirection: 'row', height: 14, borderRadius: 6, overflow: 'hidden', backgroundColor: '#F3EEE7' },
   legenda: { marginTop: 12, gap: 6 },
   legendaItem: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   legendaCor: { width: 10, height: 10, borderRadius: 3 },
-  legendaTexto: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, color: '#334155' },
+  legendaTexto: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, color: '#3D312A' },
   legendaValor: { fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '800', color: COR.texto },
-  legendaPct: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '600', color: '#94A3B8' },
-  progTrilho: { height: 6, borderRadius: 3, backgroundColor: '#E2E8F0', overflow: 'hidden', marginTop: 8 },
+  legendaPct: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '600', color: '#9A8F87' },
+  progTrilho: { height: 6, borderRadius: 3, backgroundColor: '#E8E0D6', overflow: 'hidden', marginTop: 8 },
   progBarra: { height: '100%', borderRadius: 3 },
 }));

@@ -128,13 +128,13 @@ export default function LoginScreen() {
                 <Feather
                   name="mail"
                   size={18}
-                  color={emailFocado ? KipiPalette.icedDenim : '#94A3B8'}
+                  color={emailFocado ? KipiPalette.icedDenim : '#9A8F87'}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Digite seu e-mail"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={email}
                   onChangeText={(t) => {
                     setEmail(t);
@@ -159,13 +159,13 @@ export default function LoginScreen() {
                 <Feather
                   name="lock"
                   size={18}
-                  color={senhaFocada ? KipiPalette.icedDenim : '#94A3B8'}
+                  color={senhaFocada ? KipiPalette.icedDenim : '#9A8F87'}
                   style={styles.inputIcon}
                 />
                 <TextInput
                   style={styles.input}
                   placeholder="Digite sua senha"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={senha}
                   onChangeText={(t) => {
                     setSenha(t);
@@ -182,7 +182,7 @@ export default function LoginScreen() {
                   <Feather
                     name={mostrarSenha ? 'eye-off' : 'eye'}
                     size={18}
-                    color="#94A3B8"
+                    color="#9A8F87"
                   />
                 </TouchableOpacity>
               </View>
@@ -203,7 +203,7 @@ export default function LoginScreen() {
               disabled={carregando}
               activeOpacity={0.85}>
               {carregando ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color="#FFFDFA" />
               ) : (
                 <Text style={styles.primaryBtnText}>Entrar</Text>
               )}
@@ -254,7 +254,7 @@ const styles = paraCelular(StyleSheet.create({
   viewport: {
     flex: 1,
     height: '100%',
-    backgroundColor: '#F3F6FB', // Suave e acolhedor
+    backgroundColor: '#F8F6F2', // Suave e acolhedor
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -268,13 +268,13 @@ const styles = paraCelular(StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 24,
     borderWidth: 1.5,
-    borderColor: '#D8E2F2',
+    borderColor: '#E8E0D6',
     paddingVertical: 32,
     paddingHorizontal: 24,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
@@ -288,18 +288,18 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 24,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     letterSpacing: -0.4,
   },
   subtitle: {
     fontFamily: Fonts.sans,
     fontSize: 13,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 4,
   },
   errorBox: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
+    backgroundColor: '#FBE7E4',
+    borderColor: '#F3C4BD',
     borderWidth: 1,
     borderRadius: 10,
     paddingVertical: 8,
@@ -309,7 +309,7 @@ const styles = paraCelular(StyleSheet.create({
   errorText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#DC2626',
+    color: '#B42318',
     textAlign: 'center',
     fontWeight: '500',
   },
@@ -323,14 +323,14 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '600',
-    color: '#334155',
+    color: '#3D312A',
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1.5,
-    borderColor: '#D4DCED',
+    borderColor: '#E8E0D6',
     borderRadius: 14,
     height: 48,
     paddingHorizontal: 14,
@@ -338,7 +338,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   inputFocused: {
     borderColor: KipiPalette.icedDenim,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   inputIcon: {
     marginRight: 2,
@@ -348,7 +348,7 @@ const styles = paraCelular(StyleSheet.create({
     height: '100%',
     fontFamily: Fonts.sans,
     fontSize: 14,
-    color: '#0F172A',
+    color: '#2E211A',
     backgroundColor: 'transparent',
     outlineWidth: 0,
   },
@@ -367,7 +367,7 @@ const styles = paraCelular(StyleSheet.create({
     color: KipiPalette.icedDenim,
   },
   primaryBtn: {
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
     height: 48,
     borderRadius: 14,
     alignItems: 'center',
@@ -381,7 +381,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   createAccountBtn: {
     alignItems: 'center',
@@ -405,12 +405,12 @@ const styles = paraCelular(StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
   },
   dividerText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#9A8F87',
     fontWeight: '500',
   },
   googleBtn: {
@@ -420,10 +420,10 @@ const styles = paraCelular(StyleSheet.create({
     height: 48,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#D4DCED',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
     gap: 10,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -433,7 +433,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#2E211A',
   },
 
   // BARRA DE TESTE DISCRETA
@@ -449,19 +449,19 @@ const styles = paraCelular(StyleSheet.create({
   devBarTitle: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontWeight: '500',
   },
   devChip: {
     paddingVertical: 3,
     paddingHorizontal: 8,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
     borderRadius: 6,
   },
   devChipText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#334155',
+    color: '#3D312A',
     fontWeight: '600',
   },
 
@@ -485,7 +485,7 @@ const styles = paraCelular(StyleSheet.create({
     color: KipiPalette.icedDenim,
   },
   sessionBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 10,
     padding: 12,
     gap: 4,
@@ -494,10 +494,10 @@ const styles = paraCelular(StyleSheet.create({
   sessionLabel: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
   sessionValue: {
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
 }));

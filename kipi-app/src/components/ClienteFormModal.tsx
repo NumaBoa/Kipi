@@ -17,11 +17,11 @@ import { useRevenda } from '@/lib/revenda';
 // ============================================================================
 // FORMULÁRIO DE CADASTRO DE CLIENTE (USADO EM CLIENTES E NO NOVO PEDIDO)
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
-const ATELIE_GREEN = '#2D7A58';
-const ATELIE_TINT = '#EAF5F1';
+const ATELIE_GREEN = '#7A4520';
+const ATELIE_TINT = '#F6E8D6';
 
 export interface ClienteCadastrado {
   id: string;
@@ -226,14 +226,14 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
               </Text>
             </View>
             <TouchableOpacity style={styles.modalCloseCircle} onPress={onClose}>
-              <Feather name="x" size={16} color="#64748B" />
+              <Feather name="x" size={16} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
           {/* ALERTA DE ERRO */}
           {erroForm && (
             <View style={styles.errorAlertBar}>
-              <Feather name="alert-circle" size={14} color="#DC2626" />
+              <Feather name="alert-circle" size={14} color="#B42318" />
               <Text style={styles.errorAlertText}>{erroForm}</Text>
             </View>
           )}
@@ -251,7 +251,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="Ex: Mariana Albuquerque"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formNome}
                     onChangeText={setFormNome}
                   />
@@ -262,7 +262,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="(21) 98844-3321"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="phone-pad"
                     value={formTelefone}
                     onChangeText={(t) => setFormTelefone(formatarTelefone(t))}
@@ -276,7 +276,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="exemplo@gmail.com"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="email-address"
                     value={formEmail}
                     onChangeText={setFormEmail}
@@ -288,7 +288,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="DD/MM/AAAA"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formDataNascimento}
                     onChangeText={(t) => setFormDataNascimento(formatarData(t))}
@@ -300,7 +300,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="Ex: VIP, Noiva..."
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formTag}
                     onChangeText={setFormTag}
                   />
@@ -328,7 +328,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="000.000.000-00"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formCpfCnpj}
                     onChangeText={(t) => setFormCpfCnpj(formatarCpfCnpj(t))}
@@ -376,7 +376,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="22040-002"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formCep}
                     onChangeText={alterarCep}
@@ -394,7 +394,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="Ex: Rua Barata Ribeiro"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formRua}
                     onChangeText={setFormRua}
                   />
@@ -407,7 +407,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="450"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formNumero}
                     onChangeText={setFormNumero}
                   />
@@ -418,7 +418,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="Apto 802, Bloco 1..."
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formComplemento}
                     onChangeText={setFormComplemento}
                   />
@@ -429,7 +429,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="Copacabana"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formBairro}
                     onChangeText={setFormBairro}
                   />
@@ -442,7 +442,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="Rio de Janeiro"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formCidade}
                     onChangeText={setFormCidade}
                   />
@@ -453,7 +453,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
                   <TextInput
                     style={styles.formInput}
                     placeholder="RJ"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     autoCapitalize="characters"
                     maxLength={2}
                     value={formEstado}
@@ -473,7 +473,7 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
               <TextInput
                 style={styles.formTextarea}
                 placeholder="Ex: Alérgica a nozes e amendoim. Adora ganache de pistache e sempre pede laço rosa de presente..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#9A8F87"
                 multiline
                 numberOfLines={3}
                 value={formPreferencias}
@@ -496,10 +496,10 @@ export default function ClienteFormModal({ visible, onClose, onSalvo, clienteIni
               onPress={handleSalvarCliente}
               disabled={salvandoCliente}>
               {salvandoCliente ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color="#FFFDFA" />
               ) : (
                 <>
-                  <Feather name="check" size={15} color="#FFFFFF" />
+                  <Feather name="check" size={15} color="#FFFDFA" />
                   <Text style={styles.btnModalSaveText}>{editando ? 'Salvar Alterações' : 'Salvar Cliente'}</Text>
                 </>
               )}
@@ -522,12 +522,12 @@ const styles = paraCelular(StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#A7D7C0',
-    backgroundColor: '#F3FAF6',
+    borderColor: '#BFDCCB',
+    backgroundColor: '#E4F1E9',
   },
   btnAddEnderecoText: { fontSize: 12, fontWeight: '700', color: ATELIE_GREEN },
   enderecoTitulo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  enderecoOcultar: { fontSize: 11, fontWeight: '700', color: '#64748B' },
+  enderecoOcultar: { fontSize: 11, fontWeight: '700', color: '#6B615A' },
   cepLoadingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -536,12 +536,12 @@ const styles = paraCelular(StyleSheet.create({
   },
   cepLoadingText: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(43, 36, 33, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -550,15 +550,15 @@ const styles = paraCelular(StyleSheet.create({
     width: '100%',
     maxWidth: 720,
     maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     overflow: 'hidden',
     flexDirection: 'column',
     ...Platform.select({
       web: {
-        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+        boxShadow: '0 25px 50px -12px rgba(43, 36, 33, 0.25)',
       },
     }),
   },
@@ -569,8 +569,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   modalHeaderIconWrap: {
     width: 44,
@@ -590,19 +590,19 @@ const styles = paraCelular(StyleSheet.create({
   modalHeaderTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     fontFamily: FONT_DISPLAY,
   },
   modalHeaderDesc: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   modalCloseCircle: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -610,16 +610,16 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBE7E4',
     borderBottomWidth: 1,
-    borderBottomColor: '#FECACA',
+    borderBottomColor: '#F3C4BD',
     paddingHorizontal: 20,
     paddingVertical: 8,
   },
   errorAlertText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#B42318',
     fontFamily: FONT_SANS,
   },
   formScroll: {
@@ -636,7 +636,7 @@ const styles = paraCelular(StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
-    color: '#475569',
+    color: '#4A3E37',
     fontFamily: FONT_SANS,
   },
   formRow: {
@@ -646,19 +646,19 @@ const styles = paraCelular(StyleSheet.create({
   formLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     marginBottom: 4,
     fontFamily: FONT_SANS,
   },
   formInput: {
     height: 38,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 8,
     paddingHorizontal: 10,
     fontSize: 12,
-    color: '#0F172A',
+    color: '#2E211A',
     fontFamily: FONT_SANS,
   },
   tagsQuickRow: {
@@ -670,14 +670,14 @@ const styles = paraCelular(StyleSheet.create({
   },
   tagsQuickLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   tagQuickChip: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
   },
   tagQuickChipActive: {
     backgroundColor: ATELIE_TINT,
@@ -685,7 +685,7 @@ const styles = paraCelular(StyleSheet.create({
   tagQuickChipText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   tagQuickChipTextActive: {
     color: ATELIE_GREEN,
@@ -693,20 +693,20 @@ const styles = paraCelular(StyleSheet.create({
   },
   formHint: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
     marginTop: -4,
   },
   formTextarea: {
     height: 70,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
     fontSize: 12,
-    color: '#0F172A',
+    color: '#2E211A',
     fontFamily: FONT_SANS,
     textAlignVertical: 'top',
   },
@@ -717,8 +717,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 22,
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    backgroundColor: '#F8FAFC',
+    borderTopColor: '#E8E0D6',
+    backgroundColor: '#F8F6F2',
     gap: 12,
   },
   btnModalCancel: {
@@ -728,7 +728,7 @@ const styles = paraCelular(StyleSheet.create({
   btnModalCancelText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   btnModalSave: {
@@ -743,7 +743,7 @@ const styles = paraCelular(StyleSheet.create({
   btnModalSaveText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontFamily: FONT_DISPLAY,
   },
 }));

@@ -219,7 +219,7 @@ export default function PainelKipi() {
             setErro(null);
             setNovoAberto(true);
           }}>
-          <Feather name="plus" size={14} color="#FFFFFF" />
+          <Feather name="plus" size={14} color="#FFFDFA" />
           <Text style={s.btnPriText}>Nova empresa</Text>
         </TouchableOpacity>
       }>
@@ -245,8 +245,8 @@ export default function PainelKipi() {
         </CartaoKpi>
         <CartaoKpi
           icone="home"
-          cor="#334155"
-          fundo="#F1F5F9"
+          cor="#3D312A"
+          fundo="#F3EEE7"
           rotulo="EMPRESAS PAGANTES"
           valor={String(ativos.length)}
           sub={`+${novos30} novos em 30 dias · ticket ${money(ticketMedio)}`}
@@ -294,10 +294,10 @@ export default function PainelKipi() {
           <BarraSegmentada
             segmentos={[
               { rotulo: 'Em dia', valor: contar('em_dia'), cor: COR.verde, icone: '✓' },
-              { rotulo: 'A vencer', valor: contar('a_vencer'), cor: '#93C5FD', icone: '◷' },
+              { rotulo: 'A vencer', valor: contar('a_vencer'), cor: '#D6D7F3', icone: '◷' },
               { rotulo: 'Atrasada', valor: contar('atrasada'), cor: COR.vermelho, icone: '!' },
-              { rotulo: 'Em teste', valor: contar('teste'), cor: '#FBBF24', icone: '◔' },
-              { rotulo: 'Bloqueada', valor: bloqueados.length, cor: '#94A3B8', icone: '🔒' },
+              { rotulo: 'Em teste', valor: contar('teste'), cor: '#E8C47A', icone: '◔' },
+              { rotulo: 'Bloqueada', valor: bloqueados.length, cor: '#9A8F87', icone: '🔒' },
             ]}
           />
         </View>
@@ -382,8 +382,8 @@ export default function PainelKipi() {
             <Text style={s.cardSub}>{lista.length} de {estabelecimentos.length}</Text>
           </View>
           <View style={s.busca}>
-            <Feather name="search" size={14} color="#94A3B8" />
-            <TextInput style={s.buscaInput} placeholder="Empresa, responsável, e-mail ou cidade" placeholderTextColor="#94A3B8" value={busca} onChangeText={setBusca} />
+            <Feather name="search" size={14} color="#9A8F87" />
+            <TextInput style={s.buscaInput} placeholder="Empresa, responsável, e-mail ou cidade" placeholderTextColor="#9A8F87" value={busca} onChangeText={setBusca} />
           </View>
         </View>
         <View style={s.filtros}>
@@ -439,20 +439,20 @@ export default function PainelKipi() {
                   </Text>
                 </View>
                 <View style={st.colPlano}>
-                  <Pill texto={e.plano} cor="#334155" fundo="#F1F5F9" />
+                  <Pill texto={e.plano} cor="#3D312A" fundo="#F3EEE7" />
                 </View>
                 <View style={st.colValor}>
                   <Text style={s.linhaValor}>{money(e.mensalidade)}</Text>
                   <Text style={[s.linhaSub, { textAlign: 'right' }]}>vence dia {e.diaVencimento}</Text>
                 </View>
                 <View style={[st.colSituacao, { alignItems: 'flex-end' }]}>
-                  {bloqueado ? <Pill texto="🔒 Bloqueada" cor={COR.suave} fundo="#F1F5F9" /> : <Pill {...SITUACAO[situacao]} />}
+                  {bloqueado ? <Pill texto="🔒 Bloqueada" cor={COR.suave} fundo="#F3EEE7" /> : <Pill {...SITUACAO[situacao]} />}
                   {abertas > 0 && <Text style={[s.linhaSub, { color: COR.vermelho }]}>{abertas} em aberto</Text>}
                 </View>
                 <View style={[st.colAcoes, { alignItems: 'flex-end' }]}>
                   <TouchableOpacity style={[s.btnMini, st.btnAcoes, menuAberto && st.btnAcoesAtivo]} onPress={() => setMenuAcoes(menuAberto ? null : e.id)}>
                     <Text style={s.btnMiniText}>Ações</Text>
-                    <Feather name={menuAberto ? 'chevron-up' : 'chevron-down'} size={13} color="#334155" />
+                    <Feather name={menuAberto ? 'chevron-up' : 'chevron-down'} size={13} color="#3D312A" />
                   </TouchableOpacity>
                   {menuAberto && (
                     <View style={st.menu}>
@@ -463,7 +463,7 @@ export default function PainelKipi() {
                         </TouchableOpacity>
                       )}
                       <TouchableOpacity style={st.menuItem} onPress={() => acao(() => setEditando(e))}>
-                        <Feather name="sliders" size={13} color="#334155" />
+                        <Feather name="sliders" size={13} color="#3D312A" />
                         <Text style={st.menuTexto}>Plano e cobrança</Text>
                       </TouchableOpacity>
                       <View style={st.menuDivisor} />
@@ -494,15 +494,15 @@ export default function PainelKipi() {
             </Text>
             <View style={{ flexDirection: 'row', gap: 4 }}>
               <TouchableOpacity style={[s.btnMini, paginaAtual === 1 && { opacity: 0.4 }]} disabled={paginaAtual === 1} onPress={() => setPagina(paginaAtual - 1)}>
-                <Feather name="chevron-left" size={13} color="#334155" />
+                <Feather name="chevron-left" size={13} color="#3D312A" />
               </TouchableOpacity>
               {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((n) => (
                 <TouchableOpacity key={n} style={[s.btnMini, n === paginaAtual && st.paginaAtiva]} onPress={() => setPagina(n)}>
-                  <Text style={[s.btnMiniText, n === paginaAtual && { color: '#FFFFFF' }]}>{n}</Text>
+                  <Text style={[s.btnMiniText, n === paginaAtual && { color: '#FFFDFA' }]}>{n}</Text>
                 </TouchableOpacity>
               ))}
               <TouchableOpacity style={[s.btnMini, paginaAtual === totalPaginas && { opacity: 0.4 }]} disabled={paginaAtual === totalPaginas} onPress={() => setPagina(paginaAtual + 1)}>
-                <Feather name="chevron-right" size={13} color="#334155" />
+                <Feather name="chevron-right" size={13} color="#3D312A" />
               </TouchableOpacity>
             </View>
           </View>
@@ -518,7 +518,7 @@ export default function PainelKipi() {
             <ScrollView style={{ flexShrink: 1 }}>
               {erro && <Text style={s.erro}>{erro}</Text>}
               <Text style={s.label}>NOME DA EMPRESA</Text>
-              <TextInput style={s.input} value={form.nome} onChangeText={(t) => setForm({ ...form, nome: t })} placeholder="Ex.: Doces da Lu Ltda." placeholderTextColor="#94A3B8" />
+              <TextInput style={s.input} value={form.nome} onChangeText={(t) => setForm({ ...form, nome: t })} placeholder="Ex.: Doces da Lu Ltda." placeholderTextColor="#9A8F87" />
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={s.label}>RESPONSÁVEL</Text>
@@ -536,7 +536,7 @@ export default function PainelKipi() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={s.label}>SENHA INICIAL</Text>
-                  <TextInput style={s.input} value={form.senha} onChangeText={(t) => setForm({ ...form, senha: t })} placeholder="mín. 6" placeholderTextColor="#94A3B8" />
+                  <TextInput style={s.input} value={form.senha} onChangeText={(t) => setForm({ ...form, senha: t })} placeholder="mín. 6" placeholderTextColor="#9A8F87" />
                 </View>
               </View>
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -554,8 +554,8 @@ export default function PainelKipi() {
                 {PLANOS.map((p) => {
                   const ativo = form.plano === p.id;
                   return (
-                    <TouchableOpacity key={p.id} style={[s.linha, { borderTopWidth: 0, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: ativo ? COR.azul : COR.borda, backgroundColor: ativo ? COR.azulClaro : '#FFFFFF' }]} onPress={() => setForm({ ...form, plano: p.id })}>
-                      <Feather name={ativo ? 'check-circle' : 'circle'} size={14} color={ativo ? COR.azulForte : '#94A3B8'} />
+                    <TouchableOpacity key={p.id} style={[s.linha, { borderTopWidth: 0, paddingHorizontal: 10, borderRadius: 10, borderWidth: 1, borderColor: ativo ? COR.azul : COR.borda, backgroundColor: ativo ? COR.azulClaro : '#FFFDFA' }]} onPress={() => setForm({ ...form, plano: p.id })}>
+                      <Feather name={ativo ? 'check-circle' : 'circle'} size={14} color={ativo ? COR.azulForte : '#9A8F87'} />
                       <View style={{ flex: 1 }}>
                         <Text style={s.linhaNome}>{p.id}</Text>
                         <Text style={s.linhaSub}>{p.descricao}</Text>
@@ -653,21 +653,21 @@ const st = paraCelular(StyleSheet.create({
     top: 32,
     right: 0,
     width: 230,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: COR.borda,
     paddingVertical: 4,
     zIndex: 30,
-    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.14)',
+    boxShadow: '0 10px 24px rgba(43, 36, 33, 0.14)',
   } as any,
   menuItem: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  menuTexto: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#334155' },
-  menuDivisor: { height: 1, backgroundColor: '#F1F5F9', marginVertical: 2 },
-  paginacao: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 4, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  menuTexto: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#3D312A' },
+  menuDivisor: { height: 1, backgroundColor: '#F3EEE7', marginVertical: 2 },
+  paginacao: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 4, borderTopWidth: 1, borderTopColor: '#F3EEE7' },
   paginaAtiva: { backgroundColor: COR.azul, borderColor: COR.azul },
   kpiGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 14 },
-  kpiCard: { flexGrow: 1, flexBasis: 190, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: COR.borda, padding: 14 },
+  kpiCard: { flexGrow: 1, flexBasis: 190, backgroundColor: '#FFFDFA', borderRadius: 14, borderWidth: 1, borderColor: COR.borda, padding: 14 },
   kpiTopo: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   kpiIcone: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   kpiRotulo: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800', letterSpacing: 0.5, color: COR.suave },
@@ -677,7 +677,7 @@ const st = paraCelular(StyleSheet.create({
   destaque: { fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: '800', color: COR.texto },
   ponto: { width: 8, height: 8, borderRadius: 4 },
   cabecalho: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6, paddingHorizontal: 0, borderBottomWidth: 1, borderBottomColor: COR.borda },
-  th: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', letterSpacing: 0.6, color: '#94A3B8' },
+  th: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', letterSpacing: 0.6, color: '#9A8F87' },
   avatar: { width: 32, height: 32, borderRadius: 9, backgroundColor: COR.azulClaro, alignItems: 'center', justifyContent: 'center' },
   avatarTexto: { fontFamily: FONT_DISPLAY, fontSize: 11, fontWeight: '800', color: COR.azulForte },
 }));

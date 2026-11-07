@@ -20,11 +20,11 @@ import { useEstoqueVitrine, definirPrecoProduto, produtoAtivo, cadastrarProduto,
 // EDITOR DA FICHA TÉCNICA — o mesmo em Insumos & Receitas e no dossiê de Produtos.
 // Custo atualiza a vitrine sozinho; o preço só muda em "Salvar e aplicar preço".
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const KIPI_BLUE = '#5798D7';
-const KIPI_BLUE_ACCENT = '#2563EB';
-const KIPI_BLUE_TINT = '#EAF3FA';
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const KIPI_BLUE = '#9E5D25';
+const KIPI_BLUE_ACCENT = '#4B4FC4';
+const KIPI_BLUE_TINT = '#ECEBFA';
 
 const num = (s: string) => parseFloat(s.replace(',', '.')) || 0;
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -143,10 +143,10 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
   // Composição do custo por unidade (barras do resumo)
   const rend = Math.max(1, num(rendimento));
   const partes = [
-    { id: 'ing', rotulo: 'Ingredientes', valor: calc.ingredientes / rend, cor: '#5798D7' },
-    { id: 'emb', rotulo: 'Embalagens', valor: calc.embalagens / rend, cor: '#A78BFA' },
-    { id: 'mao', rotulo: 'Mão de obra', valor: calc.maoDeObra / rend, cor: '#F59E0B' },
-    { id: 'ext', rotulo: 'Extras', valor: calc.extras / rend, cor: '#94A3B8' },
+    { id: 'ing', rotulo: 'Ingredientes', valor: calc.ingredientes / rend, cor: '#4B4FC4' },
+    { id: 'emb', rotulo: 'Embalagens', valor: calc.embalagens / rend, cor: '#9EA0E0' },
+    { id: 'mao', rotulo: 'Mão de obra', valor: calc.maoDeObra / rend, cor: '#B9781A' },
+    { id: 'ext', rotulo: 'Extras', valor: calc.extras / rend, cor: '#9A8F87' },
   ];
   const somaPartes = partes.reduce((a, p) => a + p.valor, 0) || 1;
   const produtosFiltrados = semFicha.filter((p) => !buscaProduto.trim() || p.nome.toLowerCase().includes(buscaProduto.trim().toLowerCase()));
@@ -162,7 +162,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.resumoMini}>PREÇO SUGERIDO</Text>
-          <Text style={[s.resumoVal, { color: '#16A34A' }]}>{money(calc.precoSugerido)}</Text>
+          <Text style={[s.resumoVal, { color: '#2F7D55' }]}>{money(calc.precoSugerido)}</Text>
           <Text style={s.resumoNota}>margem {Math.round(margemSugerida)}%</Text>
         </View>
       </View>
@@ -188,7 +188,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
           <Text style={s.resumoMini}>PREÇO ATUAL NA VITRINE</Text>
           <View style={s.parteLinha}>
             <Text style={[s.resumoVal, { fontSize: 15, flex: 1 }]}>{money(produto.preco)}</Text>
-            <Text style={[s.resumoNota, margemAtual < MARGEM_MINIMA && { color: '#DC2626', fontWeight: '800' }]}>
+            <Text style={[s.resumoNota, margemAtual < MARGEM_MINIMA && { color: '#B42318', fontWeight: '800' }]}>
               {margemAtual < MARGEM_MINIMA ? '⚠ ' : ''}margem {Math.round(margemAtual)}%
             </Text>
           </View>
@@ -218,13 +218,13 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x" size={18} color="#64748B" />
+              <Feather name="x" size={18} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
           {erro && (
             <View style={s.erro}>
-              <Feather name="alert-circle" size={14} color="#DC2626" />
+              <Feather name="alert-circle" size={14} color="#B42318" />
               <Text style={s.erroText}>{erro}</Text>
             </View>
           )}
@@ -253,7 +253,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                             setModoProduto(m.id);
                             setErro(null);
                           }}>
-                          <Feather name={m.icon} size={12} color={ativo ? KIPI_BLUE_ACCENT : '#64748B'} />
+                          <Feather name={m.icon} size={12} color={ativo ? KIPI_BLUE_ACCENT : '#6B615A'} />
                           <Text style={[s.toggleText, ativo && s.toggleTextAtivo]}>{m.label}</Text>
                         </TouchableOpacity>
                       );
@@ -269,7 +269,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                           value={novoNome}
                           onChangeText={setNovoNome}
                           placeholder="Ex: Cookie Pistache com Framboesa"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor="#9A8F87"
                         />
                       </View>
                       <View>
@@ -289,7 +289,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                           value={categoriasExistentes.includes(novaCategoria) ? '' : novaCategoria}
                           onChangeText={setNovaCategoria}
                           placeholder="ou digite uma categoria nova"
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor="#9A8F87"
                         />
                       </View>
                       <View style={s.linha}>
@@ -338,13 +338,13 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                     <>
                       {semFicha.length > 6 && (
                         <View style={s.busca}>
-                          <Feather name="search" size={13} color="#94A3B8" />
+                          <Feather name="search" size={13} color="#9A8F87" />
                           <TextInput
                             style={s.buscaInput}
                             value={buscaProduto}
                             onChangeText={setBuscaProduto}
                             placeholder="Buscar produto sem receita..."
-                            placeholderTextColor="#94A3B8"
+                            placeholderTextColor="#9A8F87"
                           />
                         </View>
                       )}
@@ -353,7 +353,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                           const ativo = produtoEscolhido === p.id;
                           return (
                             <TouchableOpacity key={p.id} style={[s.chip, ativo && s.chipAtivo]} onPress={() => setProdutoEscolhido(p.id)}>
-                              {ativo && <Feather name="check" size={12} color="#FFFFFF" />}
+                              {ativo && <Feather name="check" size={12} color="#FFFDFA" />}
                               <Text style={[s.chipText, ativo && s.chipTextAtivo]}>{p.nome}</Text>
                             </TouchableOpacity>
                           );
@@ -416,27 +416,27 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                             value={it.qtd}
                             keyboardType="numeric"
                             placeholder="0"
-                            placeholderTextColor="#CBD5E1"
+                            placeholderTextColor="#D9CFC4"
                             onChangeText={(v) => setItens((prev) => prev.map((p, i) => (i === idx ? { ...p, qtd: v } : p)))}
                           />
                           <Text style={s.sufixo}>{item.unidadeFracionada}</Text>
                         </View>
                         <Text style={s.itemCusto}>{money(num(it.qtd) * item.custoUnitario)}</Text>
                         <TouchableOpacity style={s.iconeBtn} onPress={() => setItens((prev) => prev.filter((_, i) => i !== idx))}>
-                          <Feather name="trash-2" size={13} color="#DC2626" />
+                          <Feather name="trash-2" size={13} color="#B42318" />
                         </TouchableOpacity>
                       </View>
                     );
                   })}
                 </View>
                 <View style={[s.busca, { marginTop: 10 }]}>
-                  <Feather name="search" size={13} color="#94A3B8" />
+                  <Feather name="search" size={13} color="#9A8F87" />
                   <TextInput
                     style={s.buscaInput}
                     value={busca}
                     onChangeText={setBusca}
                     placeholder="Buscar insumo para incluir..."
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                   />
                 </View>
                 <View style={[s.chips, { marginTop: 8 }]}>
@@ -463,7 +463,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                         style={[s.input, { flex: 1 }]}
                         value={c.descricao}
                         placeholder="Descrição"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor="#9A8F87"
                         onChangeText={(v) => setExtras((prev) => prev.map((p, i) => (i === idx ? { ...p, descricao: v } : p)))}
                       />
                       <View style={s.campoSufixo}>
@@ -473,12 +473,12 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                           value={c.valor}
                           keyboardType="numeric"
                           placeholder="0"
-                          placeholderTextColor="#CBD5E1"
+                          placeholderTextColor="#D9CFC4"
                           onChangeText={(v) => setExtras((prev) => prev.map((p, i) => (i === idx ? { ...p, valor: v } : p)))}
                         />
                       </View>
                       <TouchableOpacity style={s.iconeBtn} onPress={() => setExtras((prev) => prev.filter((_, i) => i !== idx))}>
-                        <Feather name="trash-2" size={13} color="#DC2626" />
+                        <Feather name="trash-2" size={13} color="#B42318" />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -524,12 +524,12 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                   excluirFicha(produtoId);
                   onClose();
                 }}>
-                <Text style={[s.link, { color: '#DC2626', marginTop: 0 }]}>Excluir receita</Text>
+                <Text style={[s.link, { color: '#B42318', marginTop: 0 }]}>Excluir receita</Text>
               </TouchableOpacity>
             )}
             {criandoProduto ? (
               <TouchableOpacity style={s.btnPri} onPress={() => salvar(true)}>
-                <Feather name="check" size={14} color="#FFFFFF" />
+                <Feather name="check" size={14} color="#FFFDFA" />
                 <Text style={s.btnPriText}>Criar produto e receita · {money(calc.precoSugerido)}</Text>
               </TouchableOpacity>
             ) : (
@@ -538,7 +538,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                   <Text style={s.btnSecText}>Salvar receita</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={s.btnPri} onPress={() => salvar(true)}>
-                  <Feather name="check" size={14} color="#FFFFFF" />
+                  <Feather name="check" size={14} color="#FFFDFA" />
                   <Text style={s.btnPriText}>Salvar e aplicar {money(calc.precoSugerido)}</Text>
                 </TouchableOpacity>
               </>
@@ -551,67 +551,67 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
 }
 
 const s = paraCelular(StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  box: { width: '100%', maxWidth: 620, maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#E2E8F0', ...Platform.select({ web: { boxShadow: '0 20px 50px rgba(15,23,42,0.18)' } }) },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  overlay: { flex: 1, backgroundColor: 'rgba(43, 36, 33, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  box: { width: '100%', maxWidth: 620, maxHeight: '92%', backgroundColor: '#FFFDFA', borderRadius: 18, padding: 20, borderWidth: 1, borderColor: '#E8E0D6', ...Platform.select({ web: { boxShadow: '0 20px 50px rgba(43, 36, 33,0.18)' } }) },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3EEE7' },
   headerIcone: { width: 36, height: 36, borderRadius: 10, backgroundColor: KIPI_BLUE_TINT, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: '800', color: '#0F172A' },
-  subtitle: { fontFamily: FONT_SANS, fontSize: 11, color: '#64748B', marginTop: 2 },
-  erro: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FEF2F2', borderRadius: 8, padding: 8, marginBottom: 10 },
-  erroText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#DC2626' },
+  title: { fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: '800', color: '#2E211A' },
+  subtitle: { fontFamily: FONT_SANS, fontSize: 11, color: '#6B615A', marginTop: 2 },
+  erro: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FBE7E4', borderRadius: 8, padding: 8, marginBottom: 10 },
+  erroText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#B42318' },
   corpo: { flexShrink: 1, gap: 16 },
-  secao: { backgroundColor: '#F8FAFC', borderRadius: 14, borderWidth: 1, borderColor: '#EEF2F6', padding: 14 },
+  secao: { backgroundColor: '#F8F6F2', borderRadius: 14, borderWidth: 1, borderColor: '#F3EEE7', padding: 14 },
   secaoTopo: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  secaoNumero: { width: 20, height: 20, borderRadius: 10, backgroundColor: KIPI_BLUE, color: '#FFFFFF', textAlign: 'center', lineHeight: 20, fontFamily: FONT_DISPLAY, fontSize: 11, fontWeight: '800', overflow: 'hidden' },
-  secaoTitulo: { flex: 1, fontFamily: FONT_DISPLAY, fontSize: 13, fontWeight: '800', color: '#0F172A' },
-  secaoExtra: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#94A3B8' },
+  secaoNumero: { width: 20, height: 20, borderRadius: 10, backgroundColor: KIPI_BLUE, color: '#FFFDFA', textAlign: 'center', lineHeight: 20, fontFamily: FONT_DISPLAY, fontSize: 11, fontWeight: '800', overflow: 'hidden' },
+  secaoTitulo: { flex: 1, fontFamily: FONT_DISPLAY, fontSize: 13, fontWeight: '800', color: '#2E211A' },
+  secaoExtra: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#9A8F87' },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  label: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.4, marginBottom: 5 },
-  hint: { fontFamily: FONT_SANS, fontSize: 12, color: '#94A3B8' },
-  dica: { fontFamily: FONT_SANS, fontSize: 11, color: '#94A3B8', marginTop: 8 },
+  label: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800', color: '#6B615A', letterSpacing: 0.4, marginBottom: 5 },
+  hint: { fontFamily: FONT_SANS, fontSize: 12, color: '#9A8F87' },
+  dica: { fontFamily: FONT_SANS, fontSize: 11, color: '#9A8F87', marginTop: 8 },
   vazio: { gap: 2 },
-  input: { fontFamily: FONT_SANS, fontSize: 13, color: '#0F172A', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  campoSufixo: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 10 },
-  campoInput: { minWidth: 0, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: '700', color: '#0F172A', paddingVertical: 7, ...Platform.select({ web: { outlineStyle: 'none' } as any }) },
-  sufixo: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#94A3B8' },
-  busca: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 10, marginBottom: 8 },
-  buscaInput: { flex: 1, minWidth: 0, fontFamily: FONT_SANS, fontSize: 13, color: '#0F172A', paddingVertical: 8, ...Platform.select({ web: { outlineStyle: 'none' } as any }) },
+  input: { fontFamily: FONT_SANS, fontSize: 13, color: '#2E211A', backgroundColor: '#FFFDFA', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  campoSufixo: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFFDFA', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingHorizontal: 10 },
+  campoInput: { minWidth: 0, fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: '700', color: '#2E211A', paddingVertical: 7, ...Platform.select({ web: { outlineStyle: 'none' } as any }) },
+  sufixo: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#9A8F87' },
+  busca: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFDFA', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingHorizontal: 10, marginBottom: 8 },
+  buscaInput: { flex: 1, minWidth: 0, fontFamily: FONT_SANS, fontSize: 13, color: '#2E211A', paddingVertical: 8, ...Platform.select({ web: { outlineStyle: 'none' } as any }) },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, borderWidth: 1, borderColor: '#E2E8F0' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFDFA', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6, borderWidth: 1, borderColor: '#E8E0D6' },
   chipAtivo: { backgroundColor: KIPI_BLUE, borderColor: KIPI_BLUE },
-  chipText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#475569' },
-  chipTextAtivo: { color: '#FFFFFF', fontWeight: '800' },
+  chipText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#4A3E37' },
+  chipTextAtivo: { color: '#FFFDFA', fontWeight: '800' },
   chipAdd: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: KIPI_BLUE_TINT, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  chipAddText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '700', color: '#1E40AF' },
-  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#EEF2F6', paddingHorizontal: 10, paddingVertical: 7 },
-  itemEmoji: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
-  itemNome: { fontFamily: FONT_SANS, fontSize: 12.5, fontWeight: '700', color: '#0F172A' },
-  itemSub: { fontFamily: FONT_SANS, fontSize: 10.5, color: '#94A3B8', marginTop: 1 },
-  itemCusto: { width: 72, fontFamily: FONT_DISPLAY, fontSize: 12.5, fontWeight: '800', color: '#334155', textAlign: 'right' },
-  iconeBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FEF2F2' },
+  chipAddText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '700', color: '#3A3D9E' },
+  itemRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFDFA', borderRadius: 10, borderWidth: 1, borderColor: '#F3EEE7', paddingHorizontal: 10, paddingVertical: 7 },
+  itemEmoji: { width: 30, height: 30, borderRadius: 8, backgroundColor: '#F3EEE7', alignItems: 'center', justifyContent: 'center' },
+  itemNome: { fontFamily: FONT_SANS, fontSize: 12.5, fontWeight: '700', color: '#2E211A' },
+  itemSub: { fontFamily: FONT_SANS, fontSize: 10.5, color: '#9A8F87', marginTop: 1 },
+  itemCusto: { width: 72, fontFamily: FONT_DISPLAY, fontSize: 12.5, fontWeight: '800', color: '#3D312A', textAlign: 'right' },
+  iconeBtn: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FBE7E4' },
   link: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: KIPI_BLUE_ACCENT, marginTop: 8 },
-  toggle: { flexDirection: 'row', backgroundColor: '#EEF2F6', borderRadius: 10, padding: 3 },
+  toggle: { flexDirection: 'row', backgroundColor: '#F3EEE7', borderRadius: 10, padding: 3 },
   toggleBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 8 },
-  toggleBtnAtivo: { backgroundColor: '#FFFFFF', ...Platform.select({ web: { boxShadow: '0 1px 3px rgba(15,23,42,0.1)' } }) },
-  toggleText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#64748B' },
+  toggleBtnAtivo: { backgroundColor: '#FFFDFA', ...Platform.select({ web: { boxShadow: '0 1px 3px rgba(43, 36, 33,0.1)' } }) },
+  toggleText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#6B615A' },
   toggleTextAtivo: { color: KIPI_BLUE_ACCENT, fontWeight: '800' },
   resumo: { backgroundColor: KIPI_BLUE_TINT, borderRadius: 14, padding: 14, gap: 10 },
   resumoLateral: { width: 280, alignSelf: 'flex-start' },
-  resumoTitulo: { fontFamily: FONT_DISPLAY, fontSize: 13, fontWeight: '800', color: '#0F172A' },
+  resumoTitulo: { fontFamily: FONT_DISPLAY, fontSize: 13, fontWeight: '800', color: '#2E211A' },
   resumoDestaques: { flexDirection: 'row', gap: 10 },
-  resumoMini: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', color: '#64748B', letterSpacing: 0.4 },
-  resumoVal: { fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: '800', color: '#0F172A', marginTop: 2 },
-  resumoNota: { fontFamily: FONT_SANS, fontSize: 11, color: '#475569' },
-  barra: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: '#FFFFFF', gap: 2 },
+  resumoMini: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', color: '#6B615A', letterSpacing: 0.4 },
+  resumoVal: { fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: '800', color: '#2E211A', marginTop: 2 },
+  resumoNota: { fontFamily: FONT_SANS, fontSize: 11, color: '#4A3E37' },
+  barra: { flexDirection: 'row', height: 8, borderRadius: 4, overflow: 'hidden', backgroundColor: '#FFFDFA', gap: 2 },
   parteLinha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   parteCor: { width: 8, height: 8, borderRadius: 2 },
-  parteRotulo: { flex: 1, fontFamily: FONT_SANS, fontSize: 11.5, color: '#475569' },
-  parteValor: { fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '700', color: '#0F172A' },
-  precoAtual: { backgroundColor: '#FFFFFF', borderRadius: 10, padding: 10, gap: 2 },
-  precoAtualAlerta: { borderWidth: 1, borderColor: '#FECACA', backgroundColor: '#FEF2F2' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  btnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' },
-  btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#334155' },
+  parteRotulo: { flex: 1, fontFamily: FONT_SANS, fontSize: 11.5, color: '#4A3E37' },
+  parteValor: { fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '700', color: '#2E211A' },
+  precoAtual: { backgroundColor: '#FFFDFA', borderRadius: 10, padding: 10, gap: 2 },
+  precoAtualAlerta: { borderWidth: 1, borderColor: '#F3C4BD', backgroundColor: '#FBE7E4' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#F3EEE7' },
+  btnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D6' },
+  btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#3D312A' },
   btnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: KIPI_BLUE },
-  btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '800', color: '#FFFDFA' },
 }));

@@ -214,7 +214,7 @@ export default function InsumosMobile() {
                 <T titulo style={[s.resumoValor, numeros]}>{brl(valorEstoque)}</T>
               </View>
               {paraRepor > 0 ? (
-                <TouchableOpacity style={[s.alerta, repor && { backgroundColor: '#FEE2E2' }]} onPress={() => setRepor(!repor)} accessibilityRole="button">
+                <TouchableOpacity style={[s.alerta, repor && { backgroundColor: '#FBE7E4' }]} onPress={() => setRepor(!repor)} accessibilityRole="button">
                   <Feather name="alert-triangle" size={16} color={cor.vermelho} />
                   <T style={s.alertaTexto}>{paraRepor} {paraRepor === 1 ? 'insumo para repor' : 'insumos para repor'}</T>
                   <T style={s.alertaTexto}>{repor ? 'Ver todos' : 'Ver ›'}</T>
@@ -230,8 +230,8 @@ export default function InsumosMobile() {
             {/* BUSCA + FILTROS */}
             <View style={s.buscaLinha}>
               <View style={[s.busca, sombra]}>
-                <Feather name="search" size={18} color="#94A3B8" />
-                <TextInput value={busca} onChangeText={setBusca} placeholder="Nome, marca, receita…" placeholderTextColor="#94A3B8" style={s.buscaInput} accessibilityLabel="Buscar insumo" />
+                <Feather name="search" size={18} color="#9A8F87" />
+                <TextInput value={busca} onChangeText={setBusca} placeholder="Nome, marca, receita…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar insumo" />
                 {!!busca && (
                   <TouchableOpacity onPress={() => setBusca('')} style={s.limpar} accessibilityRole="button" accessibilityLabel="Limpar busca">
                     <Feather name="x" size={14} color={cor.textoMedio} />
@@ -285,9 +285,9 @@ export default function InsumosMobile() {
                         <T style={s.nome} numberOfLines={1}>{i.nome}</T>
                         <View style={s.nivelLinha}>
                           <View style={s.nivel}>
-                            <View style={{ width: `${Math.max(6, pct)}%`, height: '100%', backgroundColor: baixo ? cor.vermelhoForte : '#16A34A' }} />
+                            <View style={{ width: `${Math.max(6, pct)}%`, height: '100%', backgroundColor: baixo ? cor.vermelhoForte : '#2F7D55' }} />
                           </View>
-                          <T style={[s.estoque, numeros, { color: !ativo ? '#94A3B8' : baixo ? cor.vermelho : cor.verde }]} numberOfLines={1}>
+                          <T style={[s.estoque, numeros, { color: !ativo ? '#9A8F87' : baixo ? cor.vermelho : cor.verde }]} numberOfLines={1}>
                             {!ativo ? 'Inativo' : `${baixo ? '⚠ ' : ''}${fmtQtd(i.quantidadeEstoque)} ${i.unidade} · mín ${fmtQtd(i.estoqueMinimo)}`}
                           </T>
                         </View>
@@ -391,7 +391,7 @@ export default function InsumosMobile() {
         accessibilityRole="button"
         accessibilityLabel={aba === 'insumos' ? 'Novo insumo' : 'Nova receita'}
         activeOpacity={0.9}>
-        <Feather name="plus" size={22} color="#FFFFFF" />
+        <Feather name="plus" size={22} color="#FFFDFA" />
         {!fabCompacto && <T style={s.fabTexto}>{aba === 'insumos' ? 'Novo insumo' : 'Nova receita'}</T>}
       </TouchableOpacity>
 
@@ -443,7 +443,7 @@ export default function InsumosMobile() {
                     <T style={s.nome}>{p.nome}</T>
                     <T style={s.dica}>{p.categoria}</T>
                   </View>
-                  <Feather name="chevron-right" size={18} color="#94A3B8" />
+                  <Feather name="chevron-right" size={18} color="#9A8F87" />
                 </TouchableOpacity>
               ))}
             </View>
@@ -535,12 +535,12 @@ function DetalheInsumo({
             <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
               <T titulo style={s.detNome}>{i.nome}</T>
               <View style={s.etiquetas}>
-                <View style={[s.selo, { backgroundColor: ingrediente ? cor.ambarClaro : '#EDE9FE' }]}>
-                  <T style={[s.seloTexto, { color: ingrediente ? cor.ambarTexto : '#6D28D9' }]}>{ingrediente ? 'Ingrediente' : i.tipo === 'outro' ? 'Outro' : 'Embalagem'}</T>
+                <View style={[s.selo, { backgroundColor: ingrediente ? cor.ambarClaro : '#ECEBFA' }]}>
+                  <T style={[s.seloTexto, { color: ingrediente ? cor.ambarTexto : '#3A3D9E' }]}>{ingrediente ? 'Ingrediente' : i.tipo === 'outro' ? 'Outro' : 'Embalagem'}</T>
                 </View>
                 {arm && (
-                  <View style={[s.selo, { backgroundColor: '#E0F2FE' }]}>
-                    <T style={[s.seloTexto, { color: '#075985' }]}>{arm.emoji} {arm.rotulo}</T>
+                  <View style={[s.selo, { backgroundColor: '#ECEBFA' }]}>
+                    <T style={[s.seloTexto, { color: '#3A3D9E' }]}>{arm.emoji} {arm.rotulo}</T>
                   </View>
                 )}
                 {!!i.marcaFornecedor && <T style={s.dica}>{i.marcaFornecedor}</T>}
@@ -612,7 +612,7 @@ function DetalheInsumo({
                   <T style={{ fontSize: 18 }}>{u.emoji}</T>
                   <T style={[s.nome, { flex: 1, fontSize: 14 }]} numberOfLines={1}>{u.nome}</T>
                   <T style={[s.dica, numeros]}>{u.qtd}</T>
-                  <Feather name="chevron-right" size={16} color="#94A3B8" />
+                  <Feather name="chevron-right" size={16} color="#9A8F87" />
                 </TouchableOpacity>
               ))
             )}
@@ -652,28 +652,28 @@ const s = StyleSheet.create({
   dica: { fontSize: 12, color: cor.textoSuave },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
   rotulo: { fontSize: 13, fontWeight: '800', color: cor.textoMedio },
-  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#E8EEF5' },
+  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#F3EEE7' },
   segItem: { flex: 1, height: 40, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segItemOn: { backgroundColor: '#FFFDFA', shadowColor: '#2E211A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   segTexto: { fontSize: 14, fontWeight: '600', color: cor.textoMedio },
   segTextoOn: { fontWeight: '800', color: cor.texto },
   segNum: { fontSize: 12, fontWeight: '800', color: cor.textoSuave },
-  resumo: { marginHorizontal: 16, marginTop: 12, padding: 14, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 10 },
+  resumo: { marginHorizontal: 16, marginTop: 12, padding: 14, paddingHorizontal: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 10 },
   resumoLinha: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   resumoRotulo: { fontSize: 13, fontWeight: '700', color: cor.textoMedio },
   resumoValor: { fontSize: 20, fontWeight: '700' },
   alerta: { minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro, flexDirection: 'row', alignItems: 'center', gap: 8 },
   alertaTexto: { fontSize: 13, fontWeight: '800', color: cor.vermelho, flexShrink: 1 },
   buscaLinha: { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 12 },
-  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 10 },
   buscaInput: { flex: 1, minWidth: 0, height: 44, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   limpar: { width: 32, height: 32, borderRadius: 16, backgroundColor: cor.cinzaClaro, alignItems: 'center', justifyContent: 'center' },
-  filtroBotao: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  filtroBotao: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   filtroBadge: { position: 'absolute', top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: cor.azulBotao, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  filtroBadgeTexto: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  filtroBadgeTexto: { fontSize: 11, fontWeight: '800', color: '#FFFDFA' },
   mostrando: { marginHorizontal: 20, marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   mostrandoTexto: { flex: 1, fontSize: 13, color: cor.textoMedio },
-  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFDFA', overflow: 'hidden' },
   linha: { paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   icone: { width: 44, height: 44, borderRadius: 14, backgroundColor: cor.fundo, alignItems: 'center', justifyContent: 'center' },
@@ -684,10 +684,10 @@ const s = StyleSheet.create({
   custo: { fontSize: 14, fontWeight: '800', color: cor.azulTexto },
   nota: { fontSize: 11, color: cor.textoSuave },
   preco: { fontSize: 14, fontWeight: '800' },
-  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 6 },
+  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', gap: 6 },
   vazioTitulo: { fontSize: 16, fontWeight: '700' },
   vazioTexto: { fontSize: 13, color: cor.textoSuave, marginBottom: 8, textAlign: 'center' },
-  hora: { marginHorizontal: 16, marginTop: 12, minHeight: 56, paddingVertical: 8, paddingLeft: 16, paddingRight: 8, borderRadius: 20, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  hora: { marginHorizontal: 16, marginTop: 12, minHeight: 56, paddingVertical: 8, paddingLeft: 16, paddingRight: 8, borderRadius: 20, backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 10 },
   horaTitulo: { fontSize: 14, fontWeight: '700' },
   horaCaixa: { height: 44, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, flexDirection: 'row', alignItems: 'center', gap: 4 },
   horaInput: { width: 56, fontSize: 15, fontWeight: '800', color: cor.texto, textAlign: 'right', fontFamily: fonte.texto, padding: 0, ...campoWeb },
@@ -696,7 +696,7 @@ const s = StyleSheet.create({
   sugerido: { fontSize: 12, fontWeight: '800', color: cor.verde },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   opcaoProduto: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  criarProduto: { height: 52, borderRadius: 26, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9CC3E8', alignItems: 'center', justifyContent: 'center' },
+  criarProduto: { height: 52, borderRadius: 26, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#D6D7F3', alignItems: 'center', justifyContent: 'center' },
   fab: {
     position: 'absolute',
     right: 16,
@@ -715,30 +715,30 @@ const s = StyleSheet.create({
     elevation: 6,
   },
   fabCompacto: { width: 56, paddingLeft: 0, paddingRight: 0, justifyContent: 'center' },
-  fabTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  fabTexto: { color: '#FFFDFA', fontSize: 15, fontWeight: '800' },
 
   // DETALHE
   detTopo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 6, paddingBottom: 4 },
   detTopoTexto: { flex: 1, fontSize: 15, fontWeight: '700', color: cor.textoMedio },
-  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   identidade: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingTop: 4 },
-  iconeGrande: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  iconeGrande: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   detNome: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3, lineHeight: 25 },
   etiquetas: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   selo: { paddingHorizontal: 8, paddingVertical: 1, borderRadius: 7 },
   seloTexto: { fontSize: 11, fontWeight: '800' },
-  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 12 },
+  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 12 },
   cartaoTitulo: { fontSize: 15, fontWeight: '700' },
   numRotulo: { fontSize: 11, fontWeight: '700', color: cor.textoSuave },
   numValor: { fontSize: 18, fontWeight: '700' },
   custoCaixa: { flex: 1, gap: 2, marginVertical: -8, marginRight: -6, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 14, backgroundColor: cor.azulClaro },
   estoqueGrande: { fontSize: 30, fontWeight: '700' },
   barraGrande: { height: 6, borderRadius: 3, backgroundColor: cor.cinzaClaro, overflow: 'hidden' },
-  ajusteMenos: { flex: 1, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: '#FECACA', alignItems: 'center', justifyContent: 'center' },
+  ajusteMenos: { flex: 1, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: '#F3C4BD', alignItems: 'center', justifyContent: 'center' },
   ajusteMais: { flex: 1, height: 48, borderRadius: 24, borderWidth: 1.5, borderColor: cor.verdeBorda, backgroundColor: cor.verdeClaro, alignItems: 'center', justifyContent: 'center' },
   ajusteTexto: { fontSize: 14, fontWeight: '800' },
   uso: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
   menuItem: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuTexto: { fontSize: 15, fontWeight: '700' },
 });

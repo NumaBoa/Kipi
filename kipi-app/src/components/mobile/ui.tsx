@@ -77,11 +77,11 @@ export const Aviso = ({ msg, base = 110 }: { msg: string | null; base?: number }
 
 type Variante = 'primario' | 'secundario' | 'perigo' | 'sutil' | 'verde';
 const VARIANTES: Record<Variante, { bg: string; fg: string; borda?: string }> = {
-  primario: { bg: cor.azulBotao, fg: '#FFFFFF' },
-  secundario: { bg: '#FFFFFF', fg: cor.texto, borda: cor.apagado },
-  perigo: { bg: cor.vermelhoForte, fg: '#FFFFFF' },
+  primario: { bg: cor.azulBotao, fg: '#FFFDFA' },
+  secundario: { bg: '#FFFDFA', fg: cor.texto, borda: cor.apagado },
+  perigo: { bg: cor.vermelhoForte, fg: '#FFFDFA' },
   sutil: { bg: 'transparent', fg: cor.textoMedio },
-  verde: { bg: cor.verde, fg: '#FFFFFF' },
+  verde: { bg: cor.verde, fg: '#FFFDFA' },
 };
 
 export function Botao({
@@ -134,9 +134,9 @@ export function Opcao({
   textoStyle?: StyleProp<TextStyle>;
   icone?: keyof typeof Feather.glyphMap;
 }) {
-  const bg = ativo ? (forte ? cor.escuro : cor.azulClaro) : '#FFFFFF';
+  const bg = ativo ? (forte ? cor.escuro : cor.azulClaro) : '#FFFDFA';
   const borda = ativo ? (forte ? cor.escuro : cor.azulBotao) : cor.borda;
-  const fg = ativo ? (forte ? '#FFFFFF' : cor.texto) : cor.texto;
+  const fg = ativo ? (forte ? '#FFFDFA' : cor.texto) : cor.texto;
   return (
     <TouchableOpacity
       onPress={aoTocar}
@@ -163,7 +163,7 @@ export const Bloco = ({ children, style }: { children: React.ReactNode; style?: 
 const s = StyleSheet.create({
   veu: { flex: 1, backgroundColor: cor.veu, justifyContent: 'flex-end' },
   gaveta: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingTop: 10,
@@ -188,7 +188,7 @@ const s = StyleSheet.create({
     gap: 10,
     zIndex: 50,
   },
-  avisoTexto: { flex: 1, color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  avisoTexto: { flex: 1, color: '#FFFDFA', fontSize: 13, fontWeight: '700' },
   botao: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18 },
   botaoTexto: { fontSize: 15, fontWeight: '800' },
   opcao: {
@@ -204,5 +204,5 @@ const s = StyleSheet.create({
   opcaoTexto: { fontSize: 13, fontWeight: '700' },
   etiqueta: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 7, alignSelf: 'flex-start' },
   etiquetaTexto: { fontSize: 11, fontWeight: '700' },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 16, gap: 12 },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 24, padding: 16, gap: 12 },
 });

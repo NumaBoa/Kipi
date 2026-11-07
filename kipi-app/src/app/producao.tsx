@@ -32,24 +32,24 @@ import { useEhCelular } from '@/lib/layout';
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
-const KIPI_BLUE = '#5798D7';
-const KIPI_BLUE_DARK = '#3E7BB8';
-const KIPI_BLUE_TINT = '#EAF3FA';
-const KIPI_BLUE_ACCENT = '#2563EB';
-const KIPI_FROST_BG = '#F8FAFC';
-const SUCCESS_GREEN = '#16A34A';
-const SUCCESS_TINT = '#DCFCE7';
-const WARNING_AMBER = '#D97706';
-const WARNING_TINT = '#FEF3C7';
-const DANGER_RED = '#DC2626';
-const DANGER_TINT = '#FEE2E2';
-const OVEN_ORANGE = '#EA580C';
-const OVEN_TINT = '#FFEDD5';
-const FREEZER_CYAN = '#0284C7';
-const FREEZER_TINT = '#E0F2FE';
+const KIPI_BLUE = '#9E5D25';
+const KIPI_BLUE_DARK = '#7A4520';
+const KIPI_BLUE_TINT = '#ECEBFA';
+const KIPI_BLUE_ACCENT = '#4B4FC4';
+const KIPI_FROST_BG = '#F8F6F2';
+const SUCCESS_GREEN = '#2F7D55';
+const SUCCESS_TINT = '#E4F1E9';
+const WARNING_AMBER = '#B9781A';
+const WARNING_TINT = '#FBF0DC';
+const DANGER_RED = '#B42318';
+const DANGER_TINT = '#FBE7E4';
+const OVEN_ORANGE = '#B9781A';
+const OVEN_TINT = '#FBF0DC';
+const FREEZER_CYAN = '#3A3D9E';
+const FREEZER_TINT = '#ECEBFA';
 
 // ============================================================================
 // TIPOS DE DADOS
@@ -81,9 +81,9 @@ export type ProdutoComVitrine = ProdutoProducao & {
 
 // Status de produção das encomendas (as encomendas vêm dos pedidos compartilhados)
 const STATUS_ENCOMENDA: Record<string, { label: string; cor: string; fundo: string }> = {
-  a_fazer: { label: 'A fazer', cor: '#64748B', fundo: '#F1F5F9' },
-  em_producao: { label: 'Em produção', cor: '#B45309', fundo: '#FEF3C7' },
-  pronto: { label: 'Pronto', cor: '#2563EB', fundo: '#EAF3FA' },
+  a_fazer: { label: 'A fazer', cor: '#6B615A', fundo: '#F3EEE7' },
+  em_producao: { label: 'Em produção', cor: '#9A6516', fundo: '#FBF0DC' },
+  pronto: { label: 'Pronto', cor: '#4B4FC4', fundo: '#ECEBFA' },
 };
 
 type FiltroPeriodoHistorico = 'hoje' | '7dias' | '30dias' | 'tudo';
@@ -435,7 +435,7 @@ function ProducaoDesktop() {
               <TouchableOpacity
                 style={styles.ovenFinishBtn}
                 onPress={() => setTimerAtivo(false)}>
-                <Feather name="check" size={14} color="#FFFFFF" />
+                <Feather name="check" size={14} color="#FFFDFA" />
                 <Text style={styles.ovenFinishBtnText}>Fornada Concluída</Text>
               </TouchableOpacity>
             </View>
@@ -446,7 +446,7 @@ function ProducaoDesktop() {
             {[
               { rotulo: '🧊 No freezer', valor: `${totalCongelados} un`, cor: FREEZER_CYAN },
               { rotulo: '🧁 Na vitrine', valor: `${totalAssados} un`, cor: OVEN_ORANGE },
-              { rotulo: '♨️ Fornadas hoje', valor: String(totalFornadasHoje), cor: '#0F172A' },
+              { rotulo: '♨️ Fornadas hoje', valor: String(totalFornadasHoje), cor: '#2E211A' },
               { rotulo: '⚠️ Freezer zerado', valor: String(saboresFreezerZerado), cor: saboresFreezerZerado > 0 ? WARNING_AMBER : SUCCESS_GREEN },
               { rotulo: '🗑 Perdas 30 dias', valor: perdas30.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), cor: perdas30.total > 0 ? DANGER_RED : SUCCESS_GREEN },
             ].map((k) => (
@@ -474,7 +474,7 @@ function ProducaoDesktop() {
                   <Text style={styles.sectionSubtitle}>Pedidos agendados que ainda não foram entregues</Text>
                 </View>
                 <TouchableOpacity onPress={() => setEncomendasAbertas(false)}>
-                  <Feather name="chevron-up" size={18} color="#64748B" />
+                  <Feather name="chevron-up" size={18} color="#6B615A" />
                 </TouchableOpacity>
               </View>
               <View style={styles.ordersGrid}>
@@ -524,11 +524,11 @@ function ProducaoDesktop() {
 
                 {/* Busca rápida */}
                 <View style={styles.miniSearchBox}>
-                  <Feather name="search" size={14} color="#94A3B8" />
+                  <Feather name="search" size={14} color="#9A8F87" />
                   <TextInput
                     style={styles.miniSearchInput}
                     placeholder="Filtrar doce..."
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                   />
@@ -622,7 +622,7 @@ function ProducaoDesktop() {
                     {historicoFiltrado.length} {historicoFiltrado.length === 1 ? 'registro' : 'registros'} · preparos, fornadas e perdas
                   </Text>
                 </View>
-                <Feather name="clock" size={16} color="#64748B" />
+                <Feather name="clock" size={16} color="#6B615A" />
               </View>
 
               {/* FILTROS DO HISTÓRICO */}
@@ -671,11 +671,11 @@ function ProducaoDesktop() {
                   })}
                 </View>
                 <View style={styles.miniSearchBox}>
-                  <Feather name="search" size={14} color="#94A3B8" />
+                  <Feather name="search" size={14} color="#9A8F87" />
                   <TextInput
                     style={styles.miniSearchInput}
                     placeholder="Filtrar por produto..."
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={buscaHistorico}
                     onChangeText={(t) => {
                       setBuscaHistorico(t);
@@ -761,7 +761,7 @@ function ProducaoDesktop() {
                   </View>
                 </View>
                 <TouchableOpacity onPress={() => setModalPreparoVisible(false)}>
-                  <Feather name="x" size={20} color="#64748B" />
+                  <Feather name="x" size={20} color="#6B615A" />
                 </TouchableOpacity>
               </View>
 
@@ -783,7 +783,7 @@ function ProducaoDesktop() {
                         const v = Math.max(1, (parseInt(qtdPreparoInput) || 0) - 6);
                         setQtdPreparoInput(v.toString());
                       }}>
-                      <Feather name="minus" size={16} color="#0F172A" />
+                      <Feather name="minus" size={16} color="#2E211A" />
                     </TouchableOpacity>
 
                     <TextInput
@@ -799,7 +799,7 @@ function ProducaoDesktop() {
                         const v = (parseInt(qtdPreparoInput) || 0) + 6;
                         setQtdPreparoInput(v.toString());
                       }}>
-                      <Feather name="plus" size={16} color="#0F172A" />
+                      <Feather name="plus" size={16} color="#2E211A" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -814,7 +814,7 @@ function ProducaoDesktop() {
                     onPress={() => setDescontarIngredientes(!descontarIngredientes)}
                     activeOpacity={0.8}>
                     <View style={[styles.toggleBox, descontarIngredientes && styles.toggleBoxActive]}>
-                      {descontarIngredientes && <Feather name="check" size={11} color="#FFFFFF" />}
+                      {descontarIngredientes && <Feather name="check" size={11} color="#FFFDFA" />}
                     </View>
                     <Text style={styles.checklistSubtitle}>Descontar os ingredientes do estoque de insumos</Text>
                   </TouchableOpacity>
@@ -859,7 +859,7 @@ function ProducaoDesktop() {
                 <TouchableOpacity
                   style={styles.modalConfirmBtn}
                   onPress={handleConfirmarPreparo}>
-                  <Feather name="check" size={16} color="#FFFFFF" />
+                  <Feather name="check" size={16} color="#FFFDFA" />
                   <Text style={styles.modalConfirmBtnText}>
                     {!descontarIngredientes || analiseIngredientesPreparo.viavel ? 'Confirmar & Congelar' : 'Produzir mesmo assim'}
                   </Text>
@@ -894,7 +894,7 @@ function ProducaoDesktop() {
                   </View>
                 </View>
                 <TouchableOpacity onPress={() => setModalAssarVisible(false)}>
-                  <Feather name="x" size={20} color="#64748B" />
+                  <Feather name="x" size={20} color="#6B615A" />
                 </TouchableOpacity>
               </View>
 
@@ -926,7 +926,7 @@ function ProducaoDesktop() {
                         const v = Math.max(1, (parseInt(qtdAssarInput) || 0) - 1);
                         setQtdAssarInput(v.toString());
                       }}>
-                      <Feather name="minus" size={16} color="#0F172A" />
+                      <Feather name="minus" size={16} color="#2E211A" />
                     </TouchableOpacity>
 
                     <TextInput
@@ -942,7 +942,7 @@ function ProducaoDesktop() {
                         const v = Math.min(produtoAtivo.estoqueCongelado, (parseInt(qtdAssarInput) || 0) + 1);
                         setQtdAssarInput(v.toString());
                       }}>
-                      <Feather name="plus" size={16} color="#0F172A" />
+                      <Feather name="plus" size={16} color="#2E211A" />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1010,7 +1010,7 @@ function ProducaoDesktop() {
                 </View>
               </View>
               <TouchableOpacity onPress={() => setLoteModo(null)}>
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -1047,13 +1047,13 @@ function ProducaoDesktop() {
                         style={[styles.loteStepBtn, qtd <= 0 && { opacity: 0.35 }]}
                         disabled={semMassa || qtd <= 0}
                         onPress={() => setLoteQtds((prev) => ({ ...prev, [p.id]: qtd - 1 > 0 ? String(qtd - 1) : '' }))}>
-                        <Feather name="minus" size={13} color="#334155" />
+                        <Feather name="minus" size={13} color="#3D312A" />
                       </TouchableOpacity>
                       <TextInput
                         style={styles.loteInput}
                         keyboardType="numeric"
                         placeholder="0"
-                        placeholderTextColor="#CBD5E1"
+                        placeholderTextColor="#D9CFC4"
                         editable={!semMassa}
                         value={loteQtds[p.id] ?? ''}
                         onChangeText={(t) => setLoteQtds((prev) => ({ ...prev, [p.id]: t.replace(/\D/g, '') }))}
@@ -1077,7 +1077,7 @@ function ProducaoDesktop() {
               <TouchableOpacity
                 style={[styles.modalConfirmBtn, { backgroundColor: loteModo === 'assar' ? OVEN_ORANGE : FREEZER_CYAN }]}
                 onPress={confirmarLote}>
-                <Feather name="check" size={16} color="#FFFFFF" />
+                <Feather name="check" size={16} color="#FFFDFA" />
                 <Text style={styles.modalConfirmBtnText}>{loteModo === 'assar' ? 'Assar' : 'Preparar'}</Text>
               </TouchableOpacity>
             </View>
@@ -1098,11 +1098,11 @@ const styles = paraCelular(StyleSheet.create({
     borderWidth: 1.5,
   },
   ordersPanel: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#D6D7F3',
     marginBottom: 16,
   },
   ordersGrid: {
@@ -1116,7 +1116,7 @@ const styles = paraCelular(StyleSheet.create({
     backgroundColor: KIPI_FROST_BG,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 12,
     gap: 4,
   },
@@ -1131,7 +1131,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   orderStatusPill: {
     paddingHorizontal: 7,
@@ -1146,13 +1146,13 @@ const styles = paraCelular(StyleSheet.create({
   orderItems: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#334155',
+    color: '#3D312A',
   },
   orderObs: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontStyle: 'italic',
-    color: '#64748B',
+    color: '#6B615A',
   },
   orderDelivery: {
     fontFamily: FONT_SANS,
@@ -1198,8 +1198,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   historyChipActive: {
     backgroundColor: KIPI_BLUE_TINT,
@@ -1209,7 +1209,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   historyChipTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1228,7 +1228,7 @@ const styles = paraCelular(StyleSheet.create({
   historyEmpty: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#9A8F87',
     textAlign: 'center',
     paddingVertical: 20,
   },
@@ -1238,8 +1238,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
     marginBottom: 10,
   },
   historyMoreBtnText: {
@@ -1258,8 +1258,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: '#F3C4BD',
+    backgroundColor: '#FBE7E4',
   },
   cardBtnPerdaText: {
     fontFamily: FONT_SANS,
@@ -1286,8 +1286,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   chipActive: {
     borderColor: DANGER_RED,
@@ -1297,7 +1297,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   chipTextActive: {
     color: DANGER_RED,
@@ -1306,10 +1306,10 @@ const styles = paraCelular(StyleSheet.create({
   obsInput: {
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -1328,10 +1328,10 @@ const styles = paraCelular(StyleSheet.create({
     height: 16,
     borderRadius: 4,
     borderWidth: 1.5,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   toggleBoxActive: {
     backgroundColor: KIPI_BLUE_ACCENT,
@@ -1346,7 +1346,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   screenWrapper: {
     flex: 1,
@@ -1371,9 +1371,9 @@ const styles = paraCelular(StyleSheet.create({
   btnAcaoPreparo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1.5,
-    borderColor: '#BAE6FD',
+    borderColor: '#D6D7F3',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
@@ -1388,9 +1388,9 @@ const styles = paraCelular(StyleSheet.create({
   btnAcaoDescarte: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#F3C4BD',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
@@ -1410,13 +1410,13 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     gap: 8,
-    boxShadow: '0 2px 8px rgba(234, 88, 12, 0.35)',
+    boxShadow: '0 2px 8px rgba(185, 120, 26, 0.35)',
   },
   btnAcaoAssarText: {
     fontFamily: FONT_SANS,
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // BANNER FORNO ATIVO
@@ -1424,9 +1424,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FBF0DC',
     borderWidth: 1.5,
-    borderColor: '#FED7AA',
+    borderColor: '#F2DDB0',
     borderRadius: 14,
     padding: 14,
     marginBottom: 16,
@@ -1437,7 +1437,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1445,10 +1445,10 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '800',
-    color: '#9A3412',
+    color: '#9A6516',
   },
   ovenBadge: {
-    backgroundColor: '#EA580C',
+    backgroundColor: '#B9781A',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1457,12 +1457,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 9,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   ovenSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#C2410C',
+    color: '#9A6516',
     marginTop: 2,
   },
   ovenFinishBtn: {
@@ -1478,7 +1478,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // KPIS
@@ -1491,11 +1491,11 @@ const styles = paraCelular(StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 180,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   kpiCardHeader: {
     flexDirection: 'row',
@@ -1507,7 +1507,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   kpiIconBox: {
@@ -1521,13 +1521,13 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     marginBottom: 3,
   },
   kpiSubtext: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
 
   // COLUNAS PRINCIPAIS
@@ -1541,11 +1541,11 @@ const styles = paraCelular(StyleSheet.create({
   },
   historyCol: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     maxHeight: 580,
   },
 
@@ -1560,19 +1560,19 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   sectionSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   miniSearchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 5,
@@ -1590,11 +1590,11 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
   },
   productionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     marginBottom: 12,
   },
   loteLinha: {
@@ -1603,21 +1603,21 @@ const styles = paraCelular(StyleSheet.create({
     gap: 10,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
-  loteStepper: { flexDirection: 'row', alignItems: 'center', gap: 4 },  loteStepBtn: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  loteStepper: { flexDirection: 'row', alignItems: 'center', gap: 4 },  loteStepBtn: { width: 28, height: 28, borderRadius: 8, borderWidth: 1, borderColor: '#E8E0D6', backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   loteInput: {
     width: 48,
     textAlign: 'center',
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
     paddingVertical: 6,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
   },
   productionCardCompacto: {
     padding: 10,
@@ -1635,7 +1635,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 9,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1646,9 +1646,9 @@ const styles = paraCelular(StyleSheet.create({
   kpiStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingVertical: 6,
     marginBottom: 12,
@@ -1659,7 +1659,7 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 4,
     borderLeftWidth: 1,
-    borderLeftColor: '#F1F5F9',
+    borderLeftColor: '#F3EEE7',
   },
   kpiStripClicavel: {
     borderRadius: 8,
@@ -1671,7 +1671,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   kpiStripValue: {
     fontFamily: FONT_DISPLAY,
@@ -1689,7 +1689,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1697,19 +1697,19 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
     marginBottom: 2,
   },
   prodName: {
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   prodOvenTime: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginTop: 2,
   },
 
@@ -1717,7 +1717,7 @@ const styles = paraCelular(StyleSheet.create({
   stockBarsContainer: {
     flexDirection: 'row',
     gap: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
@@ -1733,7 +1733,7 @@ const styles = paraCelular(StyleSheet.create({
   stockBarLabel: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#475569',
+    color: '#4A3E37',
   },
   stockBarNumber: {
     fontFamily: FONT_DISPLAY,
@@ -1765,9 +1765,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0F9FF',
+    backgroundColor: '#ECEBFA',
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#D6D7F3',
     paddingVertical: 5,
     borderRadius: 10,
     gap: 6,
@@ -1783,16 +1783,16 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFF7ED',
+    backgroundColor: '#FBF0DC',
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: '#F2DDB0',
     paddingVertical: 5,
     borderRadius: 10,
     gap: 6,
   },
   cardBtnAssarDisabled: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
+    backgroundColor: '#F3EEE7',
+    borderColor: '#E8E0D6',
   },
   cardBtnAssarText: {
     fontFamily: FONT_SANS,
@@ -1801,7 +1801,7 @@ const styles = paraCelular(StyleSheet.create({
     color: OVEN_ORANGE,
   },
   cardBtnAssarTextDisabled: {
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
 
   // HISTÓRICO
@@ -1821,7 +1821,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
     marginBottom: 4,
   },
   historyDot: {
@@ -1837,11 +1837,11 @@ const styles = paraCelular(StyleSheet.create({
   },
   historyCardBox: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#F3EEE7',
   },
   historyTopRow: {
     flexDirection: 'row',
@@ -1854,7 +1854,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   historyTypeBadge: {
     paddingHorizontal: 6,
@@ -1881,12 +1881,12 @@ const styles = paraCelular(StyleSheet.create({
   historyDetailText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   historyAuthor: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginTop: 4,
     fontStyle: 'italic',
   },
@@ -1894,7 +1894,7 @@ const styles = paraCelular(StyleSheet.create({
   // MODAIS
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(43, 36, 33, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1902,11 +1902,11 @@ const styles = paraCelular(StyleSheet.create({
   modalBox: {
     width: '100%',
     maxWidth: 540,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 20,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
   },
   modalHeader: {
@@ -1916,7 +1916,7 @@ const styles = paraCelular(StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   modalIconCircle: {
     width: 44,
@@ -1929,12 +1929,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   modalBody: {
@@ -1943,9 +1943,9 @@ const styles = paraCelular(StyleSheet.create({
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBE7E4',
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: '#F3C4BD',
     borderRadius: 10,
     padding: 10,
     gap: 8,
@@ -1964,7 +1964,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 6,
   },
   stepperRow: {
@@ -1976,42 +1976,42 @@ const styles = paraCelular(StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   stepperInput: {
     width: 90,
     height: 42,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     textAlign: 'center',
     fontFamily: FONT_DISPLAY,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   checklistCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   checklistTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   checklistSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   checkItemRow: {
     flexDirection: 'row',
@@ -2019,56 +2019,56 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 5,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   checkItemName: {
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#334155',
+    color: '#3D312A',
   },
   checkItemAmount: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   checkItemStock: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   freezerNoticeBox: {
     backgroundColor: FREEZER_TINT,
     borderWidth: 1,
-    borderColor: '#BAE6FD',
+    borderColor: '#D6D7F3',
     borderRadius: 10,
     padding: 12,
   },
   freezerNoticeText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0369A1',
+    color: '#3A3D9E',
   },
   previewResultBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     gap: 4,
   },
   previewResultLabel: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 2,
   },
   previewResultText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#334155',
+    color: '#3D312A',
   },
   modalFooter: {
     flexDirection: 'row',
@@ -2077,7 +2077,7 @@ const styles = paraCelular(StyleSheet.create({
     gap: 12,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
     marginTop: 14,
   },
   modalCancelBtn: {
@@ -2089,7 +2089,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   modalConfirmBtn: {
     flexDirection: 'row',
@@ -2101,12 +2101,12 @@ const styles = paraCelular(StyleSheet.create({
     gap: 6,
   },
   modalConfirmBtnDisabled: {
-    backgroundColor: '#CBD5E1',
+    backgroundColor: '#D9CFC4',
   },
   modalConfirmBtnText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 }));

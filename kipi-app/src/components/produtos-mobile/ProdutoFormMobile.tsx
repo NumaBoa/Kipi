@@ -28,7 +28,7 @@ function Campo({ rotulo, style, ...props }: TextInputProps & { rotulo: string })
   return (
     <View style={[{ gap: 6 }, style]}>
       <T style={s.rotulo}>{rotulo}</T>
-      <TextInput placeholderTextColor="#94A3B8" {...props} style={s.input} />
+      <TextInput placeholderTextColor="#9A8F87" {...props} style={s.input} />
     </View>
   );
 }
@@ -189,7 +189,7 @@ export default function ProdutoFormMobile({
                 </View>
                 {criandoCat && (
                   <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TextInput value={novaCat} onChangeText={setNovaCat} placeholder="Nome da nova categoria" placeholderTextColor="#94A3B8" style={[s.input, { flex: 1 }]} accessibilityLabel="Nova categoria" autoFocus />
+                    <TextInput value={novaCat} onChangeText={setNovaCat} placeholder="Nome da nova categoria" placeholderTextColor="#9A8F87" style={[s.input, { flex: 1 }]} accessibilityLabel="Nova categoria" autoFocus />
                     <Botao
                       rotulo="Criar"
                       altura={50}
@@ -283,14 +283,14 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 12, paddingTop: 8, paddingBottom: 6 },
   titulo: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
   sub: { fontSize: 12, color: cor.textoSuave },
-  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   conteudo: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 32 },
   erro: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro },
   erroTexto: { flex: 1, fontSize: 13, fontWeight: '700', color: cor.vermelho },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, gap: 14 },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 22, padding: 16, gap: 14 },
   linha: { flexDirection: 'row', gap: 10 },
   rotulo: { fontSize: 13, fontWeight: '700', color: cor.textoMedio },
-  input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
+  input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   dica: { fontSize: 12, color: cor.textoSuave },
   dicaForte: { fontSize: 12, fontWeight: '800', color: cor.texto },
   gradeEmoji: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -298,14 +298,14 @@ const s = StyleSheet.create({
   emojiOn: { borderColor: cor.azulBotao, backgroundColor: cor.azulClaro },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { minHeight: 38, paddingHorizontal: 14, borderRadius: 19 },
-  chipNova: { minHeight: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9CC3E8', alignItems: 'center', justifyContent: 'center' },
+  chipNova: { minHeight: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#D6D7F3', alignItems: 'center', justifyContent: 'center' },
   chipNovaTexto: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
   dispo: { minHeight: 56, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1.5, borderColor: cor.borda, justifyContent: 'center', gap: 1 },
   dispoOn: { borderColor: cor.azulBotao, backgroundColor: cor.azulClaro },
   dispoTitulo: { fontSize: 14, fontWeight: '800' },
-  interruptor: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 22, borderWidth: 1.5, borderColor: '#FFFFFF', backgroundColor: '#FFFFFF' },
+  interruptor: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 22, borderWidth: 1.5, borderColor: '#FFFDFA', backgroundColor: '#FFFDFA' },
   interruptorOn: { borderColor: cor.azulBotao, backgroundColor: cor.azulClaro },
   trilho: { width: 40, height: 24, borderRadius: 12 },
-  bolinha: { position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF' },
-  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  bolinha: { position: 'absolute', top: 2, width: 20, height: 20, borderRadius: 10, backgroundColor: '#FFFDFA' },
+  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
 });

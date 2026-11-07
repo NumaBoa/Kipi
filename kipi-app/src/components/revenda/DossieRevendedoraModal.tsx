@@ -109,7 +109,7 @@ export default function DossieRevendedoraModal({
               </Text>
             </View>
             <TouchableOpacity onPress={onClose}>
-              <Feather name="x" size={20} color="#64748B" />
+              <Feather name="x" size={20} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
@@ -117,15 +117,15 @@ export default function DossieRevendedoraModal({
             {/* AÇÕES */}
             <View style={styles.actionsRow}>
               <TouchableOpacity style={[s.btnPrimary, styles.actionBtn]} onPress={onEntregar}>
-                <Feather name="truck" size={15} color="#FFFFFF" />
+                <Feather name="truck" size={15} color="#FFFDFA" />
                 <Text style={s.btnPrimaryText}>Entregar produtos</Text>
               </TouchableOpacity>
               <TouchableOpacity style={[s.btnPrimary, styles.actionBtn, { backgroundColor: SUCCESS_GREEN }]} onPress={onAcerto}>
-                <Feather name="dollar-sign" size={15} color="#FFFFFF" />
+                <Feather name="dollar-sign" size={15} color="#FFFDFA" />
                 <Text style={s.btnPrimaryText}>Acerto de contas</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.btnSecondary} onPress={onEditar}>
-                <Feather name="edit-2" size={14} color="#475569" />
+                <Feather name="edit-2" size={14} color="#4A3E37" />
                 <Text style={s.btnSecondaryText}>Editar cadastro</Text>
               </TouchableOpacity>
             </View>
@@ -148,7 +148,7 @@ export default function DossieRevendedoraModal({
               </View>
               <View style={[s.kpiCard, resumo.saldo > 0 && styles.kpiSaldoAberto]}>
                 <Text style={s.kpiLabel}>SALDO A PAGAR</Text>
-                <Text style={[s.kpiValue, { color: resumo.saldo > 0 ? WARNING_AMBER : '#0F172A' }]}>
+                <Text style={[s.kpiValue, { color: resumo.saldo > 0 ? WARNING_AMBER : '#2E211A' }]}>
                   {formatMoney(resumo.saldo)}
                 </Text>
                 <Text style={s.kpiSub}>{resumo.saldo > 0 ? 'Em aberto' : 'Tudo acertado'}</Text>
@@ -159,13 +159,13 @@ export default function DossieRevendedoraModal({
             <Text style={s.sectionTitle}>RESUMO DAS VENDAS</Text>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Feather name="package" size={14} color="#64748B" />
+                <Feather name="package" size={14} color="#6B615A" />
                 <Text style={styles.summaryText}>
                   <Text style={styles.summaryStrong}>{resumo.qtdItens}</Text> produtos vendidos
                 </Text>
               </View>
               <View style={styles.summaryItem}>
-                <Feather name="trending-up" size={14} color="#64748B" />
+                <Feather name="trending-up" size={14} color="#6B615A" />
                 <Text style={styles.summaryText}>
                   Ticket médio <Text style={styles.summaryStrong}>{formatMoney(resumo.ticketMedio)}</Text>
                 </Text>
@@ -197,7 +197,7 @@ export default function DossieRevendedoraModal({
                       <View style={{ flex: 1 }}>
                         <Text style={s.listMain} numberOfLines={1}>{p.nome}</Text>
                         <Text style={s.listSub}>
-                          Entregue {p.entregue} · Vendido {p.vendido} · Saldo <Text style={{ fontWeight: '800', color: '#0F172A' }}>{p.saldo} un</Text>
+                          Entregue {p.entregue} · Vendido {p.vendido} · Saldo <Text style={{ fontWeight: '800', color: '#2E211A' }}>{p.saldo} un</Text>
                         </Text>
                       </View>
                       <View style={[s.statusPill, { backgroundColor: st.fundo }]}>
@@ -273,7 +273,7 @@ export default function DossieRevendedoraModal({
                       onPress={() => {
                         if (confirmarExclusao(`Excluir esta entrega? Os produtos voltam para a vitrine.`)) onExcluirEntrega(e.id);
                       }}>
-                      <Feather name="trash-2" size={14} color="#94A3B8" />
+                      <Feather name="trash-2" size={14} color="#9A8F87" />
                     </TouchableOpacity>
                   </View>
                 ))
@@ -308,7 +308,7 @@ const styles = paraCelular(StyleSheet.create({
     flexWrap: 'wrap',
   },
   tagPill: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
@@ -317,7 +317,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -328,8 +328,8 @@ const styles = paraCelular(StyleSheet.create({
     flexGrow: 1,
   },
   kpiSaldoAberto: {
-    borderColor: '#FDE68A',
-    backgroundColor: '#FFFBEB',
+    borderColor: '#F2DDB0',
+    backgroundColor: '#FBF0DC',
   },
   summaryRow: {
     flexDirection: 'row',
@@ -340,7 +340,7 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 7,
@@ -349,12 +349,12 @@ const styles = paraCelular(StyleSheet.create({
   summaryText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#475569',
+    color: '#4A3E37',
     flexShrink: 1,
   },
   summaryStrong: {
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   reporBtn: {
     marginLeft: 6,
@@ -379,7 +379,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -394,7 +394,7 @@ const styles = paraCelular(StyleSheet.create({
   stockChipName: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#475569',
+    color: '#4A3E37',
     flexShrink: 1,
   },
 }));

@@ -39,11 +39,11 @@ const TITULO: Record<Painel, string> = {
   acerto: 'Acerto de contas',
   estoqueComigo: 'Estoque comigo',
 };
-const MEDALHA = ['#FDE68A', '#E2E8F0', '#FED7AA'];
+const MEDALHA = ['#F2DDB0', '#E8E0D6', '#F2DDB0'];
 const FUNIL = {
-  a_fazer: { titulo: 'Confirmadas', fg: '#2F6AA3', bg: '#EAF3FA' },
-  em_producao: { titulo: 'Em produção', fg: '#4F5A12', bg: '#F1F6D8' },
-  pronto: { titulo: 'Prontas', fg: '#15803D', bg: '#DCFCE7' },
+  a_fazer: { titulo: 'Confirmadas', fg: '#3A3D9E', bg: '#ECEBFA' },
+  em_producao: { titulo: 'Em produção', fg: '#7A4520', bg: '#F6E8D6' },
+  pronto: { titulo: 'Prontas', fg: '#2F7D55', bg: '#E4F1E9' },
 } as const;
 
 const doisDig = (n: number) => String(n).padStart(2, '0');
@@ -234,7 +234,7 @@ export default function VisaoGeralMobile() {
           ? [{ id: 'compras', titulo: 'O que comprar', sub: `${listaCompras.length} ${listaCompras.length === 1 ? 'insumo abaixo' : 'insumos abaixo'} do necessário`, valor: brl(custoCompras), bg: cor.ambarClaro, fg: cor.ambarTexto, icone: 'cart-outline' as const, abrir: () => setGaveta('compras') }]
           : []),
         ...(vitrineZerada.length
-          ? [{ id: 'vitrine', titulo: 'Vitrine zerada', sub: vitrineZerada.slice(0, 2).map((p) => p.nome).join(', '), valor: String(vitrineZerada.length), bg: '#FEE2E2', fg: cor.vermelho, icone: 'storefront-outline' as const, abrir: () => setGaveta('vitrine') }]
+          ? [{ id: 'vitrine', titulo: 'Vitrine zerada', sub: vitrineZerada.slice(0, 2).map((p) => p.nome).join(', '), valor: String(vitrineZerada.length), bg: '#FBE7E4', fg: cor.vermelho, icone: 'storefront-outline' as const, abrir: () => setGaveta('vitrine') }]
           : []),
         ...(revEmAlerta.length
           ? [{ id: 'rev', titulo: 'Revendedoras', sub: `${revEmAlerta.length} ${revEmAlerta.length === 1 ? 'parceira' : 'parceiras'} com estoque baixo`, valor: String(revEmAlerta.length), bg: cor.pistacheClaro, fg: cor.pistacheTexto, icone: 'account-group-outline' as const, abrir: () => setGaveta('revendedoras') }]
@@ -300,7 +300,7 @@ export default function VisaoGeralMobile() {
               {grafico.map((g, i) => (
                 <View key={i} style={s.barraCol}>
                   <T style={[s.barraValor, numeros]} numberOfLines={1}>{g.valor >= 1000 ? `${(g.valor / 1000).toFixed(1).replace('.', ',')}k` : Math.round(g.valor)}</T>
-                  <View style={[s.barra, { height: Math.max(6, Math.round((g.valor / maxGrafico) * 96)), backgroundColor: g.pico && g.valor > 0 ? cor.pistache : g.atual ? cor.azulBotao : '#9CC3E8' }]} />
+                  <View style={[s.barra, { height: Math.max(6, Math.round((g.valor / maxGrafico) * 96)), backgroundColor: g.pico && g.valor > 0 ? cor.pistache : g.atual ? cor.azulBotao : '#D6D7F3' }]} />
                   <T style={[s.barraDia, (g.atual || g.pico) && { color: cor.texto, fontWeight: '800' }]} numberOfLines={1}>{g.label}</T>
                 </View>
               ))}
@@ -430,7 +430,7 @@ export default function VisaoGeralMobile() {
             {cabecalho()}
             {escopo.sabores.length === 0 && <T style={s.dica}>O ateliê ainda não entregou produtos para você.</T>}
             {escopo.sabores.map((x) => {
-              const st = x.status === 'esgotado' ? { t: 'Esgotado', bg: '#FEE2E2', fg: cor.vermelho } : x.status === 'baixo' ? { t: 'Acabando', bg: cor.ambarClaro, fg: cor.ambarTexto } : { t: 'Em dia', bg: '#DCFCE7', fg: cor.verde };
+              const st = x.status === 'esgotado' ? { t: 'Esgotado', bg: '#FBE7E4', fg: cor.vermelho } : x.status === 'baixo' ? { t: 'Acabando', bg: cor.ambarClaro, fg: cor.ambarTexto } : { t: 'Em dia', bg: '#E4F1E9', fg: cor.verde };
               return (
                 <View key={x.produtoId ?? x.nome} style={s.lancamento}>
                   <T style={[s.lancTitulo, { flex: 1 }]} numberOfLines={1}>{x.nome}</T>
@@ -450,7 +450,7 @@ export default function VisaoGeralMobile() {
         <View style={s.topo}>
           <View style={{ flex: 1, gap: 2 }}>
             <T style={s.data2}>{dataHoje.charAt(0).toUpperCase() + dataHoje.slice(1)}</T>
-            <T titulo style={s.titulo}>{saudacao}, {primeiroNome}</T>
+            <T titulo style={s.titulo}>{saudacao}, <T titulo style={[s.titulo, { color: cor.mirtilo }]}>{primeiroNome}</T></T>
           </View>
           <TouchableOpacity style={[s.redondo, sombra]} onPress={() => setGaveta('organizar')} accessibilityRole="button" accessibilityLabel="Organizar painel">
             <Feather name="sliders" size={18} color={cor.textoMedio} />
@@ -478,11 +478,11 @@ export default function VisaoGeralMobile() {
           )}
           <View style={[s.linhaEntre, { gap: 8 }]}>
             <TouchableOpacity style={s.hojeBotaoBorda} onPress={() => setGaveta('cronograma')} accessibilityRole="button">
-              <Feather name="calendar" size={15} color="#FFFFFF" />
+              <Feather name="calendar" size={15} color="#FFFDFA" />
               <T style={s.hojeBotaoBordaTexto}>{entregasHoje.length} {entregasHoje.length === 1 ? 'entrega' : 'entregas'} hoje</T>
             </TouchableOpacity>
             <TouchableOpacity style={s.hojeBotao} onPress={() => setNovoAberto(true)} accessibilityRole="button">
-              <Feather name="plus" size={16} color={cor.azulTexto} />
+              <Feather name="plus" size={16} color={cor.carameloTinta} />
               <T style={s.hojeBotaoTexto}>Novo pedido</T>
             </TouchableOpacity>
           </View>
@@ -518,7 +518,7 @@ export default function VisaoGeralMobile() {
         </View>
         <View style={s.grade}>
           {kpiCards.map((k) => {
-            const bg = k.tom === 'vermelho' ? cor.vermelhoClaro : k.tom === 'verde' ? cor.verdeClaro : '#FFFFFF';
+            const bg = k.tom === 'vermelho' ? cor.vermelhoClaro : k.tom === 'verde' ? cor.verdeClaro : '#FFFDFA';
             const fg = k.tom === 'vermelho' ? cor.vermelho : k.tom === 'verde' ? cor.verde : cor.texto;
             return (
               <TouchableOpacity key={k.rotulo} style={[s.kpi, sombra, { backgroundColor: bg }]} onPress={k.abrir} disabled={!k.abrir} activeOpacity={0.8}>
@@ -651,13 +651,13 @@ export default function VisaoGeralMobile() {
               <T style={s.dica}>{p.ontem > 0 ? `Vendeu ${p.ontem} ontem` : 'Sem vendas ontem'}</T>
             </View>
             <TouchableOpacity
-              style={[s.acaoPeq, { backgroundColor: p.massa > 0 ? '#FFEDD5' : '#E0F2FE' }]}
+              style={[s.acaoPeq, { backgroundColor: p.massa > 0 ? '#FBF0DC' : '#ECEBFA' }]}
               onPress={() => {
                 setGaveta(null);
                 router.push(`/producao?${p.massa > 0 ? 'assar' : 'preparar'}=${p.id}&t=${Date.now()}` as any);
               }}
               accessibilityRole="button">
-              <T style={[s.forte, { color: p.massa > 0 ? '#9A3412' : '#075985' }]}>{p.massa > 0 ? 'Registrar fornada' : 'Preparar massa'}</T>
+              <T style={[s.forte, { color: p.massa > 0 ? '#9A6516' : '#3A3D9E' }]}>{p.massa > 0 ? 'Registrar fornada' : 'Preparar massa'}</T>
             </TouchableOpacity>
           </View>
         ))}
@@ -683,7 +683,7 @@ export default function VisaoGeralMobile() {
                 <T style={[s.forte, { color: cor.azulTexto }]}>+ Enviar remessa</T>
               </TouchableOpacity>
             ) : (
-              <View style={[s.etq, { backgroundColor: '#DCFCE7' }]}><T style={[s.etqTexto, { color: cor.verde }]}>Em dia</T></View>
+              <View style={[s.etq, { backgroundColor: '#E4F1E9' }]}><T style={[s.etqTexto, { color: cor.verde }]}>Em dia</T></View>
             )}
           </View>
         ))}
@@ -738,21 +738,21 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingHorizontal: 20, paddingTop: 10, paddingRight: 16 },
   data2: { fontSize: 13, fontWeight: '600', color: cor.textoSuave },
   titulo: { fontSize: 26, fontWeight: '700', letterSpacing: -0.5 },
-  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  hoje: { marginHorizontal: 16, marginTop: 14, padding: 18, borderRadius: 24, backgroundColor: cor.azulBotao, gap: 12 },
-  hojeRotulo: { fontSize: 13, fontWeight: '600', color: '#DCEBF8' },
-  hojeValor: { fontSize: 30, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.6 },
+  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
+  hoje: { marginHorizontal: 16, marginTop: 14, padding: 18, borderRadius: 24, backgroundColor: '#8A5530', gap: 12, ...(Platform.OS === 'web' ? ({ backgroundImage: 'radial-gradient(120% 120% at 85% 0%, #C08550 0%, #8A5530 55%, #6E4426 100%)', experimental_backgroundImage: 'radial-gradient(120% 120% at 85% 0%, #C08550 0%, #8A5530 55%, #6E4426 100%)', boxShadow: '0 30px 50px -30px rgba(40,18,4,.75)' } as object) : {}) },
+  hojeRotulo: { fontSize: 13, fontWeight: '600', color: '#ECEBFA' },
+  hojeValor: { fontSize: 30, fontWeight: '700', color: '#FFFDFA', letterSpacing: -0.6 },
   metaChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignSelf: 'flex-start' },
-  metaTexto: { fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  metaTexto: { fontSize: 12, fontWeight: '800', color: '#FFFDFA' },
   metaTrilho: { height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.22)', overflow: 'hidden' },
-  metaCheio: { height: '100%', borderRadius: 3, backgroundColor: '#D9E39A' },
+  metaCheio: { height: '100%', borderRadius: 3, backgroundColor: '#EBD5B8' },
   hojeBotaoBorda: { flex: 1, height: 46, borderRadius: 23, borderWidth: 1, borderColor: 'rgba(255,255,255,0.4)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  hojeBotaoBordaTexto: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-  hojeBotao: { flex: 1, height: 46, borderRadius: 23, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  hojeBotaoTexto: { fontSize: 14, fontWeight: '800', color: cor.azulTexto },
+  hojeBotaoBordaTexto: { fontSize: 13, fontWeight: '800', color: '#FFFDFA' },
+  hojeBotao: { flex: 1, height: 46, borderRadius: 23, backgroundColor: cor.creme, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  hojeBotaoTexto: { fontSize: 14, fontWeight: '800', color: cor.carameloTinta },
   secao: { paddingTop: 20 },
   secaoTitulo: { fontSize: 15, fontWeight: '700', color: cor.textoMedio, paddingHorizontal: 20, paddingBottom: 8 },
-  lista: { marginHorizontal: 16, backgroundColor: '#FFFFFF', borderRadius: 22, overflow: 'hidden' },
+  lista: { marginHorizontal: 16, backgroundColor: '#FFFDFA', borderRadius: 22, overflow: 'hidden' },
   atencao: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62, paddingVertical: 10, paddingLeft: 16, paddingRight: 14 },
   atencaoIcone: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
@@ -763,8 +763,8 @@ const s = StyleSheet.create({
   kpiValor: { fontSize: 19, fontWeight: '700', letterSpacing: -0.3 },
   kpiNota: { fontSize: 12, fontWeight: '800' },
   kpiSub: { fontSize: 11, color: cor.textoSuave },
-  encomendas: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, marginHorizontal: 16, marginTop: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#FFFFFF' },
-  painel: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 12 },
+  encomendas: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, marginHorizontal: 16, marginTop: 8, paddingHorizontal: 16, borderRadius: 20, backgroundColor: '#FFFDFA' },
+  painel: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 12 },
   painelTopo: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
   painelTitulo: { fontSize: 15, fontWeight: '700' },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
@@ -801,7 +801,7 @@ const s = StyleSheet.create({
   cronHora: { width: 46, fontSize: 13, fontWeight: '800', color: cor.ambar },
   faixa: { padding: 12, borderRadius: 16 },
   trilho: { height: 6, borderRadius: 3, backgroundColor: cor.cinzaClaro, overflow: 'hidden' },
-  trilhoCheio: { height: '100%', backgroundColor: '#D97706' },
+  trilhoCheio: { height: '100%', backgroundColor: '#B9781A' },
   acaoPeq: { height: 38, paddingHorizontal: 12, borderRadius: 19, justifyContent: 'center' },
   dia: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FCE7F3', alignItems: 'center', justifyContent: 'center' },
   seta: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: cor.borda, alignItems: 'center', justifyContent: 'center' },

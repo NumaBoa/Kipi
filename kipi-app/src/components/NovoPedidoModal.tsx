@@ -83,8 +83,8 @@ const MOTIVOS_PROMOCAO: { id: MotivoPromocao; emoji: string }[] = [
   { id: 'Compra em lote', emoji: '📦' },
 ];
 
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
 export default function NovoPedidoModal({
   visible,
@@ -446,7 +446,7 @@ export default function NovoPedidoModal({
           ========================================================================== */}
           <View style={styles.dialogHeader}>
             <View style={styles.headerIconSquare}>
-              <Feather name="shopping-bag" size={20} color="#2D7A58" />
+              <Feather name="shopping-bag" size={20} color="#7A4520" />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.headerSubUpper}>{editando ? `EDITAR PEDIDO · ${editando.codigoDisplay}` : escopo.ehRevendedora ? 'REVENDA · MINHA VENDA' : 'ATELIÊ · ATENDIMENTO'}</Text>
@@ -459,7 +459,7 @@ export default function NovoPedidoModal({
               style={styles.closeRoundBtn}
               onPress={onClose}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Feather name="x" size={16} color="#64748B" />
+              <Feather name="x" size={16} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
@@ -473,7 +473,7 @@ export default function NovoPedidoModal({
                 <View style={styles.fimResumo}>
                   <View style={styles.fimTopo}>
                     <View style={styles.fimIcone}>
-                      <Feather name="check" size={22} color="#FFFFFF" />
+                      <Feather name="check" size={22} color="#FFFDFA" />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.fimTitulo}>{editando ? 'Pedido atualizado!' : 'Pedido confirmado!'}</Text>
@@ -486,16 +486,16 @@ export default function NovoPedidoModal({
 
                   <View style={styles.fimChips}>
                     <View style={styles.fimChip}>
-                      <Feather name="package" size={12} color="#475569" />
+                      <Feather name="package" size={12} color="#4A3E37" />
                       <Text style={styles.fimChipTexto}>{count} {count === 1 ? 'item' : 'itens'}</Text>
                     </View>
                     <View style={styles.fimChip}>
-                      <Feather name={delivery === 'Encomenda' ? 'calendar' : delivery === 'Delivery' ? 'truck' : 'shopping-bag'} size={12} color="#475569" />
+                      <Feather name={delivery === 'Encomenda' ? 'calendar' : delivery === 'Delivery' ? 'truck' : 'shopping-bag'} size={12} color="#4A3E37" />
                       <Text style={styles.fimChipTexto}>{delivery}</Text>
                     </View>
                     <View style={[styles.fimChip, saldoNaEntrega > 0 ? styles.fimChipPendente : styles.fimChipPago]}>
-                      <Feather name={saldoNaEntrega > 0 ? 'clock' : 'check-circle'} size={12} color={saldoNaEntrega > 0 ? '#B45309' : '#15803D'} />
-                      <Text style={[styles.fimChipTexto, { color: saldoNaEntrega > 0 ? '#B45309' : '#15803D' }]}>
+                      <Feather name={saldoNaEntrega > 0 ? 'clock' : 'check-circle'} size={12} color={saldoNaEntrega > 0 ? '#9A6516' : '#2F7D55'} />
+                      <Text style={[styles.fimChipTexto, { color: saldoNaEntrega > 0 ? '#9A6516' : '#2F7D55' }]}>
                         {saldoNaEntrega > 0 ? `Falta ${money(saldoNaEntrega)}` : `Pago · ${payment}`}
                       </Text>
                     </View>
@@ -520,7 +520,7 @@ export default function NovoPedidoModal({
 
                   <View style={styles.fimAcoes}>
                     <TouchableOpacity style={styles.btnStartAnother} onPress={reset}>
-                      <Feather name="plus" size={15} color="#FFFFFF" />
+                      <Feather name="plus" size={15} color="#FFFDFA" />
                       <Text style={styles.btnStartAnotherText}>Novo pedido</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.fimBtnFechar} onPress={onClose}>
@@ -534,7 +534,7 @@ export default function NovoPedidoModal({
                   <View style={styles.wppBox}>
                     <View style={styles.wppCabecalho}>
                       <View style={styles.wppAvatar}>
-                        <Feather name="message-circle" size={14} color="#FFFFFF" />
+                        <Feather name="message-circle" size={14} color="#FFFDFA" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.wppTitulo}>Mensagem para o cliente</Text>
@@ -559,7 +559,7 @@ export default function NovoPedidoModal({
                             Linking.openURL(linkWhatsAppDoPedido(pedidoCriado, mensagemWpp));
                           }
                         }}>
-                        <Feather name="send" size={14} color="#FFFFFF" />
+                        <Feather name="send" size={14} color="#FFFDFA" />
                         <Text style={styles.wppBtnText}>Enviar no WhatsApp</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -571,7 +571,7 @@ export default function NovoPedidoModal({
                             setTimeout(() => setWppCopiado(false), 2000);
                           }
                         }}>
-                        <Feather name={wppCopiado ? 'check' : 'copy'} size={14} color="#15803D" />
+                        <Feather name={wppCopiado ? 'check' : 'copy'} size={14} color="#2F7D55" />
                         <Text style={styles.wppBtnSecText}>{wppCopiado ? 'Copiado!' : 'Copiar'}</Text>
                       </TouchableOpacity>
                     </View>
@@ -593,7 +593,7 @@ export default function NovoPedidoModal({
                     {/* QUEM ESTÁ COMPRANDO (obrigatório: começa vazio; busca por nome, telefone ou tag) */}
                     <View style={styles.clienteCol}>
                       <Text style={styles.fieldLabel}>
-                        <Feather name="user" size={12} color="#2D7A58" /> Quem está comprando? <Text style={{ color: '#DC2626' }}>*</Text>
+                        <Feather name="user" size={12} color="#7A4520" /> Quem está comprando? <Text style={{ color: '#B42318' }}>*</Text>
                       </Text>
 
                       <View style={styles.clienteLinha}>
@@ -601,7 +601,7 @@ export default function NovoPedidoModal({
                           style={[styles.selectTrigger, { flex: 1 }, selectClientOpen && styles.selectTriggerAberto, clienteId === '' && count > 0 && styles.selectTriggerErro]}
                           onPress={() => setSelectClientOpen(!selectClientOpen)}>
                           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={[styles.selectTriggerText, { flexShrink: 1 }, !rotuloCliente && { color: '#94A3B8' }]} numberOfLines={1}>
+                            <Text style={[styles.selectTriggerText, { flexShrink: 1 }, !rotuloCliente && { color: '#9A8F87' }]} numberOfLines={1}>
                               {rotuloCliente || 'Escolha o cliente...'}
                             </Text>
                             {clienteSelecionado?.tag ? (
@@ -610,7 +610,7 @@ export default function NovoPedidoModal({
                               </View>
                             ) : null}
                           </View>
-                          <Feather name={selectClientOpen ? 'chevron-up' : 'chevron-down'} size={14} color="#64748B" />
+                          <Feather name={selectClientOpen ? 'chevron-up' : 'chevron-down'} size={14} color="#6B615A" />
                         </TouchableOpacity>
                         {/* Cadastrar cliente sem abrir a lista; ao salvar ele já vem escolhido */}
                         <TouchableOpacity
@@ -620,18 +620,18 @@ export default function NovoPedidoModal({
                             setSelectClientOpen(false);
                             setModalClienteAberto(true);
                           }}>
-                          <Feather name="user-plus" size={16} color="#2D7A58" />
+                          <Feather name="user-plus" size={16} color="#7A4520" />
                         </TouchableOpacity>
                       </View>
 
                       {selectClientOpen && (
                         <View style={styles.selectDropdownMenu}>
                           <View style={styles.clienteBuscaBox}>
-                            <Feather name="search" size={13} color="#94A3B8" />
+                            <Feather name="search" size={13} color="#9A8F87" />
                             <TextInput
                               style={styles.clienteBuscaInput}
                               placeholder="Nome, telefone ou tag"
-                              placeholderTextColor="#94A3B8"
+                              placeholderTextColor="#9A8F87"
                               value={buscaCliente}
                               onChangeText={setBuscaCliente}
                               autoFocus
@@ -647,7 +647,7 @@ export default function NovoPedidoModal({
                                   setSelectClientOpen(false);
                                 }}>
                                 <View style={styles.clienteAvatar}>
-                                  <Feather name="shopping-bag" size={12} color="#64748B" />
+                                  <Feather name="shopping-bag" size={12} color="#6B615A" />
                                 </View>
                                 <View style={{ flex: 1 }}>
                                   <Text style={styles.selectDropdownItemText}>Balcão avulso</Text>
@@ -707,7 +707,7 @@ export default function NovoPedidoModal({
                               <Feather
                                 name={m.icon as any}
                                 size={12}
-                                color={isActive ? '#2D7A58' : '#64748B'}
+                                color={isActive ? '#7A4520' : '#6B615A'}
                               />
                               <Text style={[styles.deliverySegmentBtnText, isActive && styles.deliverySegmentBtnTextActive]}>
                                 {m.name}
@@ -724,7 +724,7 @@ export default function NovoPedidoModal({
                     <TextInput
                       style={styles.singleLineInput}
                       placeholder="Endereço de entrega"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       value={address}
                       onChangeText={setAddress}
                     />
@@ -737,7 +737,7 @@ export default function NovoPedidoModal({
                       <TextInput
                         style={styles.singleLineInput}
                         placeholder="Ex: 25/10 14:00"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor="#9A8F87"
                         value={date}
                         onChangeText={setDate}
                       />
@@ -756,11 +756,11 @@ export default function NovoPedidoModal({
                       </Text>
                     </View>
                     <View style={[styles.searchBarBox, styles.searchBarInline]}>
-                      <Feather name="search" size={15} color="#94A3B8" style={{ marginRight: 8 }} />
+                      <Feather name="search" size={15} color="#9A8F87" style={{ marginRight: 8 }} />
                       <TextInput
                         style={styles.searchBarInput}
                         placeholder="Buscar um doce ou sabor…"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor="#9A8F87"
                         value={search}
                         onChangeText={setSearch}
                       />
@@ -789,7 +789,7 @@ export default function NovoPedidoModal({
                       style={styles.checkboxOnlyAvailable}
                       onPress={() => setAvailableOnly(!availableOnly)}>
                       <View style={[styles.customCheckbox, availableOnly && styles.customCheckboxActive]}>
-                        {availableOnly && <Feather name="check" size={10} color="#FFFFFF" />}
+                        {availableOnly && <Feather name="check" size={10} color="#FFFDFA" />}
                       </View>
                       <Text style={styles.checkboxLabel}>Só disponíveis</Text>
                     </TouchableOpacity>
@@ -852,7 +852,7 @@ export default function NovoPedidoModal({
                                     <Feather
                                       name="plus"
                                       size={14}
-                                      color={isUnavailable ? '#94A3B8' : '#2D7A58'}
+                                      color={isUnavailable ? '#9A8F87' : '#7A4520'}
                                     />
                                   </TouchableOpacity>
                                 </View>
@@ -904,7 +904,7 @@ export default function NovoPedidoModal({
                   {count === 0 ? (
                     <View style={styles.emptyCartBox}>
                       <View style={styles.emptyCartCookieCircle}>
-                        <Feather name="disc" size={24} color="#2D7A58" />
+                        <Feather name="disc" size={24} color="#7A4520" />
                       </View>
                       <Text style={styles.emptyCartTitle}>Toda delícia começa aqui</Text>
                       <Text style={styles.emptyCartSub}>
@@ -924,7 +924,7 @@ export default function NovoPedidoModal({
                               <TouchableOpacity
                                 onPress={() => setCart((curr) => ({ ...curr, [p.id]: 0 }))}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                                <Feather name="x" size={13} color="#94A3B8" />
+                                <Feather name="x" size={13} color="#9A8F87" />
                               </TouchableOpacity>
                             </View>
 
@@ -933,14 +933,14 @@ export default function NovoPedidoModal({
                                 <TouchableOpacity
                                   style={styles.stepperPillBtn}
                                   onPress={() => change(p.id, -1)}>
-                                  <Feather name="minus" size={11} color="#1E293B" />
+                                  <Feather name="minus" size={11} color="#2E211A" />
                                 </TouchableOpacity>
                                 <Text style={styles.stepperPillValue}>{q}</Text>
                                 <TouchableOpacity
                                   style={styles.stepperPillBtn}
                                   disabled={delivery !== 'Encomenda' && q >= p.stock}
                                   onPress={() => change(p.id, 1)}>
-                                  <Feather name="plus" size={11} color="#1E293B" />
+                                  <Feather name="plus" size={11} color="#2E211A" />
                                 </TouchableOpacity>
                               </View>
                               {p.discount ? (
@@ -1007,12 +1007,12 @@ export default function NovoPedidoModal({
                   {/* OBSERVAÇÃO */}
                   <View style={{ gap: 4 }}>
                     <Text style={styles.asideSectionLabel}>
-                      Algum cuidado especial? <Text style={{ fontWeight: '400', color: '#64748B' }}>(opcional)</Text>
+                      Algum cuidado especial? <Text style={{ fontWeight: '400', color: '#6B615A' }}>(opcional)</Text>
                     </Text>
                     <TextInput
                       style={styles.asideInputNotes}
                       placeholder="Ex.: embalagem para presente"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       value={notes}
                       onChangeText={setNotes}
                     />
@@ -1035,7 +1035,7 @@ export default function NovoPedidoModal({
                             <Feather
                               name={p.icon as any}
                               size={15}
-                              color={isSelected ? '#2D7A58' : '#1E293B'}
+                              color={isSelected ? '#7A4520' : '#2E211A'}
                             />
                             <Text
                               style={[
@@ -1081,7 +1081,7 @@ export default function NovoPedidoModal({
                           style={styles.sinalInput}
                           keyboardType="decimal-pad"
                           placeholder={sinalModo === 'porcentagem' ? 'Ex: 50' : '0,00'}
-                          placeholderTextColor="#94A3B8"
+                          placeholderTextColor="#9A8F87"
                           value={sinalValor}
                           onChangeText={(t) => setSinalValor(t.replace(/[^\d,]/g, ''))}
                         />
@@ -1107,7 +1107,7 @@ export default function NovoPedidoModal({
                         style={styles.asideInputNotes}
                         keyboardType="numeric"
                         placeholder="0,00"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor="#9A8F87"
                         value={received}
                         onChangeText={setReceived}
                       />
@@ -1153,21 +1153,21 @@ export default function NovoPedidoModal({
                     disabled={!valid || salvandoPedido}
                     onPress={handleFinalizar}>
                     {salvandoPedido ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color="#FFFDFA" />
                     ) : (
                       <View style={styles.btnFinalizeContentRow}>
                         <Text style={styles.btnFinalizeCtaText}>
                           {editando ? 'Salvar alterações' : payment === 'Pendente' ? 'Criar pedido pendente' : 'Finalizar pedido'}
                         </Text>
-                        <Feather name="arrow-right" size={15} color="#FFFFFF" />
+                        <Feather name="arrow-right" size={15} color="#FFFDFA" />
                       </View>
                     )}
                   </TouchableOpacity>
 
                   {/* NOTA DE STATUS DO PAGAMENTO */}
                   <View style={styles.paymentStatusFooterLine}>
-                    <Feather name={payment && clienteId ? 'check' : 'alert-circle'} size={11} color={payment && clienteId ? '#64748B' : '#DC2626'} />
-                    <Text style={[styles.paymentStatusFooterText, (!payment || !clienteId) && { color: '#DC2626', fontWeight: '700' }]}>
+                    <Feather name={payment && clienteId ? 'check' : 'alert-circle'} size={11} color={payment && clienteId ? '#6B615A' : '#B42318'} />
+                    <Text style={[styles.paymentStatusFooterText, (!payment || !clienteId) && { color: '#B42318', fontWeight: '700' }]}>
                       {!clienteId
                         ? 'Escolha quem está comprando para finalizar'
                         : !payment
@@ -1209,7 +1209,7 @@ function TextoWhatsApp({ texto }: { texto: string }) {
         parte.startsWith('*') && parte.endsWith('*') && parte.length > 2 ? (
           <Text key={i} style={{ fontWeight: '800' }}>{parte.slice(1, -1)}</Text>
         ) : parte.startsWith('_') && parte.endsWith('_') && parte.length > 2 ? (
-          <Text key={i} style={{ fontStyle: 'italic', color: '#54656F' }}>{parte.slice(1, -1)}</Text>
+          <Text key={i} style={{ fontStyle: 'italic', color: '#6B615A' }}>{parte.slice(1, -1)}</Text>
         ) : (
           <Text key={i}>{parte}</Text>
         )
@@ -1223,9 +1223,9 @@ const styles = paraCelular(StyleSheet.create({
     gap: 6,
     padding: 10,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   sinalHeaderRow: {
     flexDirection: 'row',
@@ -1235,41 +1235,41 @@ const styles = paraCelular(StyleSheet.create({
   sinalModoToggle: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
     overflow: 'hidden',
   },
   sinalModoBtn: {
     paddingHorizontal: 12,
     paddingVertical: 4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   sinalModoBtnActive: {
-    backgroundColor: '#2D7A58',
+    backgroundColor: '#7A4520',
   },
   sinalModoText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   sinalModoTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   sinalInputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 8,
     paddingHorizontal: 10,
   },
   sinalAffix: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   sinalInput: {
@@ -1277,14 +1277,14 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 7,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     fontFamily: FONT_SANS,
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   sinalErro: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#DC2626',
+    color: '#B42318',
     fontFamily: FONT_SANS,
   },
   saldoEntregaRow: {
@@ -1295,20 +1295,20 @@ const styles = paraCelular(StyleSheet.create({
   },
   saldoEntregaLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   saldoEntregaValor: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#D97706',
+    color: '#B9781A',
     fontFamily: FONT_SANS,
   },
   // PROMOÇÃO / DESCONTO POR ITEM
   promoTagText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#B45309',
+    color: '#9A6516',
     fontFamily: FONT_SANS,
     marginTop: 1,
   },
@@ -1319,16 +1319,16 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#FDE68A',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#F2DDB0',
+    backgroundColor: '#FFFDFA',
   },
-  promoBtnAtivo: { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' },
-  promoBtnText: { fontSize: 10, fontWeight: '700', color: '#B45309', fontFamily: FONT_SANS },
-  promoBtnTextAtivo: { color: '#92400E', fontWeight: '800' },
-  comissaoPill: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: '#F5F3FF', borderWidth: 1, borderColor: '#DDD6FE' },
-  comissaoPillText: { fontSize: 10, fontWeight: '800', color: '#6D28D9', fontFamily: FONT_SANS },
-  promoMotivoChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A' },
-  promoMotivoChipText: { fontSize: 10, fontWeight: '700', color: '#92400E', fontFamily: FONT_SANS },
+  promoBtnAtivo: { backgroundColor: '#FBF0DC', borderColor: '#B9781A' },
+  promoBtnText: { fontSize: 10, fontWeight: '700', color: '#9A6516', fontFamily: FONT_SANS },
+  promoBtnTextAtivo: { color: '#9A6516', fontWeight: '800' },
+  comissaoPill: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999, backgroundColor: '#F3F2FC', borderWidth: 1, borderColor: '#D6D7F3' },
+  comissaoPillText: { fontSize: 10, fontWeight: '800', color: '#3A3D9E', fontFamily: FONT_SANS },
+  promoMotivoChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, backgroundColor: '#FBF0DC', borderWidth: 1, borderColor: '#F2DDB0' },
+  promoMotivoChipText: { fontSize: 10, fontWeight: '700', color: '#9A6516', fontFamily: FONT_SANS },
   promoToggleRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1337,20 +1337,20 @@ const styles = paraCelular(StyleSheet.create({
     marginTop: 6,
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
   },
   promoCheckboxActive: {
-    backgroundColor: '#D97706',
-    borderColor: '#D97706',
+    backgroundColor: '#B9781A',
+    borderColor: '#B9781A',
   },
   promoToggleText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   promoToggleTextActive: {
-    color: '#92400E',
+    color: '#9A6516',
     fontWeight: '800',
   },
   promoAllBtn: {
@@ -1358,36 +1358,36 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 8,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FBF0DC',
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#F2DDB0',
     marginBottom: 8,
   },
   promoAllBtnText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#92400E',
+    color: '#9A6516',
     fontFamily: FONT_SANS,
   },
 
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(43, 36, 33, 0.65)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
   },
   dialogContent: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     overflow: 'hidden',
     flexDirection: 'column',
     fontFamily: FONT_SANS as any,
     ...Platform.select({
       web: {
-        boxShadow: '0 25px 50px -12px rgba(15, 23, 42, 0.25)',
+        boxShadow: '0 25px 50px -12px rgba(43, 36, 33, 0.25)',
       },
     }),
   },
@@ -1410,14 +1410,14 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   headerIconSquare: {
     width: 44,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#EAF5F1',
+    backgroundColor: '#F6E8D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1425,28 +1425,28 @@ const styles = paraCelular(StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 1.5,
-    color: '#2D7A58',
+    color: '#7A4520',
     marginBottom: 3,
-    fontFamily: Platform.select({ web: '"Manrope", sans-serif' }),
+    fontFamily: Platform.select({ web: '"Instrument Sans", sans-serif' }),
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#2E211A',
     letterSpacing: 0,
-    fontFamily: Platform.select({ web: '"Sora", sans-serif' }),
+    fontFamily: Platform.select({ web: '"Bricolage Grotesque", sans-serif' }),
   },
   headerDescription: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
-    fontFamily: Platform.select({ web: '"Manrope", sans-serif' }),
+    fontFamily: Platform.select({ web: '"Instrument Sans", sans-serif' }),
   },
   closeRoundBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1473,7 +1473,7 @@ const styles = paraCelular(StyleSheet.create({
   leftSection: {
     flex: 1,
     borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
+    borderRightColor: '#E8E0D6',
     flexDirection: 'column',
     minHeight: 0,
   },
@@ -1483,7 +1483,7 @@ const styles = paraCelular(StyleSheet.create({
     flexShrink: 0,
     flexBasis: 'auto',
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
   },
 
   // BARRA SUPERIOR DE QUEM COMPRA E COMO RECEBE
@@ -1491,12 +1491,12 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
     gap: 12,
     // Fica por cima da vitrine para a lista de clientes não ficar "transparente"
     position: 'relative',
     zIndex: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   selectorGridCol: {
     flexDirection: 'row',
@@ -1505,15 +1505,15 @@ const styles = paraCelular(StyleSheet.create({
   fieldLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#2E211A',
     marginBottom: 8,
   },
   selectTrigger: {
     height: 40,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1522,17 +1522,17 @@ const styles = paraCelular(StyleSheet.create({
   selectTriggerText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   selectDropdownMenu: {
     position: 'absolute',
     top: 72,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     zIndex: 999,
     ...Platform.select({
       web: {
@@ -1547,15 +1547,15 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
-    backgroundColor: '#FFFFFF',
+    borderBottomColor: '#F8F6F2',
+    backgroundColor: '#FFFDFA',
   },
-  selectDropdownItemAtivo: { backgroundColor: '#EAF5F1' },
-  selectTriggerAberto: { borderColor: '#2D7A58' },
-  selectTriggerErro: { borderColor: '#FCA5A5' },
+  selectDropdownItemAtivo: { backgroundColor: '#F6E8D6' },
+  selectTriggerAberto: { borderColor: '#7A4520' },
+  selectTriggerErro: { borderColor: '#F3C4BD' },
   clienteCol: { flex: 1, position: 'relative', zIndex: 30 },
   clienteLinha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  btnNovoCliente: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: '#CDE7DC', backgroundColor: '#EAF5F1', alignItems: 'center', justifyContent: 'center' },
+  btnNovoCliente: { width: 40, height: 40, borderRadius: 10, borderWidth: 1, borderColor: '#F6E8D6', backgroundColor: '#F6E8D6', alignItems: 'center', justifyContent: 'center' },
   clienteBuscaBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1564,19 +1564,19 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
-  clienteBuscaInput: { flex: 1, fontSize: 12, color: '#0F172A', fontFamily: FONT_SANS, outlineStyle: 'none' } as any,
-  clienteAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
-  clienteAvatarTexto: { fontSize: 11, fontWeight: '800', color: '#2D7A58', fontFamily: FONT_SANS },
-  clienteSub: { fontSize: 10, color: '#94A3B8', fontFamily: FONT_SANS, marginTop: 1 },
-  clienteTag: { backgroundColor: '#EAF5F1', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
-  clienteTagTexto: { fontSize: 9, fontWeight: '800', color: '#2D7A58', fontFamily: FONT_SANS },
+  clienteBuscaInput: { flex: 1, fontSize: 12, color: '#2E211A', fontFamily: FONT_SANS, outlineStyle: 'none' } as any,
+  clienteAvatar: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#F3EEE7', alignItems: 'center', justifyContent: 'center' },
+  clienteAvatarTexto: { fontSize: 11, fontWeight: '800', color: '#7A4520', fontFamily: FONT_SANS },
+  clienteSub: { fontSize: 10, color: '#9A8F87', fontFamily: FONT_SANS, marginTop: 1 },
+  clienteTag: { backgroundColor: '#F6E8D6', borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
+  clienteTagTexto: { fontSize: 9, fontWeight: '800', color: '#7A4520', fontFamily: FONT_SANS },
   selectDropdownItemText: {
     fontSize: 12,
-    color: '#1E293B',
+    color: '#2E211A',
     fontWeight: '600',
     fontFamily: FONT_SANS,
   },
@@ -1584,27 +1584,27 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     padding: 8,
     gap: 6,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
   },
   inlineClientInput: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
     fontSize: 11,
-    color: '#1E293B',
+    color: '#2E211A',
   },
   btnConfirmInlineClient: {
-    backgroundColor: '#2D7A58',
+    backgroundColor: '#7A4520',
     paddingHorizontal: 10,
     borderRadius: 6,
     justifyContent: 'center',
   },
   btnConfirmInlineClientText: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1612,7 +1612,7 @@ const styles = paraCelular(StyleSheet.create({
   // COMO VAI RECEBER (SEGMENTED CONTROL)
   deliverySegmentBox: {
     height: 40,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 8,
     padding: 3,
     flexDirection: 'row',
@@ -1630,7 +1630,7 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 6,
   },
   deliverySegmentBtnActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     ...Platform.select({
       web: {
         boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
@@ -1640,26 +1640,26 @@ const styles = paraCelular(StyleSheet.create({
   deliverySegmentBtnText: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#64748B',
+    color: '#6B615A',
   },
   deliverySegmentBtnTextActive: {
-    color: '#2D7A58',
+    color: '#7A4520',
     fontWeight: '700',
   },
 
   singleLineInput: {
     height: 38,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     paddingHorizontal: 12,
     fontSize: 12,
-    color: '#1E293B',
+    color: '#2E211A',
   },
   miniInputLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     marginBottom: 4,
   },
 
@@ -1680,18 +1680,18 @@ const styles = paraCelular(StyleSheet.create({
   vitrineTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#2E211A',
     fontFamily: FONT_DISPLAY,
   },
   vitrineCountHint: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // SEARCH BOX
   searchBarBox: {
     height: 40,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 8,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1708,7 +1708,7 @@ const styles = paraCelular(StyleSheet.create({
   searchBarInput: {
     flex: 1,
     fontSize: 12,
-    color: '#1E293B',
+    color: '#2E211A',
     padding: 0,
     outlineWidth: 0,
   },
@@ -1732,15 +1732,15 @@ const styles = paraCelular(StyleSheet.create({
     borderRadius: 999,
   },
   categoryChipActive: {
-    backgroundColor: '#EAF5F1',
+    backgroundColor: '#F6E8D6',
   },
   categoryChipText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#64748B',
+    color: '#6B615A',
   },
   categoryChipTextActive: {
-    color: '#2D7A58',
+    color: '#7A4520',
     fontWeight: '700',
   },
   checkboxOnlyAvailable: {
@@ -1753,17 +1753,17 @@ const styles = paraCelular(StyleSheet.create({
     height: 14,
     borderRadius: 3,
     borderWidth: 1.5,
-    borderColor: '#94A3B8',
+    borderColor: '#9A8F87',
     alignItems: 'center',
     justifyContent: 'center',
   },
   customCheckboxActive: {
-    backgroundColor: '#2D7A58',
-    borderColor: '#2D7A58',
+    backgroundColor: '#7A4520',
+    borderColor: '#7A4520',
   },
   checkboxLabel: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // GRID DE PRODUTOS
@@ -1784,7 +1784,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   emptyProductsText: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // CARD DE PRODUTO INDIVIDUAL (FIDEDIGNO AO LOVABLE)
@@ -1797,8 +1797,8 @@ const styles = paraCelular(StyleSheet.create({
     padding: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
     ...Platform.select({
       web: {
         transition: 'all 0.15s ease',
@@ -1806,11 +1806,11 @@ const styles = paraCelular(StyleSheet.create({
     }),
   },
   productCardInCart: {
-    borderColor: 'rgba(45, 122, 88, 0.45)',
-    backgroundColor: 'rgba(234, 245, 241, 0.45)',
+    borderColor: 'rgba(122, 69, 32, 0.45)',
+    backgroundColor: 'rgba(246, 232, 214, 0.45)',
   },
   productCardDisabled: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     opacity: 0.7,
   },
   productPhotoWrap: {
@@ -1818,7 +1818,7 @@ const styles = paraCelular(StyleSheet.create({
     height: 64,
     borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
   },
   productPhotoImg: {
     width: '100%',
@@ -1839,15 +1839,15 @@ const styles = paraCelular(StyleSheet.create({
   productName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     lineHeight: 16,
   },
   productNameDisabled: {
-    color: '#64748B',
+    color: '#6B615A',
   },
   productDetail: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 1,
   },
   productPriceRow: {
@@ -1859,42 +1859,42 @@ const styles = paraCelular(StyleSheet.create({
   productPriceText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
-    fontFamily: Platform.select({ web: 'Sora, sans-serif' }),
+    color: '#2E211A',
+    fontFamily: Platform.select({ web: 'Bricolage Grotesque, sans-serif' }),
   },
   btnAddProductCircle: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#EAF5F1',
+    backgroundColor: '#F6E8D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   btnAddProductCircleDisabled: {
     opacity: 0.4,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
   },
   productStockText: {
     fontSize: 10,
     marginTop: 3,
   },
   productStockAvailable: {
-    color: '#228658',
+    color: '#2F7D55',
     fontWeight: '600',
   },
   productStockEmpty: {
-    color: '#64748B',
+    color: '#6B615A',
   },
   footerMicroNote: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 8,
   },
 
   // COLUNA 2 (DIREITA - 370PX): COMANDA SEU PEDIDO
   asideOrderSection: {
     width: 370,
-    backgroundColor: 'rgba(241, 245, 249, 0.55)',
+    backgroundColor: 'rgba(243, 238, 231, 0.55)',
     flexDirection: 'column',
     minHeight: 0,
   },
@@ -1909,17 +1909,17 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
   },
   asideTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#2E211A',
     fontFamily: FONT_DISPLAY,
   },
   asideClientSub: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
     maxWidth: 260,
   },
@@ -1927,14 +1927,14 @@ const styles = paraCelular(StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EAF5F1',
+    backgroundColor: '#F6E8D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   countBadgeRoundText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#2D7A58',
+    color: '#7A4520',
   },
 
   // LISTA DE ITENS NA COMANDA
@@ -1956,9 +1956,9 @@ const styles = paraCelular(StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -1966,11 +1966,11 @@ const styles = paraCelular(StyleSheet.create({
   emptyCartTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   emptyCartSub: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     textAlign: 'center',
     maxWidth: 230,
     marginTop: 6,
@@ -1981,7 +1981,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   cartItemRow: {
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
     paddingBottom: 10,
     gap: 8,
   },
@@ -1993,7 +1993,7 @@ const styles = paraCelular(StyleSheet.create({
   cartItemName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     flex: 1,
   },
   cartItemControlsRow: {
@@ -2004,9 +2004,9 @@ const styles = paraCelular(StyleSheet.create({
   stepperPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 6,
   },
   stepperPillBtn: {
@@ -2018,21 +2018,21 @@ const styles = paraCelular(StyleSheet.create({
   stepperPillValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     minWidth: 20,
     textAlign: 'center',
   },
   cartItemSubtotalText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
 
   // FOOTER CHECKOUT FIXO
   asideFooterCheckout: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E8E0D6',
     paddingHorizontal: 20,
     paddingVertical: 16,
     gap: 12,
@@ -2040,16 +2040,16 @@ const styles = paraCelular(StyleSheet.create({
   asideSectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   asideInputNotes: {
     height: 38,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
     paddingHorizontal: 10,
     fontSize: 12,
-    color: '#1E293B',
+    color: '#2E211A',
   },
   paymentsGridFour: {
     flexDirection: 'row',
@@ -2059,30 +2059,30 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     height: 56,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
     paddingHorizontal: 4,
   },
   payMethodBtnSelected: {
-    borderColor: '#2D7A58',
-    backgroundColor: '#EAF5F1',
+    borderColor: '#7A4520',
+    backgroundColor: '#F6E8D6',
   },
   payMethodBtnText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   payMethodBtnTextSelected: {
-    color: '#2D7A58',
+    color: '#7A4520',
     fontWeight: '800',
   },
   changeHintText: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   asideTotalRow: {
@@ -2090,29 +2090,29 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E8E0D6',
     paddingTop: 12,
   },
   asideTotalLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   asideTotalHint: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   asideTotalAmount: {
     fontSize: 24,
     fontWeight: '600',
-    color: '#2D7A58',
+    color: '#7A4520',
     fontFamily: FONT_DISPLAY,
   },
   btnFinalizeCta: {
     height: 44,
     borderRadius: 8,
-    backgroundColor: '#2D7A58',
+    backgroundColor: '#7A4520',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2125,7 +2125,7 @@ const styles = paraCelular(StyleSheet.create({
     gap: 8,
   },
   btnFinalizeCtaText: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontSize: 14,
     fontWeight: '600',
     fontFamily: FONT_SANS,
@@ -2138,40 +2138,40 @@ const styles = paraCelular(StyleSheet.create({
   },
   paymentStatusFooterText: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
 
   // TELA DE PEDIDO CONFIRMADO: resumo à esquerda, prévia do WhatsApp à direita
   fimScroll: { padding: 24, flexGrow: 1, justifyContent: 'center' },
   fimGrid: { flexDirection: 'row', gap: 20, alignItems: 'stretch', maxWidth: 920, width: '100%', alignSelf: 'center' },
-  fimResumo: { flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', padding: 20, gap: 16 },
+  fimResumo: { flex: 1, backgroundColor: '#FFFDFA', borderRadius: 16, borderWidth: 1, borderColor: '#E8E0D6', padding: 20, gap: 16 },
   fimTopo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  fimIcone: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#2D7A58', alignItems: 'center', justifyContent: 'center' },
-  fimTitulo: { fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: '800', color: '#0F172A', letterSpacing: -0.3 },
-  fimSub: { fontFamily: FONT_SANS, fontSize: 12, color: '#64748B', marginTop: 2 },
+  fimIcone: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#7A4520', alignItems: 'center', justifyContent: 'center' },
+  fimTitulo: { fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: '800', color: '#2E211A', letterSpacing: -0.3 },
+  fimSub: { fontFamily: FONT_SANS, fontSize: 12, color: '#6B615A', marginTop: 2 },
   fimChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  fimChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F1F5F9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  fimChipPendente: { backgroundColor: '#FEF3C7' },
-  fimChipPago: { backgroundColor: '#DCFCE7' },
-  fimChipTexto: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '700', color: '#475569' },
-  fimItens: { borderRadius: 12, backgroundColor: '#F8FAFC', padding: 12, gap: 8 },
+  fimChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#F3EEE7', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  fimChipPendente: { backgroundColor: '#FBF0DC' },
+  fimChipPago: { backgroundColor: '#E4F1E9' },
+  fimChipTexto: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '700', color: '#4A3E37' },
+  fimItens: { borderRadius: 12, backgroundColor: '#F8F6F2', padding: 12, gap: 8 },
   fimItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  fimItemQtd: { width: 28, fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '800', color: '#2D7A58' },
-  fimItemNome: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#1E293B' },
-  fimItemPromo: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#B45309', marginTop: 1 },
-  fimItemValor: { fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '700', color: '#334155' },
-  fimTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 8, marginTop: 2 },
-  fimTotalRotulo: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#475569' },
-  fimTotalValor: { fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: '800', color: '#2D7A58' },
+  fimItemQtd: { width: 28, fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '800', color: '#7A4520' },
+  fimItemNome: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#2E211A' },
+  fimItemPromo: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#9A6516', marginTop: 1 },
+  fimItemValor: { fontFamily: FONT_DISPLAY, fontSize: 12, fontWeight: '700', color: '#3D312A' },
+  fimTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 1, borderTopColor: '#E8E0D6', paddingTop: 8, marginTop: 2 },
+  fimTotalRotulo: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#4A3E37' },
+  fimTotalValor: { fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: '800', color: '#7A4520' },
   fimAcoes: { flexDirection: 'row', gap: 8, marginTop: 'auto' },
-  fimBtnFechar: { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0', justifyContent: 'center' },
-  fimBtnFecharTexto: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '700', color: '#475569' },
-  wppBox: { flex: 1, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#D1E7DD', backgroundColor: '#FFFFFF' },
+  fimBtnFechar: { paddingHorizontal: 18, paddingVertical: 11, borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D6', justifyContent: 'center' },
+  fimBtnFecharTexto: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '700', color: '#4A3E37' },
+  wppBox: { flex: 1, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#E4F1E9', backgroundColor: '#FFFDFA' },
   wppCabecalho: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#075E54', paddingHorizontal: 14, paddingVertical: 10 },
   wppAvatar: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#25D366', alignItems: 'center', justifyContent: 'center' },
-  wppTitulo: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-  wppSubtitulo: { fontFamily: FONT_SANS, fontSize: 10, color: '#C8E6DF', marginTop: 1 },
+  wppTitulo: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '800', color: '#FFFDFA' },
+  wppSubtitulo: { fontFamily: FONT_SANS, fontSize: 10, color: '#E4F1E9', marginTop: 1 },
   wppConversa: { flex: 1, backgroundColor: '#ECE5DD', padding: 14 },
   wppBalao: {
     alignSelf: 'flex-end',
@@ -2183,13 +2183,13 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 10,
     ...Platform.select({ web: { boxShadow: '0 1px 1px rgba(0,0,0,0.12)' } }),
   },
-  wppTexto: { fontFamily: FONT_SANS, fontSize: 12.5, lineHeight: 18, color: '#111B21' },
-  wppAviso: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#B45309', paddingHorizontal: 14, paddingTop: 10 },
+  wppTexto: { fontFamily: FONT_SANS, fontSize: 12.5, lineHeight: 18, color: '#2E211A' },
+  wppAviso: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#9A6516', paddingHorizontal: 14, paddingTop: 10 },
   wppAcoes: { flexDirection: 'row', gap: 8, padding: 12 },
   wppBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#25D366', paddingVertical: 11, borderRadius: 10 },
-  wppBtnText: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
-  wppBtnSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: '#BBF7D0', backgroundColor: '#F0FDF4' },
-  wppBtnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#15803D' },
-  btnStartAnother: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#2D7A58', paddingVertical: 11, borderRadius: 10 },
-  btnStartAnotherText: { fontFamily: FONT_SANS, color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  wppBtnText: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '800', color: '#FFFDFA' },
+  wppBtnSec: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1, borderColor: '#BFDCCB', backgroundColor: '#E4F1E9' },
+  wppBtnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#2F7D55' },
+  btnStartAnother: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#7A4520', paddingVertical: 11, borderRadius: 10 },
+  btnStartAnotherText: { fontFamily: FONT_SANS, color: '#FFFDFA', fontSize: 13, fontWeight: '800' },
 }));

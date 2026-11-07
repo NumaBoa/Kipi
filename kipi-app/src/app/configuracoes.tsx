@@ -30,18 +30,18 @@ import {
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
-const KIPI_BLUE = '#5798D7';
-const KIPI_BLUE_DARK = '#3E7BB8';
-const KIPI_BLUE_TINT = '#EAF3FA';
-const KIPI_BLUE_ACCENT = '#2563EB';
-const KIPI_FROST_BG = '#F8FAFC';
-const SUCCESS_GREEN = '#16A34A';
-const SUCCESS_TINT = '#DCFCE7';
-const DANGER_RED = '#DC2626';
-const DANGER_TINT = '#FEE2E2';
+const KIPI_BLUE = '#9E5D25';
+const KIPI_BLUE_DARK = '#7A4520';
+const KIPI_BLUE_TINT = '#ECEBFA';
+const KIPI_BLUE_ACCENT = '#4B4FC4';
+const KIPI_FROST_BG = '#F8F6F2';
+const SUCCESS_GREEN = '#2F7D55';
+const SUCCESS_TINT = '#E4F1E9';
+const DANGER_RED = '#B42318';
+const DANGER_TINT = '#FBE7E4';
 
 // Limite do logo salvo em base64 (~1 MB de imagem)
 const TAMANHO_MAX_LOGO = 1_400_000;
@@ -117,7 +117,7 @@ function CampoSenha({
         <TextInput
           style={styles.passwordInput}
           placeholder={placeholder}
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor="#9A8F87"
           secureTextEntry={!visivel}
           autoCapitalize="none"
           autoCorrect={false}
@@ -125,7 +125,7 @@ function CampoSenha({
           onChangeText={onChangeText}
         />
         <TouchableOpacity onPress={() => setVisivel(!visivel)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-          <Feather name={visivel ? 'eye-off' : 'eye'} size={16} color="#94A3B8" />
+          <Feather name={visivel ? 'eye-off' : 'eye'} size={16} color="#9A8F87" />
         </TouchableOpacity>
       </View>
     </View>
@@ -328,7 +328,7 @@ export default function ConfiguracoesScreen() {
                       <Image source={{ uri: loja.logoUri }} style={styles.logoImage} contentFit="cover" />
                     ) : (
                       <>
-                        <Feather name="image" size={22} color="#94A3B8" />
+                        <Feather name="image" size={22} color="#9A8F87" />
                         <Text style={styles.logoPlaceholderText}>Logo</Text>
                       </>
                     )}
@@ -337,7 +337,7 @@ export default function ConfiguracoesScreen() {
                     <Text style={styles.cardSubtitle}>Imagem quadrada (PNG ou JPG), até 1 MB.</Text>
                     <View style={styles.inlineBtns}>
                       <TouchableOpacity style={styles.btnSecondary} onPress={escolherLogo}>
-                        <Feather name="upload" size={13} color="#475569" />
+                        <Feather name="upload" size={13} color="#4A3E37" />
                         <Text style={styles.btnSecondaryText}>{loja.logoUri ? 'Trocar logo' : 'Enviar logo'}</Text>
                       </TouchableOpacity>
                       {loja.logoUri && (
@@ -356,7 +356,7 @@ export default function ConfiguracoesScreen() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="Ex: AtelierQ"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       value={loja.nome}
                       onChangeText={(t) => alterarLoja('nome', t)}
                     />
@@ -366,7 +366,7 @@ export default function ConfiguracoesScreen() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="Ex: Pâtisserie Gourmet"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       value={loja.slogan}
                       onChangeText={(t) => alterarLoja('slogan', t)}
                     />
@@ -379,7 +379,7 @@ export default function ConfiguracoesScreen() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="00.000.000/0000-00"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       keyboardType="numeric"
                       value={loja.documento}
                       onChangeText={(t) => alterarLoja('documento', formatarDocumento(t))}
@@ -390,7 +390,7 @@ export default function ConfiguracoesScreen() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="(21) 99999-9999"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       keyboardType="phone-pad"
                       value={loja.telefone}
                       onChangeText={(t) => alterarLoja('telefone', formatarTelefone(t))}
@@ -404,7 +404,7 @@ export default function ConfiguracoesScreen() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="contato@atelierq.com.br"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       keyboardType="email-address"
                       autoCapitalize="none"
                       autoCorrect={false}
@@ -419,7 +419,7 @@ export default function ConfiguracoesScreen() {
                       <TextInput
                         style={styles.affixInput}
                         placeholder="atelierq"
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor="#9A8F87"
                         autoCapitalize="none"
                         autoCorrect={false}
                         value={loja.instagram}
@@ -433,13 +433,13 @@ export default function ConfiguracoesScreen() {
                 <TextInput
                   style={[styles.formInput, { marginBottom: 4 }]}
                   placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   autoCapitalize="none"
                   autoCorrect={false}
                   value={loja.chavePix}
                   onChangeText={(t) => alterarLoja('chavePix', t)}
                 />
-                <Text style={[styles.inputLabel, { fontWeight: '500', color: '#94A3B8', marginBottom: 12 }]}>
+                <Text style={[styles.inputLabel, { fontWeight: '500', color: '#9A8F87', marginBottom: 12 }]}>
                   Vai no final da mensagem de WhatsApp de cada pedido.
                 </Text>
 
@@ -447,7 +447,7 @@ export default function ConfiguracoesScreen() {
                 <TextInput
                   style={[styles.formInput, { marginBottom: 12 }]}
                   placeholder="Rua, número, complemento e bairro"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={loja.endereco}
                   onChangeText={(t) => alterarLoja('endereco', t)}
                 />
@@ -458,7 +458,7 @@ export default function ConfiguracoesScreen() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="Rio de Janeiro"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       value={loja.cidade}
                       onChangeText={(t) => alterarLoja('cidade', t)}
                     />
@@ -468,7 +468,7 @@ export default function ConfiguracoesScreen() {
                     <TextInput
                       style={styles.formInput}
                       placeholder="RJ"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       autoCapitalize="characters"
                       maxLength={2}
                       value={loja.estado}
@@ -480,10 +480,10 @@ export default function ConfiguracoesScreen() {
                 <AvisoInline aviso={avisoLoja} />
                 <TouchableOpacity style={styles.btnPrimary} onPress={handleSalvarLoja} disabled={salvandoLoja}>
                   {salvandoLoja ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color="#FFFDFA" />
                   ) : (
                     <>
-                      <Feather name="check" size={15} color="#FFFFFF" />
+                      <Feather name="check" size={15} color="#FFFDFA" />
                       <Text style={styles.btnPrimaryText}>Salvar estabelecimento</Text>
                     </>
                   )}
@@ -518,7 +518,7 @@ export default function ConfiguracoesScreen() {
                           setComissaoTipo(op.id as TipoComissao);
                           setAvisoRevenda(null);
                         }}>
-                        <Feather name={op.icon} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#64748B'} />
+                        <Feather name={op.icon} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#6B615A'} />
                         <Text style={[styles.segmentedText, ativo && styles.segmentedTextActive]}>{op.label}</Text>
                       </TouchableOpacity>
                     );
@@ -530,7 +530,7 @@ export default function ConfiguracoesScreen() {
                   <TextInput
                     style={styles.affixInput}
                     placeholder={comissaoTipo === 'porcentagem' ? '15' : '3,50'}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="decimal-pad"
                     value={comissaoValor}
                     onChangeText={(t) => {
@@ -543,7 +543,7 @@ export default function ConfiguracoesScreen() {
 
                 <AvisoInline aviso={avisoRevenda} />
                 <TouchableOpacity style={styles.btnPrimary} onPress={handleSalvarRevenda}>
-                  <Feather name="check" size={15} color="#FFFFFF" />
+                  <Feather name="check" size={15} color="#FFFDFA" />
                   <Text style={styles.btnPrimaryText}>Salvar regra padrão</Text>
                 </TouchableOpacity>
               </View>
@@ -595,10 +595,10 @@ export default function ConfiguracoesScreen() {
                     <AvisoInline aviso={avisoPerfil} />
                     <TouchableOpacity style={styles.btnPrimary} onPress={handleSalvarPerfil} disabled={salvandoPerfil}>
                       {salvandoPerfil ? (
-                        <ActivityIndicator size="small" color="#FFFFFF" />
+                        <ActivityIndicator size="small" color="#FFFDFA" />
                       ) : (
                         <>
-                          <Feather name="check" size={15} color="#FFFFFF" />
+                          <Feather name="check" size={15} color="#FFFDFA" />
                           <Text style={styles.btnPrimaryText}>Salvar meus dados</Text>
                         </>
                       )}
@@ -643,7 +643,7 @@ export default function ConfiguracoesScreen() {
                       const ok = r.teste(novaSenha);
                       return (
                         <View key={r.id} style={styles.regraRow}>
-                          <Feather name={ok ? 'check-circle' : 'circle'} size={12} color={ok ? SUCCESS_GREEN : '#CBD5E1'} />
+                          <Feather name={ok ? 'check-circle' : 'circle'} size={12} color={ok ? SUCCESS_GREEN : '#D9CFC4'} />
                           <Text style={[styles.regraText, ok && { color: SUCCESS_GREEN }]}>{r.label}</Text>
                         </View>
                       );
@@ -666,10 +666,10 @@ export default function ConfiguracoesScreen() {
                   <AvisoInline aviso={avisoSenha} />
                   <TouchableOpacity style={styles.btnPrimary} onPress={handleTrocarSenha} disabled={salvandoSenha}>
                     {salvandoSenha ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color="#FFFDFA" />
                     ) : (
                       <>
-                        <Feather name="key" size={15} color="#FFFFFF" />
+                        <Feather name="key" size={15} color="#FFFDFA" />
                         <Text style={styles.btnPrimaryText}>Alterar senha</Text>
                       </>
                     )}
@@ -710,7 +710,7 @@ const semOutline = Platform.select({ web: { outlineStyle: 'none' } as any });
 const styles = paraCelular(StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   screenWrapper: {
     flex: 1,
@@ -744,10 +744,10 @@ const styles = paraCelular(StyleSheet.create({
 
   // CARDS
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 18,
   },
   cardHeader: {
@@ -768,12 +768,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   cardSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
 
@@ -790,7 +790,7 @@ const styles = paraCelular(StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     backgroundColor: KIPI_FROST_BG,
     alignItems: 'center',
     justifyContent: 'center',
@@ -805,7 +805,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   inlineBtns: {
     flexDirection: 'row',
@@ -824,16 +824,16 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 6,
   },
   formInput: {
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -844,7 +844,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     gap: 6,
@@ -853,13 +853,13 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
   },
   affixInput: {
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     paddingVertical: 10,
     ...semOutline,
   },
@@ -868,7 +868,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     gap: 8,
@@ -877,7 +877,7 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     paddingVertical: 10,
     ...semOutline,
   },
@@ -897,7 +897,7 @@ const styles = paraCelular(StyleSheet.create({
   regraText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   erroCampo: {
     fontFamily: FONT_SANS,
@@ -922,8 +922,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   segmentedBtnActive: {
     borderColor: KIPI_BLUE,
@@ -933,7 +933,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   segmentedTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -988,7 +988,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   btnSecondary: {
     flexDirection: 'row',
@@ -998,22 +998,22 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 9,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   btnSecondaryText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   btnDanger: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: '#F3C4BD',
+    backgroundColor: '#FBE7E4',
   },
   btnDangerText: {
     fontFamily: FONT_SANS,

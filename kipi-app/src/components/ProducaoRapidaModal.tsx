@@ -9,11 +9,11 @@ import { useInsumos, receitaDoProduto, congelarMassas, assarDoFreezer } from '@/
 // PREPARAR / ASSAR RÁPIDO — atalho usado fora da Produção (Estoque Central, Produtos).
 // A ação acontece na própria tela: mesmo registro e mesmo histórico da Produção.
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FREEZER_CYAN = '#0891B2';
-const OVEN_ORANGE = '#EA580C';
-const DANGER = '#DC2626';
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FREEZER_CYAN = '#3A3D9E';
+const OVEN_ORANGE = '#B9781A';
+const DANGER = '#B42318';
 
 export type ModoProducaoRapida = 'preparar' | 'assar';
 
@@ -80,7 +80,7 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
       <View style={s.overlay}>
         <View style={s.box}>
           <View style={s.header}>
-            <View style={[s.headerIcon, { backgroundColor: assar ? '#FFF7ED' : '#ECFEFF' }]}>
+            <View style={[s.headerIcon, { backgroundColor: assar ? '#FBF0DC' : '#ECEBFA' }]}>
               <Text style={{ fontSize: 17 }}>{assar ? '🔥' : '🧊'}</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -88,7 +88,7 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
               <Text style={s.subtitle} numberOfLines={1}>{produto?.nome ?? ''}</Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x" size={18} color="#64748B" />
+              <Feather name="x" size={18} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
@@ -109,7 +109,7 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
                 <Text style={s.label}>{assar ? 'QUANTAS VAI ASSAR AGORA?' : 'QUANTAS MASSAS VAI MODELAR?'}</Text>
                 <View style={s.stepper}>
                   <TouchableOpacity style={s.stepBtn} onPress={() => ajustar(-1)}>
-                    <Feather name="minus" size={16} color="#334155" />
+                    <Feather name="minus" size={16} color="#3D312A" />
                   </TouchableOpacity>
                   <TextInput
                     style={s.stepInput}
@@ -120,7 +120,7 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
                     }}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor="#CBD5E1"
+                    placeholderTextColor="#D9CFC4"
                   />
                   <TouchableOpacity style={s.stepBtn} onPress={() => ajustar(1)}>
                     <Feather name="plus" size={16} color={cor} />
@@ -142,7 +142,7 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
                   ) : (
                     checklist.map((c) => (
                       <View key={c.insumoId} style={s.checkLinha}>
-                        <Feather name={c.ok ? 'check-circle' : 'alert-circle'} size={13} color={c.ok ? '#16A34A' : DANGER} />
+                        <Feather name={c.ok ? 'check-circle' : 'alert-circle'} size={13} color={c.ok ? '#2F7D55' : DANGER} />
                         <Text style={s.checkNome} numberOfLines={1}>{c.nome}</Text>
                         <Text style={[s.checkQtd, !c.ok && { color: DANGER }]}>
                           {Math.round(c.necessario * 10) / 10} / {c.estoqueAtual} {c.unidade}
@@ -153,7 +153,7 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
                   {checklist.length > 0 && (
                     <TouchableOpacity style={s.toggleLinha} onPress={() => setDescontar((v) => !v)}>
                       <View style={[s.caixa, descontar && { backgroundColor: cor, borderColor: cor }]}>
-                        {descontar && <Feather name="check" size={11} color="#FFFFFF" />}
+                        {descontar && <Feather name="check" size={11} color="#FFFDFA" />}
                       </View>
                       <Text style={s.toggleTexto}>
                         Descontar ingredientes do estoque{faltaAlgo && descontar ? ' (o que faltar para em zero)' : ''}
@@ -180,7 +180,7 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
               style={[s.btnPri, { backgroundColor: cor }, (assar && noFreezer === 0) && { opacity: 0.5 }]}
               disabled={assar && noFreezer === 0}
               onPress={confirmar}>
-              <Feather name="check" size={14} color="#FFFFFF" />
+              <Feather name="check" size={14} color="#FFFDFA" />
               <Text style={s.btnPriText}>{assar ? 'Assar' : 'Preparar'}</Text>
             </TouchableOpacity>
           </View>
@@ -191,34 +191,34 @@ export default function ProducaoRapidaModal({ visible, produtoId, modo, onClose,
 }
 
 const s = paraCelular(StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  box: { width: '100%', maxWidth: 440, maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E2E8F0' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  overlay: { flex: 1, backgroundColor: 'rgba(43, 36, 33, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  box: { width: '100%', maxWidth: 440, maxHeight: '92%', backgroundColor: '#FFFDFA', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E8E0D6' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3EEE7' },
   headerIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: '800', color: '#0F172A' },
-  subtitle: { fontFamily: FONT_SANS, fontSize: 11, color: '#64748B', marginTop: 1 },
+  title: { fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: '800', color: '#2E211A' },
+  subtitle: { fontFamily: FONT_SANS, fontSize: 11, color: '#6B615A', marginTop: 1 },
   saldos: { flexDirection: 'row', gap: 8 },
-  saldo: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', paddingHorizontal: 12, paddingVertical: 9 },
-  saldoRotulo: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', color: '#64748B', letterSpacing: 0.4 },
-  saldoValor: { fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: '800', color: '#0F172A', marginTop: 2 },
-  label: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.4, marginBottom: 7 },
+  saldo: { flex: 1, backgroundColor: '#F8F6F2', borderRadius: 12, borderWidth: 1, borderColor: '#F3EEE7', paddingHorizontal: 12, paddingVertical: 9 },
+  saldoRotulo: { fontFamily: FONT_SANS, fontSize: 9, fontWeight: '800', color: '#6B615A', letterSpacing: 0.4 },
+  saldoValor: { fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: '800', color: '#2E211A', marginTop: 2 },
+  label: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '800', color: '#6B615A', letterSpacing: 0.4, marginBottom: 7 },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepBtn: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  stepInput: { width: 72, textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: '800', color: '#0F172A', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingVertical: 6, backgroundColor: '#F8FAFC' },
+  stepBtn: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D6', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFDFA' },
+  stepInput: { width: 72, textAlign: 'center', fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: '800', color: '#2E211A', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingVertical: 6, backgroundColor: '#F8F6F2' },
   link: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', marginLeft: 4 },
-  dica: { fontFamily: FONT_SANS, fontSize: 11, color: '#94A3B8', marginTop: 6 },
-  checklist: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', padding: 12, gap: 6 },
+  dica: { fontFamily: FONT_SANS, fontSize: 11, color: '#9A8F87', marginTop: 6 },
+  checklist: { backgroundColor: '#F8F6F2', borderRadius: 12, borderWidth: 1, borderColor: '#F3EEE7', padding: 12, gap: 6 },
   checkLinha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  checkNome: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#334155' },
-  checkQtd: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '700', color: '#475569' },
-  toggleLinha: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
-  caixa: { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: '#CBD5E1', alignItems: 'center', justifyContent: 'center' },
-  toggleTexto: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, color: '#334155' },
-  erro: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FEF2F2', borderRadius: 8, padding: 8 },
+  checkNome: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#3D312A' },
+  checkQtd: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '700', color: '#4A3E37' },
+  toggleLinha: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#E8E0D6' },
+  caixa: { width: 18, height: 18, borderRadius: 5, borderWidth: 1.5, borderColor: '#D9CFC4', alignItems: 'center', justifyContent: 'center' },
+  toggleTexto: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, color: '#3D312A' },
+  erro: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FBE7E4', borderRadius: 8, padding: 8 },
   erroText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: DANGER },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  btnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' },
-  btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#334155' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#F3EEE7' },
+  btnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D6' },
+  btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#3D312A' },
   btnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10 },
-  btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '800', color: '#FFFDFA' },
 }));

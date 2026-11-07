@@ -73,7 +73,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 8,
     paddingHorizontal: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderTopWidth: 1,
     borderTopColor: cor.borda,
   },
@@ -94,5 +94,5 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  seloTexto: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
+  seloTexto: { color: '#FFFDFA', fontSize: 10, fontWeight: '800' },
 });

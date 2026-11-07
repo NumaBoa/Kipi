@@ -131,8 +131,8 @@ const useEstadoMenu = () => {
   return estadoMenu;
 };
 
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
 export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
   const router = useRouter();
@@ -173,7 +173,7 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
   if (!isDesktop && !gavetaAberta) {
     return (
       <TouchableOpacity style={styles.botaoMenuCelular} onPress={() => setGavetaAberta(true)} activeOpacity={0.85}>
-        <Feather name="menu" size={20} color="#FFFFFF" />
+        <Feather name="menu" size={20} color="#FFFDFA" />
       </TouchableOpacity>
     );
   }
@@ -248,7 +248,7 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
                       <Feather
                         name={item.icon}
                         size={17}
-                        color={isActive ? (menuExpanded ? '#FFFFFF' : '#FFFFFF') : '#64748B'}
+                        color={isActive ? (menuExpanded ? '#FFFDFA' : '#FFFDFA') : '#6B615A'}
                       />
                     </View>
 
@@ -287,7 +287,7 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
             <Feather
               name={menuPinned ? 'lock' : 'unlock'}
               size={14}
-              color={menuPinned ? '#2D7A58' : '#94A3B8'}
+              color={menuPinned ? '#7A4520' : '#9A8F87'}
             />
             {menuExpanded && (
               <Text style={[styles.pinBtnText, menuPinned && styles.pinBtnTextActive]}>
@@ -313,11 +313,11 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
                     await trocarArea(i);
                     router.replace(ROTAS_DO_PERFIL[a.perfil].inicio as any);
                   }}>
-                  <Feather name={a.perfil === 'admin' ? 'shield' : a.perfil === 'revendedora' ? 'briefcase' : 'home'} size={12} color={atual ? '#2D7A58' : '#64748B'} />
+                  <Feather name={a.perfil === 'admin' ? 'shield' : a.perfil === 'revendedora' ? 'briefcase' : 'home'} size={12} color={atual ? '#7A4520' : '#6B615A'} />
                   <Text style={[styles.areaBtnTexto, atual && styles.areaBtnTextoAtual]} numberOfLines={1}>
                     {a.rotulo}
                   </Text>
-                  {atual && <Feather name="check" size={12} color="#2D7A58" />}
+                  {atual && <Feather name="check" size={12} color="#7A4520" />}
                 </TouchableOpacity>
               );
             })}
@@ -341,7 +341,7 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
                 router.replace('/');
               }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="log-out" size={15} color="#94A3B8" />
+              <Feather name="log-out" size={15} color="#9A8F87" />
             </TouchableOpacity>
           )}
         </View>
@@ -354,16 +354,16 @@ export default function Sidebar({ activeRoute, onNotice }: SidebarProps) {
 
 const styles = StyleSheet.create({
   sidebar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRightWidth: 1,
-    borderRightColor: '#E2E8F0',
+    borderRightColor: '#E8E0D6',
     flexDirection: 'column',
     justifyContent: 'space-between',
     zIndex: 100,
     ...Platform.select({
       web: {
         transition: 'width 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-        boxShadow: '1px 0 10px rgba(15, 23, 42, 0.03)',
+        boxShadow: '1px 0 10px rgba(43, 36, 33, 0.03)',
       },
     }),
   },
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
   },
   sidebarSobreposto: {
     ...Platform.select({
-      web: { boxShadow: '8px 0 24px rgba(15, 23, 42, 0.12)' },
+      web: { boxShadow: '8px 0 24px rgba(43, 36, 33, 0.12)' },
     }),
   },
   sidebarExpanded: {
@@ -396,12 +396,12 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#2E211A',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 9000,
     ...Platform.select({
-      web: { boxShadow: '0 6px 18px rgba(15, 23, 42, 0.25)' },
+      web: { boxShadow: '0 6px 18px rgba(43, 36, 33, 0.25)' },
       default: { elevation: 6 },
     }),
   },
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.35)',
+    backgroundColor: 'rgba(43, 36, 33, 0.35)',
     zIndex: 9000,
   },
 
@@ -422,7 +422,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
     gap: 10,
     height: 68,
   },
@@ -434,7 +434,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 12,
-    backgroundColor: '#EAF5F1',
+    backgroundColor: '#F6E8D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -452,14 +452,14 @@ const styles = StyleSheet.create({
   brandTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     fontFamily: FONT_DISPLAY,
     letterSpacing: -0.2,
   },
   brandSubtitle: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#2D7A58',
+    color: '#7A4520',
     letterSpacing: 0.8,
     fontFamily: FONT_SANS,
   },
@@ -478,12 +478,12 @@ const styles = StyleSheet.create({
   groupDivider: {
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F8FAFC',
+    borderTopColor: '#F8F6F2',
   },
   groupHeaderLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#9A8F87',
     letterSpacing: 1,
     paddingHorizontal: 12,
     marginBottom: 6,
@@ -511,7 +511,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   navItemActive: {
-    backgroundColor: '#2D7A58',
+    backgroundColor: '#4B4FC4',
+    borderRadius: 999,
   },
   navItemActiveCollapsed: {
     backgroundColor: 'transparent',
@@ -524,7 +525,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   iconWrapperActiveCollapsed: {
-    backgroundColor: '#2D7A58',
+    backgroundColor: '#4B4FC4',
+    borderRadius: 999,
+    width: 40,
+    height: 40,
   },
   navTextRow: {
     flex: 1,
@@ -535,22 +539,22 @@ const styles = StyleSheet.create({
   navItemText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
     fontFamily: FONT_SANS,
   },
   navItemTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   soonPill: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   soonPillText: {
     fontSize: 9,
-    color: '#94A3B8',
+    color: '#9A8F87',
     fontWeight: '600',
     fontFamily: FONT_SANS,
   },
@@ -560,9 +564,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   pinBtn: {
     flexDirection: 'row',
@@ -570,7 +574,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     gap: 8,
   },
   pinBtnCollapsed: {
@@ -578,30 +582,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   pinBtnActive: {
-    backgroundColor: '#EAF5F1',
+    backgroundColor: '#F6E8D6',
   },
   pinBtnText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
   pinBtnTextActive: {
-    color: '#2D7A58',
+    color: '#7A4520',
   },
   areasBox: { gap: 4, marginBottom: 8 },
-  areasTitulo: { fontSize: 9, fontWeight: '800', color: '#94A3B8', letterSpacing: 0.6, marginBottom: 2, paddingHorizontal: 4 },
-  areaBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: '#F8FAFC' },
-  areaBtnAtual: { backgroundColor: '#ECFDF5' },
-  areaBtnTexto: { flex: 1, fontSize: 11, fontWeight: '600', color: '#475569' },
-  areaBtnTextoAtual: { color: '#2D7A58', fontWeight: '800' },
+  areasTitulo: { fontSize: 9, fontWeight: '800', color: '#9A8F87', letterSpacing: 0.6, marginBottom: 2, paddingHorizontal: 4 },
+  areaBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: '#F8F6F2' },
+  areaBtnAtual: { backgroundColor: '#F6E8D6' },
+  areaBtnTexto: { flex: 1, fontSize: 11, fontWeight: '600', color: '#4A3E37' },
+  areaBtnTextoAtual: { color: '#7A4520', fontWeight: '800' },
   userMiniCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     gap: 8,
   },
   userMiniCardCollapsed: {
@@ -612,14 +616,14 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EAF5F1',
+    backgroundColor: '#F6E8D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   userMiniAvatarLetter: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#2D7A58',
+    color: '#7A4520',
     fontFamily: FONT_DISPLAY,
   },
   userMiniInfo: {
@@ -628,13 +632,13 @@ const styles = StyleSheet.create({
   userMiniName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     fontFamily: FONT_SANS,
   },
   userMiniRole: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#9A8F87',
     letterSpacing: 0.5,
     fontFamily: FONT_SANS,
   },

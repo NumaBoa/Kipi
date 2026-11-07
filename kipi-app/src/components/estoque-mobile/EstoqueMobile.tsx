@@ -29,8 +29,8 @@ import InsumoFormMobile from '@/components/insumos-mobile/InsumoFormMobile';
 // entrada de material com valor pago recalcula o custo médio.
 // ============================================================================
 
-const AZUL_FREEZER = '#0369A1';
-const LARANJA_ESCURO = '#9A3412';
+const AZUL_FREEZER = '#3A3D9E';
+const LARANJA_ESCURO = '#9A6516';
 type Aba = 'produtos' | 'materiais' | 'compras';
 type Ajuste = { tipo: 'vitrine' | 'freezer' | 'material'; id: string; nome: string };
 type Linha = { nome: string; valor: string; alerta?: boolean };
@@ -229,7 +229,7 @@ export default function EstoqueMobile() {
             return (
               <TouchableOpacity key={a.id} style={[s.segItem, on && s.segItemOn]} onPress={() => setAba(a.id)} accessibilityRole="tab" accessibilityState={{ selected: on }}>
                 <T style={[s.segTexto, on && s.segTextoOn]}>{a.rotulo}</T>
-                <View style={[s.segNum, a.alerta && { backgroundColor: '#FEE2E2' }]}>
+                <View style={[s.segNum, a.alerta && { backgroundColor: '#FBE7E4' }]}>
                   <T style={[s.segNumTexto, numeros, a.alerta && { color: cor.vermelho }]}>{a.qtd}</T>
                 </View>
               </TouchableOpacity>
@@ -251,7 +251,7 @@ export default function EstoqueMobile() {
               <View style={s.kpis}>
                 {[
                   { r: '✓ Prontas', v: `${totalProntas} un`, bg: cor.verdeClaro, fg: cor.verde, f: kpis.prontas },
-                  { r: '❄ Freezer', v: `${totalFreezer} un`, bg: '#F0F9FF', fg: AZUL_FREEZER, f: kpis.freezer },
+                  { r: '❄ Freezer', v: `${totalFreezer} un`, bg: '#ECEBFA', fg: AZUL_FREEZER, f: kpis.freezer },
                   { r: 'Encomenda', v: String(encomenda.length), bg: cor.azulClaro, fg: cor.azulTexto, f: kpis.encomenda },
                   { r: '🗑 Perdas', v: brl(perdas.total).replace(/,\d\d$/, ''), bg: perdas.total > 0 ? cor.vermelhoClaro : cor.verdeClaro, fg: perdas.total > 0 ? cor.vermelho : cor.verde, f: kpis.perdas },
                 ].map((k) => (
@@ -265,8 +265,8 @@ export default function EstoqueMobile() {
 
             <View style={s.buscaLinha}>
               <View style={[s.busca, sombra]}>
-                <Feather name="search" size={18} color="#94A3B8" />
-                <TextInput value={buscaProd} onChangeText={setBuscaProd} placeholder="Produto ou categoria…" placeholderTextColor="#94A3B8" style={s.buscaInput} accessibilityLabel="Buscar produto" />
+                <Feather name="search" size={18} color="#9A8F87" />
+                <TextInput value={buscaProd} onChangeText={setBuscaProd} placeholder="Produto ou categoria…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar produto" />
               </View>
               <TouchableOpacity style={[s.filtro, sombra, categoria !== 'Todas' && { backgroundColor: cor.azulClaro }]} onPress={() => setGaveta('categorias')} accessibilityRole="button" accessibilityLabel="Filtrar categoria">
                 <Feather name="filter" size={18} color={categoria !== 'Todas' ? cor.azulTexto : cor.textoMedio} />
@@ -314,11 +314,11 @@ export default function EstoqueMobile() {
                         </View>
                       </View>
                       {(vb || fb) && (
-                        <View style={[s.selo, { backgroundColor: vb ? '#FFEDD5' : '#E0F2FE' }]}>
-                          <T style={[s.seloTexto, { color: vb ? LARANJA_ESCURO : '#075985' }]}>{vb ? '🔥 Assar mais' : '❄ Fazer massa'}</T>
+                        <View style={[s.selo, { backgroundColor: vb ? '#FBF0DC' : '#ECEBFA' }]}>
+                          <T style={[s.seloTexto, { color: vb ? LARANJA_ESCURO : '#3A3D9E' }]}>{vb ? '🔥 Assar mais' : '❄ Fazer massa'}</T>
                         </View>
                       )}
-                      <Feather name="chevron-right" size={16} color="#94A3B8" />
+                      <Feather name="chevron-right" size={16} color="#9A8F87" />
                     </TouchableOpacity>
                   );
                 })}
@@ -346,8 +346,8 @@ export default function EstoqueMobile() {
             </View>
 
             <View style={[s.busca, sombra, { marginHorizontal: 16, marginTop: 12 }]}>
-              <Feather name="search" size={18} color="#94A3B8" />
-              <TextInput value={buscaMat} onChangeText={setBuscaMat} placeholder="Nome, tipo ou onde é usado…" placeholderTextColor="#94A3B8" style={s.buscaInput} accessibilityLabel="Buscar material" />
+              <Feather name="search" size={18} color="#9A8F87" />
+              <TextInput value={buscaMat} onChangeText={setBuscaMat} placeholder="Nome, tipo ou onde é usado…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar material" />
             </View>
             <View style={s.chipsLinha}>
               <Opcao rotulo={`Ingredientes · ${ingredientes.length}`} ativo={tipoMat === 'ingrediente'} aoTocar={() => setTipoMat('ingrediente')} forte style={s.chip} />
@@ -438,7 +438,7 @@ export default function EstoqueMobile() {
                       </T>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                      <View style={[s.selo, { backgroundColor: '#DCFCE7' }]}>
+                      <View style={[s.selo, { backgroundColor: '#E4F1E9' }]}>
                         <T style={[s.seloTexto, numeros, { color: cor.verde }]}>+ {fmtQtd(sugerido)} {i.unidade}</T>
                       </View>
                       <T style={[s.custo, numeros, { color: cor.texto }]}>{brl(preco)}</T>
@@ -452,7 +452,7 @@ export default function EstoqueMobile() {
 
       {aba === 'materiais' && (
         <TouchableOpacity style={[s.fab, { bottom: 78 + Math.max(insets.bottom, 8) }]} onPress={() => setForm({ aberto: true, id: null })} accessibilityRole="button" accessibilityLabel="Novo material" activeOpacity={0.9}>
-          <Feather name="plus" size={22} color="#FFFFFF" />
+          <Feather name="plus" size={22} color="#FFFDFA" />
           <T style={s.fabTexto}>Novo material</T>
         </TouchableOpacity>
       )}
@@ -476,7 +476,7 @@ export default function EstoqueMobile() {
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {([
                 ['vitrine', '✓ Pronto para venda', produto.prontas, produto.minProntas, cor.verdeClaro, cor.verde, cor.verdeBorda],
-                ['freezer', '❄ No freezer', produto.congelados, produto.minFreezer, '#F0F9FF', AZUL_FREEZER, '#BAE6FD'],
+                ['freezer', '❄ No freezer', produto.congelados, produto.minFreezer, '#ECEBFA', AZUL_FREEZER, '#D6D7F3'],
               ] as const).map(([tipo, rot, n, min, bg, fg, borda]) => (
                 <View key={tipo} style={[s.caixaEstoque, { backgroundColor: bg }]}>
                   <T style={[s.rotuloPeq, { color: fg }]}>{rot}</T>
@@ -494,8 +494,8 @@ export default function EstoqueMobile() {
               {produto.custo > 0 ? ` · custo ${brl(produto.custo)} · margem ${Math.round(((produto.preco - produto.custo) / produto.preco) * 100)}%` : ' · sem custo cadastrado'}
             </T>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <BotaoCor rotulo="❄ Preparar massa" bg="#E0F2FE" fg="#075985" aoTocar={() => irPara(`/producao?preparar=${produto.id}&t=${Date.now()}`)} />
-              <BotaoCor rotulo="🔥 Assar" bg="#FFEDD5" fg={LARANJA_ESCURO} desativado={produto.congelados <= 0} aoTocar={() => irPara(`/producao?assar=${produto.id}&t=${Date.now()}`)} />
+              <BotaoCor rotulo="❄ Preparar massa" bg="#ECEBFA" fg="#3A3D9E" aoTocar={() => irPara(`/producao?preparar=${produto.id}&t=${Date.now()}`)} />
+              <BotaoCor rotulo="🔥 Assar" bg="#FBF0DC" fg={LARANJA_ESCURO} desativado={produto.congelados <= 0} aoTocar={() => irPara(`/producao?assar=${produto.id}&t=${Date.now()}`)} />
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               <Botao rotulo="Ver produto" variante="secundario" altura={48} style={{ flex: 1 }} aoTocar={() => irPara(`/produtos-estoque?produto=${produto.id}&t=${Date.now()}`)} />
@@ -590,7 +590,7 @@ export default function EstoqueMobile() {
                 <T style={s.rotulo}>
                   Valor total pago <T style={[s.dica, { fontWeight: '500' }]}>opcional, só na entrada</T>
                 </T>
-                <TextInput value={ajValor} onChangeText={setAjValor} keyboardType="decimal-pad" placeholder="R$ 0,00" placeholderTextColor="#94A3B8" style={s.campo} accessibilityLabel="Valor total pago" />
+                <TextInput value={ajValor} onChangeText={setAjValor} keyboardType="decimal-pad" placeholder="R$ 0,00" placeholderTextColor="#9A8F87" style={s.campo} accessibilityLabel="Valor total pago" />
                 {previaCusto !== null && (
                   <View style={s.previa}>
                     <T style={[s.previaTexto, numeros]}>Novo custo médio: {fmtCusto(previaCusto)}/{materialAjuste.unidade}</T>
@@ -661,14 +661,14 @@ const s = StyleSheet.create({
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
   rotulo: { fontSize: 13, fontWeight: '800', color: cor.textoMedio },
   rotuloPeq: { fontSize: 12, fontWeight: '700', color: cor.textoSuave },
-  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#E8EEF5' },
+  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#F3EEE7' },
   segItem: { flex: 1, height: 40, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
-  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segItemOn: { backgroundColor: '#FFFDFA', shadowColor: '#2E211A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   segTexto: { fontSize: 13, fontWeight: '600', color: cor.textoMedio },
   segTextoOn: { fontWeight: '800', color: cor.texto },
   segNum: { minWidth: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: 'center' },
   segNumTexto: { fontSize: 11, fontWeight: '800', color: cor.textoSuave },
-  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 12 },
+  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 12 },
   valorLinha: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 },
   valorGrande: { fontSize: 22, fontWeight: '700' },
   valorMedio: { fontSize: 18, fontWeight: '700' },
@@ -677,15 +677,15 @@ const s = StyleSheet.create({
   kpiRot: { fontSize: 10, fontWeight: '800' },
   kpiVal: { fontSize: 14, fontWeight: '800' },
   buscaLinha: { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 12 },
-  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 10 },
   buscaInput: { flex: 1, minWidth: 0, height: 44, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
-  filtro: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  filtro: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   mostrando: { marginHorizontal: 20, marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   mostrandoTexto: { flex: 1, fontSize: 13, color: cor.textoMedio },
   chipsLinha: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginHorizontal: 16, marginTop: 10 },
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { minHeight: 38, paddingHorizontal: 14, borderRadius: 19 },
-  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFDFA', overflow: 'hidden' },
   linha: { paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   icone: { width: 44, height: 44, borderRadius: 14, backgroundColor: cor.fundo, alignItems: 'center', justifyContent: 'center' },
@@ -694,12 +694,12 @@ const s = StyleSheet.create({
   selo: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9 },
   seloTexto: { fontSize: 11, fontWeight: '800' },
   custo: { fontSize: 12, fontWeight: '700', color: cor.textoSuave },
-  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 4 },
+  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', gap: 4 },
   vazioTitulo: { fontSize: 16, fontWeight: '700' },
   fab: { position: 'absolute', right: 16, height: 56, paddingLeft: 18, paddingRight: 22, borderRadius: 28, backgroundColor: cor.azulBotao, flexDirection: 'row', alignItems: 'center', gap: 8, shadowColor: cor.azulBotao, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  fabTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  fabTexto: { color: '#FFFDFA', fontSize: 15, fontWeight: '800' },
   caixaEstoque: { flex: 1, padding: 12, borderRadius: 16, gap: 6 },
-  ajustarBtn: { height: 36, borderRadius: 18, borderWidth: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  ajustarBtn: { height: 36, borderRadius: 18, borderWidth: 1, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   ajustarTexto: { fontSize: 12, fontWeight: '800' },
   materialTopo: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16 },
   capLinha: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9 },
@@ -707,6 +707,6 @@ const s = StyleSheet.create({
   campo: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, paddingHorizontal: 14, fontSize: 16, fontWeight: '700', color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   previa: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12, backgroundColor: cor.verdeClaro },
   previaTexto: { fontSize: 13, fontWeight: '800', color: cor.verde },
-  baixa: { flex: 1, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: '#FECACA', alignItems: 'center', justifyContent: 'center' },
+  baixa: { flex: 1, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: '#F3C4BD', alignItems: 'center', justifyContent: 'center' },
   ajusteTexto: { fontSize: 15, fontWeight: '800' },
 });

@@ -52,16 +52,16 @@ export type InsumoItem = Insumo;
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (AZUL DO SISTEMA KIPI / ATELIÊ)
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
 // Azul Oficial Kipi (Iced Denim & Variações)
-const KIPI_BLUE = '#5798D7';
-const KIPI_BLUE_DARK = '#3E7BB8';
-const KIPI_BLUE_TINT = '#EAF3FA';
-const KIPI_BLUE_ACCENT = '#2563EB';
-const KIPI_BLUE_LIGHT = '#F0F7FD';
-const KIPI_FROST_BG = '#F8FAFC';
+const KIPI_BLUE = '#9E5D25';
+const KIPI_BLUE_DARK = '#7A4520';
+const KIPI_BLUE_TINT = '#ECEBFA';
+const KIPI_BLUE_ACCENT = '#4B4FC4';
+const KIPI_BLUE_LIGHT = '#F8F6F2';
+const KIPI_FROST_BG = '#F8F6F2';
 
 // Tipos de visualização e filtros
 export type ViewMode = 'cards' | 'grid' | 'lista';
@@ -301,7 +301,7 @@ function InsumosReceitasDesktop() {
                   <Feather
                     name="layers"
                     size={15}
-                    color={tabPrincipal === 'insumos' ? '#FFFFFF' : '#64748B'}
+                    color={tabPrincipal === 'insumos' ? '#FFFDFA' : '#6B615A'}
                   />
                   <Text style={[styles.moduleTabText, tabPrincipal === 'insumos' && styles.moduleTabTextActive]}>
                     Insumos & Estoque
@@ -314,7 +314,7 @@ function InsumosReceitasDesktop() {
                   <Feather
                     name="book-open"
                     size={15}
-                    color={tabPrincipal === 'receitas' ? '#FFFFFF' : '#64748B'}
+                    color={tabPrincipal === 'receitas' ? '#FFFDFA' : '#6B615A'}
                   />
                   <Text style={[styles.moduleTabText, tabPrincipal === 'receitas' && styles.moduleTabTextActive]}>
                     Receitas
@@ -326,7 +326,7 @@ function InsumosReceitasDesktop() {
               <TouchableOpacity
                 style={styles.btnNovoInsumo}
                 onPress={() => handleAbrirNovoInsumo('ingrediente')}>
-                <Feather name="plus-circle" size={17} color="#FFFFFF" />
+                <Feather name="plus-circle" size={17} color="#FFFDFA" />
                 <Text style={styles.btnNovoInsumoText}>+ Novo Insumo</Text>
               </TouchableOpacity>
             </View>
@@ -354,7 +354,7 @@ function InsumosReceitasDesktop() {
               onPress={() => setTipoFilter(tipoFilter === 'ingrediente' ? 'todos' : 'ingrediente')}>
               <View style={styles.kpiCardHeader}>
                 <Text style={styles.kpiLabel}>INGREDIENTES</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: '#FEF3C7' }]}>
+                <View style={[styles.kpiIconBox, { backgroundColor: '#FBF0DC' }]}>
                   <Text style={{ fontSize: 13 }}>🥫</Text>
                 </View>
               </View>
@@ -368,7 +368,7 @@ function InsumosReceitasDesktop() {
               onPress={() => setTipoFilter(tipoFilter === 'embalagem' ? 'todos' : 'embalagem')}>
               <View style={styles.kpiCardHeader}>
                 <Text style={styles.kpiLabel}>EMBALAGENS</Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: '#E0E7FF' }]}>
+                <View style={[styles.kpiIconBox, { backgroundColor: '#ECEBFA' }]}>
                   <Text style={{ fontSize: 13 }}>📦</Text>
                 </View>
               </View>
@@ -385,18 +385,18 @@ function InsumosReceitasDesktop() {
                 }
               }}>
               <View style={styles.kpiCardHeader}>
-                <Text style={[styles.kpiLabel, totalAlerta > 0 && { color: '#B45309' }]}>
+                <Text style={[styles.kpiLabel, totalAlerta > 0 && { color: '#9A6516' }]}>
                   REPOSIÇÃO URGENTE
                 </Text>
-                <View style={[styles.kpiIconBox, { backgroundColor: totalAlerta > 0 ? '#FEE2E2' : '#DCFCE7' }]}>
+                <View style={[styles.kpiIconBox, { backgroundColor: totalAlerta > 0 ? '#FBE7E4' : '#E4F1E9' }]}>
                   <Feather
                     name={totalAlerta > 0 ? 'alert-triangle' : 'check-circle'}
                     size={16}
-                    color={totalAlerta > 0 ? '#DC2626' : '#16A34A'}
+                    color={totalAlerta > 0 ? '#B42318' : '#2F7D55'}
                   />
                 </View>
               </View>
-              <Text style={[styles.kpiValue, totalAlerta > 0 && { color: '#DC2626' }]}>
+              <Text style={[styles.kpiValue, totalAlerta > 0 && { color: '#B42318' }]}>
                 {totalAlerta}
               </Text>
               <Text style={styles.kpiSubtext}>
@@ -458,17 +458,17 @@ function InsumosReceitasDesktop() {
 
                   {/* CAMPO DE BUSCA MULTI-DADO */}
                   <View style={styles.searchBox}>
-                    <Feather name="search" size={17} color="#94A3B8" />
+                    <Feather name="search" size={17} color="#9A8F87" />
                     <TextInput
                       style={styles.searchInput}
                       placeholder="Buscar por nome, marca, unidade, receita..."
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       value={searchQuery}
                       onChangeText={setSearchQuery}
                     />
                     {searchQuery.length > 0 && (
                       <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <Feather name="x" size={15} color="#94A3B8" />
+                        <Feather name="x" size={15} color="#9A8F87" />
                       </TouchableOpacity>
                     )}
                   </View>
@@ -541,7 +541,7 @@ function InsumosReceitasDesktop() {
                       <Feather
                         name="credit-card"
                         size={15}
-                        color={viewMode === 'cards' ? KIPI_BLUE_ACCENT : '#64748B'}
+                        color={viewMode === 'cards' ? KIPI_BLUE_ACCENT : '#6B615A'}
                       />
                       <Text style={[styles.viewModeBtnText, viewMode === 'cards' && styles.viewModeBtnTextActive]}>
                         Cards
@@ -555,7 +555,7 @@ function InsumosReceitasDesktop() {
                       <Feather
                         name="grid"
                         size={15}
-                        color={viewMode === 'grid' ? KIPI_BLUE_ACCENT : '#64748B'}
+                        color={viewMode === 'grid' ? KIPI_BLUE_ACCENT : '#6B615A'}
                       />
                       <Text style={[styles.viewModeBtnText, viewMode === 'grid' && styles.viewModeBtnTextActive]}>
                         Grid
@@ -569,7 +569,7 @@ function InsumosReceitasDesktop() {
                       <Feather
                         name="list"
                         size={15}
-                        color={viewMode === 'lista' ? KIPI_BLUE_ACCENT : '#64748B'}
+                        color={viewMode === 'lista' ? KIPI_BLUE_ACCENT : '#6B615A'}
                       />
                       <Text style={[styles.viewModeBtnText, viewMode === 'lista' && styles.viewModeBtnTextActive]}>
                         Lista
@@ -587,7 +587,7 @@ function InsumosReceitasDesktop() {
                 {insumosFiltrados.length === 0 ? (
                   <View style={styles.emptyStateContainer}>
                     <View style={styles.emptyIconCircle}>
-                      <Feather name="search" size={28} color="#94A3B8" />
+                      <Feather name="search" size={28} color="#9A8F87" />
                     </View>
                     <Text style={styles.emptyTitle}>Nenhum insumo encontrado</Text>
                     <Text style={styles.emptySubtitle}>
@@ -596,7 +596,7 @@ function InsumosReceitasDesktop() {
                     <TouchableOpacity
                       style={styles.emptyActionBtn}
                       onPress={() => handleAbrirNovoInsumo('ingrediente')}>
-                      <Feather name="plus-circle" size={16} color="#FFFFFF" />
+                      <Feather name="plus-circle" size={16} color="#FFFDFA" />
                       <Text style={styles.emptyActionBtnText}>Cadastrar Insumo</Text>
                     </TouchableOpacity>
                   </View>
@@ -736,7 +736,7 @@ function InsumosReceitasDesktop() {
 
                           <View style={styles.gridStockRow}>
                             <Text style={styles.gridStockText}>Estoque: {item.quantidadeEstoque} {item.unidade}</Text>
-                            {isAlert && <Feather name="alert-circle" size={14} color="#DC2626" />}
+                            {isAlert && <Feather name="alert-circle" size={14} color="#B42318" />}
                           </View>
                         </TouchableOpacity>
                       );
@@ -865,7 +865,7 @@ function InsumosReceitasDesktop() {
                   {fichas.length} receitas · toque numa receita para editar · custo pelo custo médio atual dos insumos
                 </Text>
                 <View style={styles.horaBox}>
-                  <Feather name="clock" size={13} color="#64748B" />
+                  <Feather name="clock" size={13} color="#6B615A" />
                   <Text style={styles.horaLabel}>Hora trabalhada R$</Text>
                   <TextInput
                     style={styles.horaInput}
@@ -880,7 +880,7 @@ function InsumosReceitasDesktop() {
                   <Text style={styles.horaLabel}>/h</Text>
                 </View>
                 <TouchableOpacity style={styles.btnNovaReceita} onPress={() => setFichaAberta({ produtoId: null })}>
-                  <Feather name="plus-circle" size={15} color="#FFFFFF" />
+                  <Feather name="plus-circle" size={15} color="#FFFDFA" />
                   <Text style={styles.btnNovaReceitaText}>Nova Receita</Text>
                 </TouchableOpacity>
               </View>
@@ -944,7 +944,7 @@ function InsumosReceitasDesktop() {
                         <View style={{ alignItems: 'flex-end' }}>
                           <Text style={styles.recipeSuggestedLabel}>PREÇO DE VENDA</Text>
                           <Text style={styles.recipeSuggestedVal}>{formatMoney(prod.preco)}</Text>
-                          <Text style={[styles.recipeMarginBadge, atencao && { color: '#DC2626' }]}>
+                          <Text style={[styles.recipeMarginBadge, atencao && { color: '#B42318' }]}>
                             {atencao ? '⚠ Atenção · ' : ''}margem {Math.round(margem)}%
                           </Text>
                         </View>
@@ -985,13 +985,13 @@ function InsumosReceitasDesktop() {
               <TouchableOpacity
                 style={styles.modalCloseBtn}
                 onPress={() => setModalNovoInsumoVisible(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
             {formErro && (
               <View style={styles.errorBanner}>
-                <Feather name="alert-circle" size={16} color="#DC2626" />
+                <Feather name="alert-circle" size={16} color="#B42318" />
                 <Text style={styles.errorBannerText}>{formErro}</Text>
               </View>
             )}
@@ -1049,7 +1049,7 @@ function InsumosReceitasDesktop() {
                 <TextInput
                   style={styles.textInput}
                   placeholder={formTipo === 'ingrediente' ? 'Ex: Chocolate Belga 54% Callebaut' : 'Ex: Caixa Kraft c/ Visor 6 Cookies'}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={formNome}
                   onChangeText={setFormNome}
                 />
@@ -1088,7 +1088,7 @@ function InsumosReceitasDesktop() {
                     <TextInput
                       style={styles.currencyInput}
                       placeholder="0,00"
-                      placeholderTextColor="#94A3B8"
+                      placeholderTextColor="#9A8F87"
                       keyboardType="numeric"
                       value={formPreco}
                       onChangeText={setFormPreco}
@@ -1103,7 +1103,7 @@ function InsumosReceitasDesktop() {
                   <TextInput
                     style={styles.textInput}
                     placeholder={formTipo === 'ingrediente' ? 'Ex: 1000 (para 1kg)' : 'Ex: 50 (unidades)'}
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formConteudo}
                     onChangeText={setFormConteudo}
@@ -1140,7 +1140,7 @@ function InsumosReceitasDesktop() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="Ex: 5"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formEstoqueAtual}
                     onChangeText={setFormEstoqueAtual}
@@ -1152,7 +1152,7 @@ function InsumosReceitasDesktop() {
                   <TextInput
                     style={styles.textInput}
                     placeholder="Ex: 2"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formEstoqueMinimo}
                     onChangeText={setFormEstoqueMinimo}
@@ -1166,7 +1166,7 @@ function InsumosReceitasDesktop() {
                 <TextInput
                   style={styles.textInput}
                   placeholder="Ex: Callebaut, Nestlé, Cromus, Sulformas..."
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={formMarca}
                   onChangeText={setFormMarca}
                 />
@@ -1184,7 +1184,7 @@ function InsumosReceitasDesktop() {
               <TouchableOpacity
                 style={styles.modalSaveBtn}
                 onPress={handleSalvarNovoInsumo}>
-                <Feather name="check" size={17} color="#FFFFFF" />
+                <Feather name="check" size={17} color="#FFFDFA" />
                 <Text style={styles.modalSaveBtnText}>Salvar Insumo</Text>
               </TouchableOpacity>
             </View>
@@ -1230,7 +1230,7 @@ function InsumosReceitasDesktop() {
                 <TouchableOpacity
                   style={styles.modalCloseBtn}
                   onPress={() => setModalDetalhesVisible(false)}>
-                  <Feather name="x" size={20} color="#64748B" />
+                  <Feather name="x" size={20} color="#6B615A" />
                 </TouchableOpacity>
               </View>
 
@@ -1243,7 +1243,7 @@ function InsumosReceitasDesktop() {
                     <Text style={styles.dossierMetricSub}>por {insumoSelecionado.unidade}</Text>
                   </View>
 
-                  <View style={[styles.dossierMetricCard, { backgroundColor: KIPI_BLUE_TINT, borderColor: '#BFDBFE' }]}>
+                  <View style={[styles.dossierMetricCard, { backgroundColor: KIPI_BLUE_TINT, borderColor: '#D6D7F3' }]}>
                     <Text style={[styles.dossierMetricLabel, { color: KIPI_BLUE_ACCENT }]}>CUSTO FRACIONADO</Text>
                     <Text style={[styles.dossierMetricVal, { color: KIPI_BLUE_ACCENT }]}>
                       {insumoSelecionado.custoUnitario < 0.1
@@ -1264,7 +1264,7 @@ function InsumosReceitasDesktop() {
                       </Text>
                     </View>
                     <Text style={styles.stockAdjBigNumber}>
-                      {insumoSelecionado.quantidadeEstoque} <Text style={{ fontSize: 16, color: '#64748B' }}>{insumoSelecionado.unidade}</Text>
+                      {insumoSelecionado.quantidadeEstoque} <Text style={{ fontSize: 16, color: '#6B615A' }}>{insumoSelecionado.unidade}</Text>
                     </Text>
                   </View>
 
@@ -1272,14 +1272,14 @@ function InsumosReceitasDesktop() {
                     <TouchableOpacity
                       style={styles.stockAdjBtnMinus}
                       onPress={() => handleAjustarEstoque(-1)}>
-                      <Feather name="minus" size={16} color="#DC2626" />
+                      <Feather name="minus" size={16} color="#B42318" />
                       <Text style={styles.stockAdjBtnTextMinus}>-1 {insumoSelecionado.unidade}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
                       style={styles.stockAdjBtnPlus}
                       onPress={() => handleAjustarEstoque(+1)}>
-                      <Feather name="plus" size={16} color="#16A34A" />
+                      <Feather name="plus" size={16} color="#2F7D55" />
                       <Text style={styles.stockAdjBtnTextPlus}>+1 {insumoSelecionado.unidade} (Entrada)</Text>
                     </TouchableOpacity>
                   </View>
@@ -1316,7 +1316,7 @@ function InsumosReceitasDesktop() {
                     setModalDetalhesVisible(false);
                     // Feedback visual
                   }}>
-                  <Feather name="check" size={17} color="#FFFFFF" />
+                  <Feather name="check" size={17} color="#FFFDFA" />
                   <Text style={styles.modalSaveBtnText}>Concluído</Text>
                 </TouchableOpacity>
               </View>
@@ -1341,7 +1341,7 @@ function InsumosReceitasDesktop() {
 const styles = paraCelular(StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   screenWrapper: {
     flex: 1,
@@ -1365,11 +1365,11 @@ const styles = paraCelular(StyleSheet.create({
   },
   moduleSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 12,
     padding: 3,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   moduleTab: {
     flexDirection: 'row',
@@ -1386,10 +1386,10 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   moduleTabTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   btnNovoInsumo: {
@@ -1400,13 +1400,13 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     gap: 8,
-    boxShadow: '0 2px 8px rgba(87, 152, 215, 0.35)',
+    boxShadow: '0 2px 8px rgba(75, 79, 196, 0.35)',
   },
   btnNovoInsumoText: {
     fontFamily: FONT_SANS,
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // KPI CARDS
@@ -1419,11 +1419,11 @@ const styles = paraCelular(StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 180,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
   },
   kpiCardActiveFilter: {
@@ -1431,8 +1431,8 @@ const styles = paraCelular(StyleSheet.create({
     backgroundColor: KIPI_BLUE_LIGHT,
   },
   kpiCardAlert: {
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FFF7ED',
+    borderColor: '#F3C4BD',
+    backgroundColor: '#FBF0DC',
   },
   kpiCardHeader: {
     flexDirection: 'row',
@@ -1444,7 +1444,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   kpiIconBox: {
@@ -1458,22 +1458,22 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 24,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     marginBottom: 3,
   },
   kpiSubtext: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
 
   // FILTROS
   filterSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     marginBottom: 16,
     gap: 14,
   },
@@ -1486,7 +1486,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   coolTypeSelector: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 12,
     padding: 4,
     gap: 4,
@@ -1500,21 +1500,21 @@ const styles = paraCelular(StyleSheet.create({
     gap: 8,
   },
   coolTypeBtnActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
   },
   coolTypeBtnText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   coolTypeBtnTextActive: {
-    color: '#0F172A',
+    color: '#2E211A',
     fontWeight: '700',
   },
   coolBadge: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 10,
@@ -1526,7 +1526,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   coolBadgeTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1536,9 +1536,9 @@ const styles = paraCelular(StyleSheet.create({
     minWidth: 260,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1548,7 +1548,7 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
   },
   filterRowBottom: {
     flexDirection: 'row',
@@ -1565,9 +1565,9 @@ const styles = paraCelular(StyleSheet.create({
   storagePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -1575,7 +1575,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   storagePillActive: {
     backgroundColor: KIPI_BLUE_TINT,
-    borderColor: '#93C5FD',
+    borderColor: '#D6D7F3',
   },
   storageEmoji: {
     fontSize: 13,
@@ -1584,7 +1584,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   storagePillTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1595,7 +1595,7 @@ const styles = paraCelular(StyleSheet.create({
   statusPillsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 10,
     padding: 3,
     gap: 3,
@@ -1606,14 +1606,14 @@ const styles = paraCelular(StyleSheet.create({
     borderRadius: 8,
   },
   statusPillActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
   },
   statusPillText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   statusPillTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1623,7 +1623,7 @@ const styles = paraCelular(StyleSheet.create({
   // VIEW MODE SWITCHER
   viewModeSwitcher: {
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 10,
     padding: 3,
   },
@@ -1636,14 +1636,14 @@ const styles = paraCelular(StyleSheet.create({
     gap: 5,
   },
   viewModeBtnActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
   },
   viewModeBtnText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   viewModeBtnTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1668,16 +1668,16 @@ const styles = paraCelular(StyleSheet.create({
     width: '32%',
     minWidth: 280,
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
   },
   cardItemAlert: {
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FFFBF9',
+    borderColor: '#F3C4BD',
+    backgroundColor: '#FFFDFA',
   },
   cardHeaderRow: {
     flexDirection: 'row',
@@ -1689,7 +1689,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1711,10 +1711,10 @@ const styles = paraCelular(StyleSheet.create({
     borderRadius: 6,
   },
   typeBadgeIngrediente: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FBF0DC',
   },
   typeBadgeEmbalagem: {
-    backgroundColor: '#E0E7FF',
+    backgroundColor: '#ECEBFA',
   },
   typeBadgeText: {
     fontFamily: FONT_SANS,
@@ -1722,13 +1722,13 @@ const styles = paraCelular(StyleSheet.create({
     fontWeight: '700',
   },
   typeBadgeTextIngrediente: {
-    color: '#92400E',
+    color: '#9A6516',
   },
   typeBadgeTextEmbalagem: {
-    color: '#3730A3',
+    color: '#3A3D9E',
   },
   storageBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1737,27 +1737,27 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 9,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   cardTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   cardBrand: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
   cardMetricsGrid: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: '#F3EEE7',
   },
   cardMetricItem: {
     flex: 1,
@@ -1766,19 +1766,19 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginBottom: 2,
   },
   cardMetricValue: {
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   cardMetricSub: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   stockLevelSection: {
     marginBottom: 12,
@@ -1792,24 +1792,24 @@ const styles = paraCelular(StyleSheet.create({
   stockLabel: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#475569',
+    color: '#4A3E37',
   },
   stockBold: {
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   stockAlertText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   stockAlertTextCritical: {
-    color: '#DC2626',
+    color: '#B42318',
     fontWeight: '700',
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1818,10 +1818,10 @@ const styles = paraCelular(StyleSheet.create({
     borderRadius: 3,
   },
   progressBarFillSafe: {
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
   },
   progressBarFillAlert: {
-    backgroundColor: '#DC2626',
+    backgroundColor: '#B42318',
   },
   cardFooter: {
     flexDirection: 'row',
@@ -1829,12 +1829,12 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
   },
   cardFooterText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   cardViewAction: {
     flexDirection: 'row',
@@ -1858,15 +1858,15 @@ const styles = paraCelular(StyleSheet.create({
     width: '24%',
     minWidth: 200,
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   gridItemAlert: {
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FFFBF9',
+    borderColor: '#F3C4BD',
+    backgroundColor: '#FFFDFA',
   },
   gridItemHeader: {
     flexDirection: 'row',
@@ -1886,23 +1886,23 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   gridItemTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     marginBottom: 3,
   },
   gridItemStorage: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginBottom: 8,
   },
   gridPriceBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 8,
     padding: 8,
     marginBottom: 8,
@@ -1910,7 +1910,7 @@ const styles = paraCelular(StyleSheet.create({
   gridPriceLabel: {
     fontFamily: FONT_SANS,
     fontSize: 9,
-    color: '#94A3B8',
+    color: '#9A8F87',
     fontWeight: '700',
   },
   gridPriceValue: {
@@ -1927,32 +1927,32 @@ const styles = paraCelular(StyleSheet.create({
   gridStockText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#475569',
+    color: '#4A3E37',
     fontWeight: '600',
   },
 
   // MODO LISTA / TABELA
   tableCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     overflow: 'hidden',
   },
   tableHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
   },
   tableTh: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   tableRow: {
@@ -1961,13 +1961,13 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   tableRowEven: {
-    backgroundColor: '#FAFCFE',
+    backgroundColor: '#F8F6F2',
   },
   tableRowAlert: {
-    backgroundColor: '#FFFBF9',
+    backgroundColor: '#FFFDFA',
   },
   tableTd: {
     justifyContent: 'center',
@@ -1976,7 +1976,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1984,49 +1984,49 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   tableItemBrand: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   tableStorageText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   tablePriceText: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '600',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   tablePriceSub: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   tableStockText: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   tableStockAlert: {
-    color: '#DC2626',
+    color: '#B42318',
   },
   tableAlertBadge: {
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#B42318',
   },
   tableSafeBadge: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -2035,10 +2035,10 @@ const styles = paraCelular(StyleSheet.create({
     alignSelf: 'flex-start',
   },
   statusBadgeActive: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#E4F1E9',
   },
   statusBadgeInactive: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
   },
   statusBadgeText: {
     fontFamily: FONT_SANS,
@@ -2046,10 +2046,10 @@ const styles = paraCelular(StyleSheet.create({
     fontWeight: '700',
   },
   statusBadgeTextActive: {
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   statusBadgeTextInactive: {
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   tableDetailBtn: {
     padding: 6,
@@ -2059,12 +2059,12 @@ const styles = paraCelular(StyleSheet.create({
   recipesBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     marginBottom: 12,
     flexWrap: 'wrap',
     gap: 10,
@@ -2074,15 +2074,15 @@ const styles = paraCelular(StyleSheet.create({
     minWidth: 200,
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
   horaBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -2091,14 +2091,14 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   horaInput: {
     width: 44,
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     textAlign: 'center',
     paddingVertical: 2,
   },
@@ -2127,29 +2127,29 @@ const styles = paraCelular(StyleSheet.create({
     color: KIPI_BLUE_ACCENT,
   },
   recipeCardAtencao: {
-    borderColor: '#FCA5A5',
+    borderColor: '#F3C4BD',
   },
   recipeCapacidade: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 8,
   },
   btnNovaReceitaText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   recipeCard: {
     width: '32%',
     minWidth: 290,
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   recipeHeaderRow: {
     flexDirection: 'row',
@@ -2184,22 +2184,22 @@ const styles = paraCelular(StyleSheet.create({
   recipePrepTime: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   recipeTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   recipeRendimento: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
   recipeCostBreakdown: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 10,
     padding: 10,
     marginBottom: 12,
@@ -2210,14 +2210,14 @@ const styles = paraCelular(StyleSheet.create({
   recipeCostLabel: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginBottom: 2,
   },
   recipeCostVal: {
     fontFamily: FONT_DISPLAY,
     fontSize: 12,
     fontWeight: '700',
-    color: '#334155',
+    color: '#3D312A',
   },
   recipeFinancialFooter: {
     flexDirection: 'row',
@@ -2225,37 +2225,37 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'flex-end',
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
   },
   recipeTotalCostLabel: {
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   recipeTotalCostVal: {
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   recipeSuggestedLabel: {
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   recipeSuggestedVal: {
     fontFamily: FONT_DISPLAY,
     fontSize: 15,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   recipeMarginBadge: {
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
 
   // EMPTY STATE
@@ -2263,16 +2263,16 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 48,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   emptyIconCircle: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
@@ -2281,13 +2281,13 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     marginBottom: 4,
   },
   emptySubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#64748B',
+    color: '#6B615A',
     marginBottom: 16,
     maxWidth: 320,
     textAlign: 'center',
@@ -2305,13 +2305,13 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // MODAIS (CADASTRO & DOSSIÊ)
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(43, 36, 33, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -2320,11 +2320,11 @@ const styles = paraCelular(StyleSheet.create({
     width: '100%',
     maxWidth: 620,
     maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
   },
   modalHeader: {
@@ -2334,18 +2334,18 @@ const styles = paraCelular(StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   modalTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   modalCloseBtn: {
@@ -2354,9 +2354,9 @@ const styles = paraCelular(StyleSheet.create({
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBE7E4',
     borderWidth: 1,
-    borderColor: '#FCA5A5',
+    borderColor: '#F3C4BD',
     padding: 10,
     borderRadius: 10,
     gap: 8,
@@ -2365,7 +2365,7 @@ const styles = paraCelular(StyleSheet.create({
   errorBannerText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#DC2626',
+    color: '#B42318',
     fontWeight: '600',
   },
   modalFormScroll: {
@@ -2375,7 +2375,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 6,
     letterSpacing: 0.4,
   },
@@ -2389,10 +2389,10 @@ const styles = paraCelular(StyleSheet.create({
   textInput: {
     fontFamily: FONT_SANS,
     fontSize: 14,
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    color: '#2E211A',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -2400,9 +2400,9 @@ const styles = paraCelular(StyleSheet.create({
   currencyInputBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
   },
@@ -2410,7 +2410,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
     marginRight: 6,
   },
   currencyInput: {
@@ -2418,7 +2418,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     paddingVertical: 10,
   },
 
@@ -2432,9 +2432,9 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 12,
     gap: 10,
@@ -2447,26 +2447,26 @@ const styles = paraCelular(StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   typeSelectIconActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   typeSelectTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   typeSelectTitleActive: {
-    color: '#0F172A',
+    color: '#2E211A',
   },
   typeSelectSub: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   unitPillsScroll: {
@@ -2475,12 +2475,12 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 4,
   },
   unitPill: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   unitPillActive: {
     backgroundColor: KIPI_BLUE,
@@ -2490,10 +2490,10 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   unitPillTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   storageGridSelector: {
@@ -2504,9 +2504,9 @@ const styles = paraCelular(StyleSheet.create({
   storageGridItem: {
     width: '31%',
     flexGrow: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
@@ -2519,7 +2519,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginTop: 4,
   },
   storageGridItemTitleActive: {
@@ -2528,7 +2528,7 @@ const styles = paraCelular(StyleSheet.create({
   storageGridItemDesc: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
     textAlign: 'center',
     marginTop: 2,
   },
@@ -2541,7 +2541,7 @@ const styles = paraCelular(StyleSheet.create({
     gap: 12,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
     marginTop: 10,
   },
   modalCancelBtn: {
@@ -2553,7 +2553,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   modalSaveBtn: {
     flexDirection: 'row',
@@ -2568,7 +2568,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // DOSSIÊ STYLES
@@ -2576,7 +2576,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 14,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2587,35 +2587,35 @@ const styles = paraCelular(StyleSheet.create({
   },
   dossierMetricCard: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   dossierMetricLabel: {
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginBottom: 4,
   },
   dossierMetricVal: {
     fontFamily: FONT_DISPLAY,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   dossierMetricSub: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   stockAdjustmentCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 16,
     marginBottom: 16,
   },
@@ -2629,18 +2629,18 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   stockAdjSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
   stockAdjBigNumber: {
     fontFamily: FONT_DISPLAY,
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   stockAdjButtonsRow: {
     flexDirection: 'row',
@@ -2651,9 +2651,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBE7E4',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#F3C4BD',
     paddingVertical: 10,
     borderRadius: 10,
     gap: 6,
@@ -2662,16 +2662,16 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#B42318',
   },
   stockAdjBtnPlus: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#E4F1E9',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#BFDCCB',
     paddingVertical: 10,
     borderRadius: 10,
     gap: 6,
@@ -2680,20 +2680,20 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   linkedRecipesCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   linkedRecipesTitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 10,
   },
   linkedRecipeItem: {
@@ -2705,12 +2705,12 @@ const styles = paraCelular(StyleSheet.create({
   linkedRecipeText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
   },
   linkedRecipesEmpty: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#9A8F87',
     fontStyle: 'italic',
   },
 }));

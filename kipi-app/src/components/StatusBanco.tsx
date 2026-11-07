@@ -4,13 +4,13 @@ import { Feather } from '@expo/vector-icons';
 import { useStatusBanco } from '@/lib/sincronizacao';
 
 // Selo no canto da tela: mostra que o app está nos dados reais (área do banco) e se salvou
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
 const VISUAL = {
-  carregando: { cor: '#2563EB', fundo: '#EFF6FF', icone: 'download-cloud', texto: 'Carregando do banco…' },
-  salvando: { cor: '#2563EB', fundo: '#EFF6FF', icone: 'upload-cloud', texto: 'Salvando…' },
-  ok: { cor: '#15803D', fundo: '#F0FDF4', icone: 'check-circle', texto: 'Salvo no banco' },
-  erro: { cor: '#DC2626', fundo: '#FEF2F2', icone: 'alert-triangle', texto: 'Erro no banco' },
+  carregando: { cor: '#4B4FC4', fundo: '#ECEBFA', icone: 'download-cloud', texto: 'Carregando do banco…' },
+  salvando: { cor: '#4B4FC4', fundo: '#ECEBFA', icone: 'upload-cloud', texto: 'Salvando…' },
+  ok: { cor: '#2F7D55', fundo: '#E4F1E9', icone: 'check-circle', texto: 'Salvo no banco' },
+  erro: { cor: '#B42318', fundo: '#FBE7E4', icone: 'alert-triangle', texto: 'Erro no banco' },
 } as const;
 
 export default function StatusBanco() {
@@ -42,7 +42,7 @@ const s = StyleSheet.create({
   posicao: { position: 'absolute', left: 12, bottom: 12, zIndex: 9999, alignItems: 'flex-start', gap: 6 },
   selo: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   texto: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '800' },
-  detalhe: { maxWidth: 360, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#FECACA', borderRadius: 10, padding: 10, gap: 4 },
-  detalheTexto: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#991B1B' },
-  detalheDica: { fontFamily: FONT_SANS, fontSize: 11, color: '#64748B' },
+  detalhe: { maxWidth: 360, backgroundColor: '#FFFDFA', borderWidth: 1, borderColor: '#F3C4BD', borderRadius: 10, padding: 10, gap: 4 },
+  detalheTexto: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#8A1C12' },
+  detalheDica: { fontFamily: FONT_SANS, fontSize: 11, color: '#6B615A' },
 });

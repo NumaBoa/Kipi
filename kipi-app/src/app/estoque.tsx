@@ -48,24 +48,24 @@ import ProducaoRapidaModal, { type ModoProducaoRapida } from '@/components/Produ
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
-const KIPI_BLUE = '#5798D7';
-const KIPI_BLUE_DARK = '#3E7BB8';
-const KIPI_BLUE_TINT = '#EAF3FA';
-const KIPI_BLUE_ACCENT = '#2563EB';
-const KIPI_FROST_BG = '#F8FAFC';
-const SUCCESS_GREEN = '#16A34A';
-const SUCCESS_TINT = '#DCFCE7';
-const WARNING_AMBER = '#D97706';
-const WARNING_TINT = '#FEF3C7';
-const DANGER_RED = '#DC2626';
-const DANGER_TINT = '#FEE2E2';
-const OVEN_ORANGE = '#EA580C';
-const OVEN_TINT = '#FFEDD5';
-const FREEZER_CYAN = '#0284C7';
-const FREEZER_TINT = '#E0F2FE';
+const KIPI_BLUE = '#9E5D25';
+const KIPI_BLUE_DARK = '#7A4520';
+const KIPI_BLUE_TINT = '#ECEBFA';
+const KIPI_BLUE_ACCENT = '#4B4FC4';
+const KIPI_FROST_BG = '#F8F6F2';
+const SUCCESS_GREEN = '#2F7D55';
+const SUCCESS_TINT = '#E4F1E9';
+const WARNING_AMBER = '#B9781A';
+const WARNING_TINT = '#FBF0DC';
+const DANGER_RED = '#B42318';
+const DANGER_TINT = '#FBE7E4';
+const OVEN_ORANGE = '#B9781A';
+const OVEN_TINT = '#FBF0DC';
+const FREEZER_CYAN = '#3A3D9E';
+const FREEZER_TINT = '#ECEBFA';
 
 export type EstoqueTab = 'produtos' | 'ingredientes' | 'embalagens' | 'compras';
 
@@ -165,7 +165,7 @@ function Indicador({
   rotulo,
   valor,
   detalhe,
-  cor = '#0F172A',
+  cor = '#2E211A',
   primeiro,
   onPress,
 }: {
@@ -619,22 +619,22 @@ function EstoqueCentralDesktop() {
         />
       </View>
       <View style={styles.searchBox}>
-        <Feather name="search" size={14} color="#94A3B8" />
+        <Feather name="search" size={14} color="#9A8F87" />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por nome ou tipo"
-          placeholderTextColor="#94A3B8"
+          placeholderTextColor="#9A8F87"
           value={buscaMaterial}
           onChangeText={setBuscaMaterial}
         />
         {buscaMaterial.length > 0 && (
           <TouchableOpacity onPress={() => setBuscaMaterial('')}>
-            <Feather name="x" size={14} color="#94A3B8" />
+            <Feather name="x" size={14} color="#9A8F87" />
           </TouchableOpacity>
         )}
       </View>
       <TouchableOpacity style={styles.btnNovoMaterial} onPress={() => abrirNovoMaterial(tipoNovo)}>
-        <Feather name="plus" size={14} color="#FFFFFF" />
+        <Feather name="plus" size={14} color="#FFFDFA" />
         <Text style={styles.btnNovoMaterialText}>Novo material</Text>
       </TouchableOpacity>
     </View>
@@ -662,7 +662,7 @@ function EstoqueCentralDesktop() {
                 <TouchableOpacity
                   style={styles.btnListaAlerta}
                   onPress={() => setActiveTab('compras')}>
-                  <Feather name="shopping-cart" size={15} color="#DC2626" />
+                  <Feather name="shopping-cart" size={15} color="#B42318" />
                   <Text style={styles.btnListaAlertaText}>
                     {listaComprasSugerida.length} itens para repor!
                   </Text>
@@ -767,17 +767,17 @@ function EstoqueCentralDesktop() {
                   />
                 </View>
                 <View style={styles.searchBox}>
-                  <Feather name="search" size={14} color="#94A3B8" />
+                  <Feather name="search" size={14} color="#9A8F87" />
                   <TextInput
                     style={styles.searchInput}
                     placeholder="Buscar produto ou categoria"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={buscaProduto}
                     onChangeText={setBuscaProduto}
                   />
                   {buscaProduto.length > 0 && (
                     <TouchableOpacity onPress={() => setBuscaProduto('')}>
-                      <Feather name="x" size={14} color="#94A3B8" />
+                      <Feather name="x" size={14} color="#9A8F87" />
                     </TouchableOpacity>
                   )}
                 </View>
@@ -812,7 +812,7 @@ function EstoqueCentralDesktop() {
                         style={[styles.viewToggleBtn, ativo && styles.viewToggleBtnActive]}
                         onPress={() => setModoProdutos(modo)}
                         accessibilityLabel={modo === 'cards' ? 'Ver em cards' : 'Ver em lista'}>
-                        <Feather name={modo === 'cards' ? 'grid' : 'list'} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#64748B'} />
+                        <Feather name={modo === 'cards' ? 'grid' : 'list'} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#6B615A'} />
                         <Text style={[styles.viewToggleText, ativo && { color: KIPI_BLUE_ACCENT }]}>
                           {modo === 'cards' ? 'Cards' : 'Lista'}
                         </Text>
@@ -824,7 +824,7 @@ function EstoqueCentralDesktop() {
 
               {produtosFiltrados.length === 0 && (
                 <View style={styles.emptyContainer}>
-                  <Feather name="search" size={30} color="#94A3B8" />
+                  <Feather name="search" size={30} color="#9A8F87" />
                   <Text style={styles.emptyTitle}>Nenhum produto encontrado</Text>
                   <Text style={styles.emptySubtitle}>Tente outro nome ou categoria.</Text>
                 </View>
@@ -863,7 +863,7 @@ function EstoqueCentralDesktop() {
                             <Text style={styles.dualStockLabel}>♨️ Assados (Vitrine)</Text>
                           </View>
                           <Text style={[styles.dualStockNumber, { color: OVEN_ORANGE }]}>
-                            {p.estoqueAssado} <Text style={{ fontSize: 12, color: '#64748B' }}>un</Text>
+                            {p.estoqueAssado} <Text style={{ fontSize: 12, color: '#6B615A' }}>un</Text>
                           </Text>
                           <Text style={styles.dualStockSub}>Diminui com vendas</Text>
                           {assadoBaixo && (
@@ -881,7 +881,7 @@ function EstoqueCentralDesktop() {
                             <Text style={styles.dualStockLabel}>🧊 No Freezer</Text>
                           </View>
                           <Text style={[styles.dualStockNumber, { color: FREEZER_CYAN }]}>
-                            {p.estoqueCongelado} <Text style={{ fontSize: 12, color: '#64748B' }}>un</Text>
+                            {p.estoqueCongelado} <Text style={{ fontSize: 12, color: '#6B615A' }}>un</Text>
                           </Text>
                           <Text style={styles.dualStockSub}>Prontos para assar</Text>
                           {congeladoBaixo && (
@@ -918,7 +918,7 @@ function EstoqueCentralDesktop() {
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.btnAjustarSmall} onPress={() => verProduto(p.id)}>
-                          <Feather name="external-link" size={12} color="#64748B" />
+                          <Feather name="external-link" size={12} color="#6B615A" />
                           <Text style={styles.btnAjustarSmallText}>Ver produto</Text>
                         </TouchableOpacity>
                       </View>
@@ -990,7 +990,7 @@ function EstoqueCentralDesktop() {
                             <Feather name="trash-2" size={14} color={DANGER_RED} />
                           </TouchableOpacity>
                           <TouchableOpacity style={styles.btnIconAjuste} accessibilityLabel="Ver produto" onPress={() => verProduto(p.id)}>
-                            <Feather name="external-link" size={15} color="#64748B" />
+                            <Feather name="external-link" size={15} color="#6B615A" />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -1080,7 +1080,7 @@ function EstoqueCentralDesktop() {
                           style={styles.btnIconAjuste}
                           accessibilityLabel="Editar material"
                           onPress={() => abrirEdicaoMaterial('ingrediente', ing, ing.tipo, ing.armazenamento)}>
-                          <Feather name="edit-2" size={15} color="#64748B" />
+                          <Feather name="edit-2" size={15} color="#6B615A" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1160,7 +1160,7 @@ function EstoqueCentralDesktop() {
                           style={styles.btnIconAjuste}
                           accessibilityLabel="Editar material"
                           onPress={() => abrirEdicaoMaterial(emb.tipo, emb, emb.usadoEm)}>
-                          <Feather name="edit-2" size={15} color="#64748B" />
+                          <Feather name="edit-2" size={15} color="#6B615A" />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1180,7 +1180,7 @@ function EstoqueCentralDesktop() {
                 <View>
                   <Text style={styles.comprasBannerTitle}>Lista de Reposição de Compras</Text>
                   <Text style={styles.comprasBannerSubtitle}>
-                    Itens que atingiram o estoque de segurança. Total estimado: <Text style={{ fontWeight: '800', color: '#0F172A' }}>{formatMoney(custoTotalEstimadoCompras)}</Text>
+                    Itens que atingiram o estoque de segurança. Total estimado: <Text style={{ fontWeight: '800', color: '#2E211A' }}>{formatMoney(custoTotalEstimadoCompras)}</Text>
                   </Text>
                 </View>
 
@@ -1188,7 +1188,7 @@ function EstoqueCentralDesktop() {
                   <TouchableOpacity
                     style={styles.btnWhatsappCompras}
                     onPress={handleCopiarWhatsApp}>
-                    <Feather name="share-2" size={15} color="#FFFFFF" />
+                    <Feather name="share-2" size={15} color="#FFFDFA" />
                     <Text style={styles.btnWhatsappComprasText}>
                       {copiadoNotice ? '✅ Copiado com Sucesso!' : 'Copiar para WhatsApp'}
                     </Text>
@@ -1263,7 +1263,7 @@ function EstoqueCentralDesktop() {
                 <Text style={styles.modalSubtitle}>{itemAjusteNome}</Text>
               </View>
               <TouchableOpacity onPress={() => setModalAjusteVisible(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -1290,7 +1290,7 @@ function EstoqueCentralDesktop() {
                   style={[styles.modalInput, { fontSize: 15 }]}
                   keyboardType="decimal-pad"
                   placeholder="0,00"
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={valorPagoInput}
                   onChangeText={setValorPagoInput}
                 />
@@ -1306,14 +1306,14 @@ function EstoqueCentralDesktop() {
               <TouchableOpacity
                 style={styles.btnAjusteSubtrair}
                 onPress={() => handleConfirmarAjuste(-1)}>
-                <Feather name="minus" size={16} color="#DC2626" />
+                <Feather name="minus" size={16} color="#B42318" />
                 <Text style={styles.btnAjusteSubtrairText}>Dar Baixa (-)</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.btnAjusteSomar}
                 onPress={() => handleConfirmarAjuste(1)}>
-                <Feather name="plus" size={16} color="#16A34A" />
+                <Feather name="plus" size={16} color="#2F7D55" />
                 <Text style={styles.btnAjusteSomarText}>Dar Entrada (+)</Text>
               </TouchableOpacity>
             </View>
@@ -1337,7 +1337,7 @@ function EstoqueCentralDesktop() {
                 <Text style={styles.modalSubtitle}>Ingredientes, embalagens e outros materiais do ateliê</Text>
               </View>
               <TouchableOpacity onPress={() => setModalMaterialVisible(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -1369,7 +1369,7 @@ function EstoqueCentralDesktop() {
                 <TextInput
                   style={styles.formInput}
                   placeholder={formTipo === 'ingrediente' ? 'Ex: Leite Condensado' : formTipo === 'embalagem' ? 'Ex: Caixa Kraft 6 un' : 'Ex: Topper de Aniversário'}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={formNome}
                   onChangeText={setFormNome}
                 />
@@ -1392,15 +1392,15 @@ function EstoqueCentralDesktop() {
               <View style={styles.formRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>QTD ATUAL</Text>
-                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#94A3B8" value={formQtd} onChangeText={setFormQtd} />
+                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#9A8F87" value={formQtd} onChangeText={setFormQtd} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>MÍNIMO</Text>
-                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#94A3B8" value={formMinimo} onChangeText={setFormMinimo} />
+                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0" placeholderTextColor="#9A8F87" value={formMinimo} onChangeText={setFormMinimo} />
                 </View>
                 <View style={{ flex: 1.2 }}>
                   <Text style={styles.inputLabel}>CUSTO / {formUnidade.toUpperCase()} (R$)</Text>
-                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0,00" placeholderTextColor="#94A3B8" value={formCusto} onChangeText={setFormCusto} />
+                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0,00" placeholderTextColor="#9A8F87" value={formCusto} onChangeText={setFormCusto} />
                 </View>
               </View>
 
@@ -1409,7 +1409,7 @@ function EstoqueCentralDesktop() {
                 <TextInput
                   style={styles.formInput}
                   placeholder={formTipo === 'ingrediente' ? 'Ex: Laticínio' : 'Ex: Bolos de aniversário'}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   value={formDetalhe}
                   onChangeText={setFormDetalhe}
                 />
@@ -1440,7 +1440,7 @@ function EstoqueCentralDesktop() {
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.btnSalvarMaterial} onPress={handleSalvarMaterial}>
-                <Feather name="check" size={15} color="#FFFFFF" />
+                <Feather name="check" size={15} color="#FFFDFA" />
                 <Text style={styles.btnSalvarMaterialText}>Salvar</Text>
               </TouchableOpacity>
             </View>
@@ -1468,7 +1468,7 @@ function EstoqueCentralDesktop() {
                   <Text style={styles.modalSubtitle}>{kpiDetalhe.explicacao}</Text>
                 </View>
                 <TouchableOpacity onPress={() => setKpiDetalhe(null)}>
-                  <Feather name="x" size={20} color="#64748B" />
+                  <Feather name="x" size={20} color="#6B615A" />
                 </TouchableOpacity>
               </View>
               <ScrollView style={{ maxHeight: 380, marginTop: 8 }}>
@@ -1497,7 +1497,7 @@ function EstoqueCentralDesktop() {
 const styles = paraCelular(StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   screenWrapper: {
     flex: 1,
@@ -1524,7 +1524,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     backgroundColor: DANGER_TINT,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#F3C4BD',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -1540,11 +1540,11 @@ const styles = paraCelular(StyleSheet.create({
   // ABAS
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     marginBottom: 16,
     flexWrap: 'wrap',
     gap: 4,
@@ -1564,26 +1564,26 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   tabButtonTextActive: {
     color: KIPI_BLUE_ACCENT,
     fontWeight: '800',
   },
   tabBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 8,
   },
   tabBadgeActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   tabBadgeText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   tabBadgeTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1604,15 +1604,15 @@ const styles = paraCelular(StyleSheet.create({
     width: '32%',
     minWidth: 290,
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   stockCardWarning: {
-    borderColor: '#FED7AA',
-    backgroundColor: '#FFFCF9',
+    borderColor: '#F2DDB0',
+    backgroundColor: '#FFFDFA',
   },
   stockCardTop: {
     flexDirection: 'row',
@@ -1624,7 +1624,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1632,13 +1632,13 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   prodName: {
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   prodPrice: {
     fontFamily: FONT_DISPLAY,
@@ -1649,7 +1649,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   dualStockBox: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 12,
     padding: 10,
     marginBottom: 12,
@@ -1659,14 +1659,14 @@ const styles = paraCelular(StyleSheet.create({
   },
   dualStockDivider: {
     width: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
     marginHorizontal: 10,
   },
   dualStockLabel: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   dualStockNumber: {
     fontFamily: FONT_DISPLAY,
@@ -1677,7 +1677,7 @@ const styles = paraCelular(StyleSheet.create({
   dualStockSub: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   alertPillOven: {
     backgroundColor: OVEN_TINT,
@@ -1716,9 +1716,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     paddingVertical: 6,
     borderRadius: 8,
     gap: 4,
@@ -1727,32 +1727,32 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
 
   // TABELAS
   tableCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     overflow: 'hidden',
     marginBottom: 30,
   },
   tableHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
   },
   th: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   tableRow: {
@@ -1761,13 +1761,13 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   tableRowEven: {
-    backgroundColor: '#FAFCFE',
+    backgroundColor: '#F8F6F2',
   },
   tableRowAlert: {
-    backgroundColor: '#FFFBF9',
+    backgroundColor: '#FFFDFA',
   },
   // Célula do nome: alinhada à esquerda, nome longo corta com reticências
   tdNome: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 10, minWidth: 0, paddingRight: 12 },
@@ -1778,7 +1778,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1786,21 +1786,21 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   tableSub: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   tableStockNumber: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   recipeCapacityPill: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1810,7 +1810,7 @@ const styles = paraCelular(StyleSheet.create({
   recipeCapacityText: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#475569',
+    color: '#4A3E37',
   },
   statusBadge: {
     paddingHorizontal: 6,
@@ -1844,11 +1844,11 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     marginBottom: 16,
     flexWrap: 'wrap',
     gap: 12,
@@ -1857,12 +1857,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   comprasBannerSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   btnWhatsappCompras: {
@@ -1878,7 +1878,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   suggestPill: {
     backgroundColor: SUCCESS_TINT,
@@ -1896,29 +1896,29 @@ const styles = paraCelular(StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     paddingVertical: 40,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     gap: 8,
   },
   emptyTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   emptySubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // MODAL AJUSTE
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(43, 36, 33, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1930,28 +1930,28 @@ const styles = paraCelular(StyleSheet.create({
     gap: 10,
     paddingVertical: 7,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   kpiDetalheNome: {
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#334155',
+    color: '#3D312A',
   },
   kpiDetalheValor: {
     fontFamily: FONT_DISPLAY,
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalSmallBox: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 18,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
   },
   modalHeader: {
@@ -1959,36 +1959,36 @@ const styles = paraCelular(StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
     paddingBottom: 10,
   },
   modalTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   inputLabel: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 6,
   },
   modalInput: {
     fontFamily: FONT_DISPLAY,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    color: '#2E211A',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -2004,9 +2004,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FEF2F2',
+    backgroundColor: '#FBE7E4',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#F3C4BD',
     paddingVertical: 10,
     borderRadius: 10,
     gap: 6,
@@ -2022,9 +2022,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#E4F1E9',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#BFDCCB',
     paddingVertical: 10,
     borderRadius: 10,
     gap: 6,
@@ -2038,7 +2038,7 @@ const styles = paraCelular(StyleSheet.create({
   modalHint: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 6,
     textAlign: 'center',
   },
@@ -2055,10 +2055,10 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     paddingVertical: 8,
   },
   statItem: {
@@ -2069,13 +2069,13 @@ const styles = paraCelular(StyleSheet.create({
   },
   statItemDivider: {
     borderLeftWidth: 1,
-    borderLeftColor: '#F1F5F9',
+    borderLeftColor: '#F3EEE7',
   },
   statLabel: {
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.3,
     textTransform: 'uppercase',
   },
@@ -2088,7 +2088,7 @@ const styles = paraCelular(StyleSheet.create({
   statDetail: {
     fontFamily: FONT_SANS,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   searchBox: {
     flexDirection: 'row',
@@ -2096,10 +2096,10 @@ const styles = paraCelular(StyleSheet.create({
     gap: 8,
     minWidth: 220,
     flexGrow: 0.4,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
@@ -2107,7 +2107,7 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   btnNovoMaterial: {
@@ -2124,7 +2124,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   chipsRow: {
     gap: 6,
@@ -2137,9 +2137,9 @@ const styles = paraCelular(StyleSheet.create({
   },
   viewToggle: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     padding: 2,
     gap: 2,
@@ -2159,7 +2159,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   btnAtalhoAssar: {
     flex: 1,
@@ -2168,7 +2168,7 @@ const styles = paraCelular(StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: OVEN_TINT,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: '#F2DDB0',
     paddingVertical: 6,
     borderRadius: 8,
     gap: 4,
@@ -2188,9 +2188,9 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   chipActive: {
     backgroundColor: KIPI_BLUE_TINT,
@@ -2200,7 +2200,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   chipTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -2210,12 +2210,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   tableEmpty: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#9A8F87',
     textAlign: 'center',
     paddingVertical: 24,
   },
@@ -2240,10 +2240,10 @@ const styles = paraCelular(StyleSheet.create({
   formInput: {
     fontFamily: FONT_SANS,
     fontSize: 14,
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    color: '#2E211A',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 9,
@@ -2266,6 +2266,6 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 }));

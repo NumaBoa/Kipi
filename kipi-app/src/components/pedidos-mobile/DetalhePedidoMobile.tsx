@@ -100,7 +100,7 @@ export default function DetalhePedidoMobile({
                 <Feather name="calendar" size={20} color={cor.ambar} />
                 <View style={{ flex: 1 }}>
                   <T style={[s.entregaSub, { color: cor.ambarTexto, fontWeight: '700' }]}>Entregar em</T>
-                  <T style={[s.entregaTitulo, { color: '#78350F' }]}>{rotuloEntrega(pedido.dataEntrega)}</T>
+                  <T style={[s.entregaTitulo, { color: '#6E4A10' }]}>{rotuloEntrega(pedido.dataEntrega)}</T>
                 </View>
               </View>
             )}
@@ -143,7 +143,7 @@ export default function DetalhePedidoMobile({
           {/* 2. PAGAMENTO: a cor já diz a situação */}
           <View style={[s.bloco, sombra, { gap: 10, backgroundColor: pendente ? cor.vermelhoClaro : cor.verdeClaro }]}>
             <View style={s.linha}>
-              <View style={[s.redondo, { width: 40, height: 40, backgroundColor: pendente ? '#FFFFFF' : '#DCFCE7' }]}>
+              <View style={[s.redondo, { width: 40, height: 40, backgroundColor: pendente ? '#FFFDFA' : '#E4F1E9' }]}>
                 <Feather name={pendente ? 'clock' : 'check'} size={20} color={pendente ? cor.vermelho : cor.verde} />
               </View>
               <View style={{ flex: 1 }}>
@@ -158,14 +158,14 @@ export default function DetalhePedidoMobile({
               </View>
             </View>
             {pendente && (
-              <View style={[s.trilho, { backgroundColor: '#FFFFFF' }]}>
+              <View style={[s.trilho, { backgroundColor: '#FFFDFA' }]}>
                 <View style={[s.trilhoCheio, { width: `${pct}%` }]} />
               </View>
             )}
             {!ocultarCustos && (
               <>
                 <TouchableOpacity
-                  style={[s.expandir, { borderTopColor: pendente ? '#FECACA' : cor.verdeBorda }]}
+                  style={[s.expandir, { borderTopColor: pendente ? '#F3C4BD' : cor.verdeBorda }]}
                   onPress={() => setVerLucro((v) => !v)}
                   accessibilityRole="button"
                   accessibilityState={{ expanded: verLucro }}>
@@ -174,11 +174,11 @@ export default function DetalhePedidoMobile({
                 </TouchableOpacity>
                 {verLucro && (
                   <View style={s.linha}>
-                    <View style={[s.mini, { backgroundColor: '#FFFFFF' }]}>
+                    <View style={[s.mini, { backgroundColor: '#FFFDFA' }]}>
                       <T style={s.miniRotulo}>Custo (ficha técnica)</T>
                       <T style={[s.miniValor, numeros]}>{brl(custo)}</T>
                     </View>
-                    <View style={[s.mini, { backgroundColor: '#FFFFFF' }]}>
+                    <View style={[s.mini, { backgroundColor: '#FFFDFA' }]}>
                       <T style={[s.miniRotulo, { color: cor.verde }]}>Lucro estimado</T>
                       <T style={[s.miniValor, numeros, { color: cor.verde }]}>{brl(lucro)} · {margem}%</T>
                     </View>
@@ -290,7 +290,7 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4 },
   topoTitulo: { textAlign: 'center', fontSize: 15, fontWeight: '800' },
   topoSub: { fontSize: 12, fontWeight: '600', color: cor.textoSuave },
-  blocoBaixo: { backgroundColor: '#FFFFFF', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  blocoBaixo: { backgroundColor: '#FFFDFA', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   ponto: { width: 10, height: 10, borderRadius: 5 },
   botaoPequeno: { height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: cor.apagado, justifyContent: 'center' },
   avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: cor.azulClaro, alignItems: 'center', justifyContent: 'center' },
@@ -299,7 +299,7 @@ const s = StyleSheet.create({
   divisa: { borderTopWidth: 1, borderTopColor: cor.bordaSuave, paddingTop: 12 },
   icone44: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   conteudo: { paddingHorizontal: 16, paddingTop: 6, gap: 12 },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 18, gap: 12 },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 24, padding: 18, gap: 12 },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   linhaWrap: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   linhaEntre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -332,11 +332,11 @@ const s = StyleSheet.create({
   itemTotal: { fontSize: 15, fontWeight: '800' },
   promo: { fontSize: 12, fontWeight: '800', color: cor.ambar },
   nota: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: 14, backgroundColor: cor.fundo },
-  notaTexto: { flex: 1, fontSize: 13, lineHeight: 19, color: '#334155' },
+  notaTexto: { flex: 1, fontSize: 13, lineHeight: 19, color: '#3D312A' },
   chip: { height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: cor.fundo, justifyContent: 'center' },
   chipTexto: { fontSize: 12, fontWeight: '800', color: cor.azulTexto },
   mensagem: { padding: 14, borderRadius: 16, backgroundColor: cor.verdeClaro },
-  mensagemTexto: { fontSize: 13, lineHeight: 19, color: '#14532D' },
+  mensagemTexto: { fontSize: 13, lineHeight: 19, color: '#24603F' },
   rodape: {
     position: 'absolute',
     left: 0,
@@ -346,7 +346,7 @@ const s = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderTopWidth: 1,
     borderTopColor: cor.borda,
   },

@@ -57,10 +57,10 @@ export interface EstoqueItem {
 // STATUS DE PRODUÇÃO (ORDEM DO FLUXO DA COZINHA)
 type StatusProducao = Pedido['statusProducao'];
 const STATUS_PRODUCAO: { id: StatusProducao; label: string; cor: string; fundo: string; icon: 'circle' | 'loader' | 'package' | 'check-circle' }[] = [
-  { id: 'a_fazer', label: 'A fazer', cor: '#64748B', fundo: '#F1F5F9', icon: 'circle' },
-  { id: 'em_producao', label: 'Em produção', cor: '#B45309', fundo: '#FEF3C7', icon: 'loader' },
-  { id: 'pronto', label: 'Pronto p/ retirada', cor: '#2563EB', fundo: '#EAF3FA', icon: 'package' },
-  { id: 'entregue', label: 'Entregue', cor: '#16A34A', fundo: '#DCFCE7', icon: 'check-circle' },
+  { id: 'a_fazer', label: 'A fazer', cor: '#6B615A', fundo: '#F3EEE7', icon: 'circle' },
+  { id: 'em_producao', label: 'Em produção', cor: '#9A6516', fundo: '#FBF0DC', icon: 'loader' },
+  { id: 'pronto', label: 'Pronto p/ retirada', cor: '#4B4FC4', fundo: '#ECEBFA', icon: 'package' },
+  { id: 'entregue', label: 'Entregue', cor: '#2F7D55', fundo: '#E4F1E9', icon: 'check-circle' },
 ];
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const infoStatusProducao =(s: StatusProducao) => STATUS_PRODUCAO.find((x) => x.id === s) || STATUS_PRODUCAO[0];
@@ -473,7 +473,7 @@ function PedidosDesktop() {
                   style={styles.pageHeaderAlertBtn}
                   onPress={() => setModalAReceberAberto(true)}
                   activeOpacity={0.8}>
-                  <Feather name="clock" size={15} color="#DC2626" />
+                  <Feather name="clock" size={15} color="#B42318" />
                   <Text style={styles.pageHeaderAlertText}>
                     {kpis.qtdPendentes} {kpis.qtdPendentes === 1 ? 'pedido aguarda' : 'pedidos aguardam'} baixa!
                   </Text>
@@ -506,14 +506,14 @@ function PedidosDesktop() {
                     style={[styles.filtrosBtn, (filtrosAbertos || filtrosAtivos > 0) && styles.filtrosBtnAtivo]}
                     onPress={() => setFiltrosAbertos((v) => !v)}
                     activeOpacity={0.85}>
-                    <Feather name="sliders" size={14} color={filtrosAtivos > 0 ? KipiPalette.icedDenim : '#475569'} />
+                    <Feather name="sliders" size={14} color={filtrosAtivos > 0 ? KipiPalette.icedDenim : '#4A3E37'} />
                     <Text style={[styles.filtrosBtnTexto, filtrosAtivos > 0 && { color: KipiPalette.icedDenim }]}>Filtros</Text>
                     {filtrosAtivos > 0 && (
                       <View style={styles.filtrosBadge}>
                         <Text style={styles.filtrosBadgeTexto}>{filtrosAtivos}</Text>
                       </View>
                     )}
-                    <Feather name={filtrosAbertos ? 'chevron-up' : 'chevron-down'} size={14} color="#94A3B8" />
+                    <Feather name={filtrosAbertos ? 'chevron-up' : 'chevron-down'} size={14} color="#9A8F87" />
                   </TouchableOpacity>
 
                   {filtrosAbertos && (
@@ -530,7 +530,7 @@ function PedidosDesktop() {
                               const ativo = filtroTipo === t.id;
                               return (
                                 <TouchableOpacity key={t.id} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setFiltroTipo(t.id as TipoPedido)}>
-                                  <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{t.label}</Text>
+                                  <Text style={[styles.mdChipTexto, ativo && { color: '#FFFDFA', fontWeight: '800' }]}>{t.label}</Text>
                                 </TouchableOpacity>
                               );
                             })}
@@ -549,7 +549,7 @@ function PedidosDesktop() {
                             const ativo = filtroPagamento === p.id;
                             return (
                               <TouchableOpacity key={p.id} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setFiltroPagamento(p.id as StatusPagamento)}>
-                                <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{p.label}</Text>
+                                <Text style={[styles.mdChipTexto, ativo && { color: '#FFFDFA', fontWeight: '800' }]}>{p.label}</Text>
                               </TouchableOpacity>
                             );
                           })}
@@ -570,7 +570,7 @@ function PedidosDesktop() {
                               const ativo = filtroVendedor === v.id;
                               return (
                                 <TouchableOpacity key={v.id} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setFiltroVendedor(v.id)}>
-                                  <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{v.label}</Text>
+                                  <Text style={[styles.mdChipTexto, ativo && { color: '#FFFDFA', fontWeight: '800' }]}>{v.label}</Text>
                                 </TouchableOpacity>
                               );
                             })}
@@ -585,7 +585,7 @@ function PedidosDesktop() {
                             setFiltroPagamento('todos');
                             setFiltroVendedor('todos');
                           }}>
-                          <Text style={[styles.mdLink, { marginBottom: 0, color: '#64748B' }]}>Limpar filtros</Text>
+                          <Text style={[styles.mdLink, { marginBottom: 0, color: '#6B615A' }]}>Limpar filtros</Text>
                         </TouchableOpacity>
                         <TouchableOpacity style={[styles.mdBtnPri, { paddingVertical: 7 }]} onPress={() => setFiltrosAbertos(false)}>
                           <Text style={styles.mdBtnPriTexto}>Pronto</Text>
@@ -598,14 +598,14 @@ function PedidosDesktop() {
 
               <View style={styles.filtrosDir}>
                 <View style={styles.calendarPill}>
-                  <Feather name="calendar" size={14} color="#64748B" />
+                  <Feather name="calendar" size={14} color="#6B615A" />
                   <Text style={styles.calendarPillText}>{dataExtenso}</Text>
                 </View>
                 <TouchableOpacity
                   style={styles.primaryActionBtn}
                   onPress={() => setModalNovoPedidoAberto(true)}
                   activeOpacity={0.85}>
-                  <Feather name="plus" size={16} color="#FFFFFF" />
+                  <Feather name="plus" size={16} color="#FFFDFA" />
                   <Text style={styles.primaryActionBtnText}>Novo Pedido</Text>
                 </TouchableOpacity>
               </View>
@@ -645,8 +645,8 @@ function PedidosDesktop() {
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>TOTAL VENDIDO</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#F1F6D8' }]}>
-                    <Feather name="dollar-sign" size={15} color="#708018" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#F6E8D6' }]}>
+                    <Feather name="dollar-sign" size={15} color="#7A4520" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{kpis.totalVendido}</Text>
@@ -662,8 +662,8 @@ function PedidosDesktop() {
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>{escopo.ehRevendedora ? 'MINHA COMISSÃO' : 'ITENS VENDIDOS'}</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
-                    <Feather name="shopping-bag" size={15} color="#5798D7" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#ECEBFA' }]}>
+                    <Feather name="shopping-bag" size={15} color="#4B4FC4" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{escopo.ehRevendedora ? kpis.comissao : kpis.totalItens}</Text>
@@ -682,11 +682,11 @@ function PedidosDesktop() {
                 activeOpacity={0.8}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>A RECEBER (CLIQUE ↗)</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                    <Feather name="clock" size={15} color="#D97706" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#FBF0DC' }]}>
+                    <Feather name="clock" size={15} color="#B9781A" />
                   </View>
                 </View>
-                <Text style={[styles.kpiMainNumber, { color: '#DC2626' }]}>
+                <Text style={[styles.kpiMainNumber, { color: '#B42318' }]}>
                   {kpis.totalAReceber}
                 </Text>
                 <View style={styles.kpiFooter}>
@@ -706,14 +706,14 @@ function PedidosDesktop() {
                 activeOpacity={0.8}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>{escopo.ehRevendedora ? 'ESTOQUE COMIGO (CLIQUE ↗)' : 'ESTOQUE GERAL (CLIQUE ↗)'}</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#E0F2FE' }]}>
-                    <Feather name="package" size={15} color="#0284C7" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#ECEBFA' }]}>
+                    <Feather name="package" size={15} color="#3A3D9E" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{kpis.totalEstoque}</Text>
                 <View style={styles.kpiFooter}>
-                  <View style={[styles.kpiDiffPillBlue, { backgroundColor: '#E0F2FE' }]}>
-                    <Text style={[styles.kpiDiffPillBlueText, { color: '#0284C7' }]}>
+                  <View style={[styles.kpiDiffPillBlue, { backgroundColor: '#ECEBFA' }]}>
+                    <Text style={[styles.kpiDiffPillBlueText, { color: '#3A3D9E' }]}>
                       {kpis.produtosEstoqueBaixo} baixos
                     </Text>
                   </View>
@@ -735,7 +735,7 @@ function PedidosDesktop() {
                 {pedidosAgrupadosPorDia.length === 0 ? (
                   <View style={styles.panelCard}>
                     <View style={{ padding: 40, alignItems: 'center', gap: 10 }}>
-                      <Feather name="inbox" size={38} color="#94A3B8" />
+                      <Feather name="inbox" size={38} color="#9A8F87" />
                       <Text style={styles.panelTitle}>Nenhum pedido encontrado</Text>
                       <Text style={styles.panelSubtitle}>
                         Ajuste os filtros de período ou busca para visualizar os registros.
@@ -759,12 +759,12 @@ function PedidosDesktop() {
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#0F172A' }}>
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#2E211A' }}>
                             Total: R$ {grupo.totalDia.toFixed(2)}
                           </Text>
                           {grupo.pendentesDia > 0 && (
-                            <View style={[styles.panelChip, { backgroundColor: '#FEE2E2' }]}>
-                              <Text style={[styles.panelChipText, { color: '#DC2626' }]}>
+                            <View style={[styles.panelChip, { backgroundColor: '#FBE7E4' }]}>
+                              <Text style={[styles.panelChipText, { color: '#B42318' }]}>
                                 {grupo.pendentesDia} pendente
                               </Text>
                             </View>
@@ -793,15 +793,15 @@ function PedidosDesktop() {
                                     style={[
                                       styles.orderTypeBadge,
                                       ped.tipoPedido === 'sob_encomenda'
-                                        ? { backgroundColor: '#FEF3C7' }
-                                        : { backgroundColor: '#EAF3FA' },
+                                        ? { backgroundColor: '#ECEBFA' }
+                                        : { backgroundColor: KipiPalette.carameloClaro },
                                     ]}>
                                     <Text
                                       style={[
                                         styles.orderTypeBadgeText,
                                         ped.tipoPedido === 'sob_encomenda'
-                                          ? { color: '#B45309' }
-                                          : { color: KipiPalette.icedDenim },
+                                          ? { color: KipiPalette.icedDenimDark }
+                                          : { color: KipiPalette.carameloEscuro },
                                       ]}>
                                       {ped.revendedoraId ? '🤝 Revenda' : ped.tipoPedido === 'sob_encomenda' ? 'Sob Encomenda' : 'Pronta Entrega'}
                                     </Text>
@@ -809,14 +809,14 @@ function PedidosDesktop() {
 
                                   {ped.status === 'pago' ? (
                                     <View style={styles.statusPaidPill}>
-                                      <Feather name="check" size={11} color="#16A34A" />
+                                      <Feather name="check" size={11} color="#2F7D55" />
                                       <Text style={styles.statusPaidPillText}>
                                         Pago ({ped.formaPagamento.toUpperCase()})
                                       </Text>
                                     </View>
                                   ) : (
                                     <View style={styles.statusPendingPill}>
-                                      <Feather name="clock" size={11} color="#DC2626" />
+                                      <Feather name="clock" size={11} color="#B42318" />
                                       <Text style={styles.statusPendingPillText}>Pendente</Text>
                                     </View>
                                   )}
@@ -840,12 +840,12 @@ function PedidosDesktop() {
                                 </View>
 
                                 <View style={styles.orderSellerInfoRow}>
-                                  <Feather name="clock" size={12} color="#94A3B8" />
+                                  <Feather name="clock" size={12} color="#9A8F87" />
                                   <Text style={styles.orderMetaText}>{ped.horaDisplay}</Text>
                                   <Text style={styles.orderDotDivider}>•</Text>
-                                  <Feather name="user-check" size={12} color="#94A3B8" />
+                                  <Feather name="user-check" size={12} color="#9A8F87" />
                                   <Text style={styles.orderMetaText}>
-                                    Vendedor: <Text style={{ fontWeight: '700', color: '#1E293B' }}>{ped.vendedor}</Text>
+                                    Vendedor: <Text style={{ fontWeight: '700', color: '#2E211A' }}>{ped.vendedor}</Text>
                                   </Text>
                                 </View>
                               </View>
@@ -887,7 +887,7 @@ function PedidosDesktop() {
                                       style={styles.btnActionBaixa}
                                       onPress={() => abrirModalBaixa(ped)}
                                       activeOpacity={0.8}>
-                                      <Feather name="check-circle" size={13} color="#FFFFFF" />
+                                      <Feather name="check-circle" size={13} color="#FFFDFA" />
                                       <Text style={styles.btnActionBaixaText}>Dar Baixa</Text>
                                     </TouchableOpacity>
                                   )}
@@ -896,7 +896,7 @@ function PedidosDesktop() {
                                     style={styles.btnActionWhatsApp}
                                     onPress={() => copiarWhatsApp(ped)}
                                     activeOpacity={0.8}>
-                                    <Feather name="message-circle" size={13} color="#16A34A" />
+                                    <Feather name="message-circle" size={13} color="#2F7D55" />
                                     <Text style={styles.btnActionWhatsAppText}>Comprovante WPP</Text>
                                   </TouchableOpacity>
 
@@ -916,7 +916,7 @@ function PedidosDesktop() {
                                     <Feather
                                       name={isSelected ? 'chevron-down' : 'maximize-2'}
                                       size={13}
-                                      color={isSelected ? '#FFFFFF' : KipiPalette.icedDenim}
+                                      color={isSelected ? '#FFFDFA' : KipiPalette.icedDenim}
                                     />
                                     <Text
                                       style={[
@@ -932,7 +932,7 @@ function PedidosDesktop() {
                                   <TouchableOpacity
                                     style={styles.btnMiniAction}
                                     onPress={() => abrirEdicao(ped)}>
-                                    <Feather name="edit-2" size={14} color="#64748B" />
+                                    <Feather name="edit-2" size={14} color="#6B615A" />
                                   </TouchableOpacity>
 
                                   <TouchableOpacity
@@ -941,7 +941,7 @@ function PedidosDesktop() {
                                       setPedidoParaExcluir(ped);
                                       setModalExcluirAberto(true);
                                     }}>
-                                    <Feather name="trash-2" size={14} color="#DC2626" />
+                                    <Feather name="trash-2" size={14} color="#B42318" />
                                   </TouchableOpacity>
                                 </View>
                               </View>
@@ -966,7 +966,7 @@ function PedidosDesktop() {
                   <View style={[styles.panelCard, { borderColor: KipiPalette.icedDenim, borderWidth: 2 }]}>
                     <View style={styles.panelHeader}>
                       <View style={styles.panelTitleRow}>
-                        <View style={[styles.sectionDot, { backgroundColor: KipiPalette.icedDenim }]} />
+                        <View style={[styles.sectionDot, { backgroundColor: KipiPalette.carameloMarca }]} />
                         <Text style={styles.panelTitle}>Detalhes: {pedidoSelecionado.codigoDisplay}</Text>
                         <View style={styles.panelChip}>
                           <Text style={styles.panelChipText}>
@@ -976,7 +976,7 @@ function PedidosDesktop() {
                       </View>
 
                       <TouchableOpacity onPress={() => setPedidoSelecionado(null)}>
-                        <Feather name="x" size={18} color="#64748B" />
+                        <Feather name="x" size={18} color="#6B615A" />
                       </TouchableOpacity>
                     </View>
 
@@ -1024,7 +1024,7 @@ function PedidosDesktop() {
                               style={[styles.prodTimelineStep, feito && { backgroundColor: s.fundo, borderColor: s.cor }]}
                               onPress={() => atualizarPedido({ ...pedidoSelecionado, statusProducao: s.id })}
                               activeOpacity={0.75}>
-                              <Feather name={s.icon} size={12} color={feito ? s.cor : '#CBD5E1'} />
+                              <Feather name={s.icon} size={12} color={feito ? s.cor : '#D9CFC4'} />
                               <Text style={[styles.prodTimelineText, feito && { color: s.cor }]}>{s.label}</Text>
                             </TouchableOpacity>
                           );
@@ -1045,7 +1045,7 @@ function PedidosDesktop() {
                             <Text style={styles.sideDetailItemSub}>
                               {it.categoria} • R$ {it.precoUnitario.toFixed(2)} un.
                               {it.comDesconto && it.desconto ? (
-                                <Text style={{ color: '#B45309', fontWeight: '700' }}>
+                                <Text style={{ color: '#9A6516', fontWeight: '700' }}>
                                   {'  '}🏷️ Promoção (-R$ {it.desconto.toFixed(2)}/un)
                                 </Text>
                               ) : null}
@@ -1073,7 +1073,7 @@ function PedidosDesktop() {
                         return (
                           <View style={styles.sideDetailProfitRow}>
                             <Text style={styles.sideDetailProfitText}>Custo (ficha técnica): R$ {custo.toFixed(2)}</Text>
-                            <Text style={[styles.sideDetailProfitText, { color: '#16A34A', fontWeight: '800' }]}>
+                            <Text style={[styles.sideDetailProfitText, { color: '#2F7D55', fontWeight: '800' }]}>
                               Lucro est.: R$ {lucro.toFixed(2)} ({margem}%)
                             </Text>
                           </View>
@@ -1101,9 +1101,9 @@ function PedidosDesktop() {
                       </Text>
                       <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                         <TouchableOpacity
-                          style={[styles.btnSideWppCopy, copiadoFeedback && { backgroundColor: '#16A34A' }]}
+                          style={[styles.btnSideWppCopy, copiadoFeedback && { backgroundColor: '#2F7D55' }]}
                           onPress={() => copiarWhatsApp(pedidoSelecionado)}>
-                          <Feather name={copiadoFeedback ? 'check' : 'copy'} size={13} color="#FFFFFF" />
+                          <Feather name={copiadoFeedback ? 'check' : 'copy'} size={13} color="#FFFDFA" />
                           <Text style={styles.btnSideWppCopyText}>
                             {copiadoFeedback ? 'Copiado!' : 'Copiar Texto WPP'}
                           </Text>
@@ -1112,7 +1112,7 @@ function PedidosDesktop() {
                         <TouchableOpacity
                           style={styles.btnSideWppOpen}
                           onPress={() => abrirWhatsAppWeb(pedidoSelecionado)}>
-                          <Feather name="external-link" size={13} color="#16A34A" />
+                          <Feather name="external-link" size={13} color="#2F7D55" />
                           <Text style={styles.btnSideWppOpenText}>Abrir WhatsApp</Text>
                         </TouchableOpacity>
                       </View>
@@ -1123,7 +1123,7 @@ function PedidosDesktop() {
                       <TouchableOpacity
                         style={styles.btnSideBaixaConfirm}
                         onPress={() => abrirModalBaixa(pedidoSelecionado)}>
-                        <Feather name="check-circle" size={15} color="#FFFFFF" />
+                        <Feather name="check-circle" size={15} color="#FFFDFA" />
                         <Text style={styles.btnSideBaixaConfirmText}>Dar Baixa de Pagamento</Text>
                       </TouchableOpacity>
                     )}
@@ -1134,13 +1134,13 @@ function PedidosDesktop() {
                 <View style={styles.panelCard}>
                   <View style={styles.panelHeader}>
                     <View style={styles.panelTitleRow}>
-                      <View style={[styles.miniAlertIcon, { backgroundColor: '#F1F6D8' }]}>
-                        <Feather name="award" size={14} color="#708018" />
+                      <View style={[styles.miniAlertIcon, { backgroundColor: '#F6E8D6' }]}>
+                        <Feather name="award" size={14} color="#7A4520" />
                       </View>
                       <Text style={styles.panelTitle}>Top 3 Produtos</Text>
                     </View>
-                    <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
-                      <Text style={[styles.panelChipText, { color: '#708018' }]}>Campeões 🏆</Text>
+                    <View style={[styles.panelChip, { backgroundColor: '#F6E8D6' }]}>
+                      <Text style={[styles.panelChipText, { color: '#7A4520' }]}>Campeões 🏆</Text>
                     </View>
                   </View>
 
@@ -1168,8 +1168,8 @@ function PedidosDesktop() {
                 <View style={styles.panelCard}>
                   <View style={styles.panelHeader}>
                     <View style={styles.panelTitleRow}>
-                      <View style={[styles.miniAlertIcon, { backgroundColor: '#EAF3FA' }]}>
-                        <Feather name="users" size={14} color="#5798D7" />
+                      <View style={[styles.miniAlertIcon, { backgroundColor: '#ECEBFA' }]}>
+                        <Feather name="users" size={14} color="#4B4FC4" />
                       </View>
                       <Text style={styles.panelTitle}>Top 3 Clientes</Text>
                     </View>
@@ -1197,7 +1197,7 @@ function PedidosDesktop() {
                             <Text style={styles.sideTopCat}>{cli.pedidosCount} pedidos realizados</Text>
                           </View>
                           <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={[styles.sideTopQty, { color: '#16A34A' }]}>{cli.qtdItens} itens</Text>
+                            <Text style={[styles.sideTopQty, { color: '#2F7D55' }]}>{cli.qtdItens} itens</Text>
                             <Text style={styles.sideTopTotal}>R$ {cli.totalGasto.toFixed(2)}</Text>
                           </View>
                         </View>
@@ -1237,8 +1237,8 @@ function PedidosDesktop() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.md, { maxWidth: 440 }]}>
             <View style={styles.mdHeader}>
-              <View style={[styles.mdHeaderIcon, { backgroundColor: '#DCFCE7' }]}>
-                <Feather name="dollar-sign" size={16} color="#16A34A" />
+              <View style={[styles.mdHeaderIcon, { backgroundColor: '#E4F1E9' }]}>
+                <Feather name="dollar-sign" size={16} color="#2F7D55" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.mdTitle}>Receber pagamento</Text>
@@ -1248,7 +1248,7 @@ function PedidosDesktop() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalBaixaAberto(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="x" size={18} color="#64748B" />
+                <Feather name="x" size={18} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -1283,7 +1283,7 @@ function PedidosDesktop() {
                             key={opt.id}
                             style={[styles.mdForma, ativo && styles.mdFormaAtiva]}
                             onPress={() => setBaixaFormaPagamento(opt.id as any)}>
-                            <Feather name={opt.icon as any} size={16} color={ativo ? '#16A34A' : '#64748B'} />
+                            <Feather name={opt.icon as any} size={16} color={ativo ? '#2F7D55' : '#6B615A'} />
                             <Text style={[styles.mdFormaTexto, ativo && styles.mdFormaTextoAtivo]}>{opt.label}</Text>
                           </TouchableOpacity>
                         );
@@ -1307,7 +1307,7 @@ function PedidosDesktop() {
                         keyboardType="decimal-pad"
                       />
                     </View>
-                    <Text style={[styles.mdDica, restante > 0 && { color: '#B45309' }]}>
+                    <Text style={[styles.mdDica, restante > 0 && { color: '#9A6516' }]}>
                       {restante > 0
                         ? `Pagamento parcial: continuam faltando ${brl(restante)}.`
                         : 'O pedido fica quitado.'}
@@ -1321,8 +1321,8 @@ function PedidosDesktop() {
               <TouchableOpacity style={styles.mdBtnSec} onPress={() => setModalBaixaAberto(false)}>
                 <Text style={styles.mdBtnSecTexto}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.mdBtnPri, { backgroundColor: '#16A34A' }]} onPress={confirmarBaixa}>
-                <Feather name="check" size={14} color="#FFFFFF" />
+              <TouchableOpacity style={[styles.mdBtnPri, { backgroundColor: '#2F7D55' }]} onPress={confirmarBaixa}>
+                <Feather name="check" size={14} color="#FFFDFA" />
                 <Text style={styles.mdBtnPriTexto}>Confirmar recebimento</Text>
               </TouchableOpacity>
             </View>
@@ -1335,8 +1335,8 @@ function PedidosDesktop() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.md, { maxWidth: 600 }]}>
             <View style={styles.mdHeader}>
-              <View style={[styles.mdHeaderIcon, { backgroundColor: '#FEF3C7' }]}>
-                <Feather name="clock" size={16} color="#B45309" />
+              <View style={[styles.mdHeaderIcon, { backgroundColor: '#FBF0DC' }]}>
+                <Feather name="clock" size={16} color="#9A6516" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.mdTitle}>A receber</Text>
@@ -1345,7 +1345,7 @@ function PedidosDesktop() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalAReceberAberto(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="x" size={18} color="#64748B" />
+                <Feather name="x" size={18} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -1358,9 +1358,9 @@ function PedidosDesktop() {
               return (
                 <>
                   <View style={styles.mdResumo}>
-                    <View style={[styles.mdResumoCard, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-                      <Text style={[styles.mdResumoRotulo, { color: '#B45309' }]}>TOTAL A RECEBER</Text>
-                      <Text style={[styles.mdResumoValor, { color: '#B45309' }]}>{brl(totalDevido)}</Text>
+                    <View style={[styles.mdResumoCard, { backgroundColor: '#FBF0DC', borderColor: '#F2DDB0' }]}>
+                      <Text style={[styles.mdResumoRotulo, { color: '#9A6516' }]}>TOTAL A RECEBER</Text>
+                      <Text style={[styles.mdResumoValor, { color: '#9A6516' }]}>{brl(totalDevido)}</Text>
                     </View>
                     <View style={styles.mdResumoCard}>
                       <Text style={styles.mdResumoRotulo}>PEDIDOS</Text>
@@ -1405,7 +1405,7 @@ function PedidosDesktop() {
                           </View>
                           <Text style={styles.mdDevedorValor}>{brl(ped.saldoNaEntrega)}</Text>
                           <TouchableOpacity style={styles.mdIconeBtnWpp} onPress={() => abrirWhatsAppWeb(ped)}>
-                            <Feather name="message-circle" size={14} color="#16A34A" />
+                            <Feather name="message-circle" size={14} color="#2F7D55" />
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.mdBtnBaixa}
@@ -1413,7 +1413,7 @@ function PedidosDesktop() {
                               setModalAReceberAberto(false);
                               abrirModalBaixa(ped);
                             }}>
-                            <Feather name="check" size={12} color="#FFFFFF" />
+                            <Feather name="check" size={12} color="#FFFDFA" />
                             <Text style={styles.mdBtnBaixaTexto}>Receber</Text>
                           </TouchableOpacity>
                         </View>
@@ -1432,7 +1432,7 @@ function PedidosDesktop() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.md, { maxWidth: 620 }]}>
             <View style={styles.mdHeader}>
-              <View style={[styles.mdHeaderIcon, { backgroundColor: '#EAF3FA' }]}>
+              <View style={[styles.mdHeaderIcon, { backgroundColor: '#ECEBFA' }]}>
                 <Feather name="box" size={16} color={KipiPalette.icedDenim} />
               </View>
               <View style={{ flex: 1 }}>
@@ -1442,7 +1442,7 @@ function PedidosDesktop() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setModalEstoqueAberto(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Feather name="x" size={18} color="#64748B" />
+                <Feather name="x" size={18} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -1470,23 +1470,23 @@ function PedidosDesktop() {
                       <Text style={styles.mdResumoRotulo}>PRODUTOS</Text>
                       <Text style={styles.mdResumoValor}>{estoque.length}</Text>
                     </View>
-                    <View style={[styles.mdResumoCard, baixos > 0 && { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' }]}>
-                      <Text style={[styles.mdResumoRotulo, baixos > 0 && { color: '#B45309' }]}>ACABANDO</Text>
-                      <Text style={[styles.mdResumoValor, baixos > 0 && { color: '#B45309' }]}>{baixos}</Text>
+                    <View style={[styles.mdResumoCard, baixos > 0 && { backgroundColor: '#FBF0DC', borderColor: '#F2DDB0' }]}>
+                      <Text style={[styles.mdResumoRotulo, baixos > 0 && { color: '#9A6516' }]}>ACABANDO</Text>
+                      <Text style={[styles.mdResumoValor, baixos > 0 && { color: '#9A6516' }]}>{baixos}</Text>
                     </View>
-                    <View style={[styles.mdResumoCard, zerados > 0 && { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-                      <Text style={[styles.mdResumoRotulo, zerados > 0 && { color: '#DC2626' }]}>ESGOTADOS</Text>
-                      <Text style={[styles.mdResumoValor, zerados > 0 && { color: '#DC2626' }]}>{zerados}</Text>
+                    <View style={[styles.mdResumoCard, zerados > 0 && { backgroundColor: '#FBE7E4', borderColor: '#F3C4BD' }]}>
+                      <Text style={[styles.mdResumoRotulo, zerados > 0 && { color: '#B42318' }]}>ESGOTADOS</Text>
+                      <Text style={[styles.mdResumoValor, zerados > 0 && { color: '#B42318' }]}>{zerados}</Text>
                     </View>
                   </View>
 
                   <View style={{ gap: 8, marginBottom: 10 }}>
                     <View style={styles.mdInputIcone}>
-                      <Feather name="search" size={13} color="#94A3B8" />
+                      <Feather name="search" size={13} color="#9A8F87" />
                       <TextInput
                         style={styles.mdInputSemBorda}
                         placeholder="Buscar produto..."
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor="#9A8F87"
                         value={buscaEstoque}
                         onChangeText={setBuscaEstoque}
                       />
@@ -1496,7 +1496,7 @@ function PedidosDesktop() {
                         const ativo = categoriaEstoque === c;
                         return (
                           <TouchableOpacity key={c} style={[styles.mdChip, ativo && styles.mdChipAtivo]} onPress={() => setCategoriaEstoque(c)}>
-                            <Text style={[styles.mdChipTexto, ativo && { color: '#FFFFFF', fontWeight: '800' }]}>{c}</Text>
+                            <Text style={[styles.mdChipTexto, ativo && { color: '#FFFDFA', fontWeight: '800' }]}>{c}</Text>
                           </TouchableOpacity>
                         );
                       })}
@@ -1506,13 +1506,13 @@ function PedidosDesktop() {
                   <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: 6 }} showsVerticalScrollIndicator={false}>
                     {lista.length === 0 ? (
                       <View style={styles.mdVazio}>
-                        <Feather name="search" size={22} color="#CBD5E1" />
+                        <Feather name="search" size={22} color="#D9CFC4" />
                         <Text style={styles.mdDica}>Nenhum produto encontrado.</Text>
                       </View>
                     ) : (
                       lista.map((prod) => {
-                        const cor = prod.status === 'zerado' ? '#DC2626' : prod.status === 'baixo' ? '#B45309' : '#16A34A';
-                        const fundo = prod.status === 'zerado' ? '#FEF2F2' : prod.status === 'baixo' ? '#FFFBEB' : '#F0FDF4';
+                        const cor = prod.status === 'zerado' ? '#B42318' : prod.status === 'baixo' ? '#9A6516' : '#2F7D55';
+                        const fundo = prod.status === 'zerado' ? '#FBE7E4' : prod.status === 'baixo' ? '#FBF0DC' : '#E4F1E9';
                         const rotulo = prod.status === 'zerado' ? 'Esgotado' : prod.status === 'baixo' ? 'Acabando' : 'Disponível';
                         return (
                           <View key={prod.id} style={styles.mdProduto}>
@@ -1524,7 +1524,7 @@ function PedidosDesktop() {
                             <View style={[styles.mdStatus, { backgroundColor: fundo }]}>
                               <Text style={[styles.mdStatusTexto, { color: cor }]}>{rotulo}</Text>
                             </View>
-                            <Text style={[styles.mdProdutoQtd, { color: prod.status === 'normal' ? '#0F172A' : cor }]}>
+                            <Text style={[styles.mdProdutoQtd, { color: prod.status === 'normal' ? '#2E211A' : cor }]}>
                               {prod.estoque}
                               <Text style={styles.mdProdutoUn}> un</Text>
                             </Text>
@@ -1546,18 +1546,18 @@ function PedidosDesktop() {
           <View style={styles.modalCard}>
             <View style={styles.modalCardHeader}>
               <View>
-                <View style={[styles.modalTagBadge, { backgroundColor: '#FEE2E2' }]}>
-                  <Text style={[styles.modalTagBadgeText, { color: '#DC2626' }]}>EXCLUSÃO LÓGICA</Text>
+                <View style={[styles.modalTagBadge, { backgroundColor: '#FBE7E4' }]}>
+                  <Text style={[styles.modalTagBadgeText, { color: '#B42318' }]}>EXCLUSÃO LÓGICA</Text>
                 </View>
-                <Text style={[styles.modalCardTitle, { color: '#DC2626' }]}>Cancelar Pedido?</Text>
+                <Text style={[styles.modalCardTitle, { color: '#B42318' }]}>Cancelar Pedido?</Text>
               </View>
               <TouchableOpacity onPress={() => setModalExcluirAberto(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
-            <Text style={{ fontSize: 13, color: '#475569', marginTop: 12, lineHeight: 20 }}>
-              Deseja arquivar e cancelar logicamente o pedido <Text style={{ fontWeight: '700', color: '#0F172A' }}>{pedidoParaExcluir?.codigoDisplay}</Text>?
+            <Text style={{ fontSize: 13, color: '#4A3E37', marginTop: 12, lineHeight: 20 }}>
+              Deseja arquivar e cancelar logicamente o pedido <Text style={{ fontWeight: '700', color: '#2E211A' }}>{pedidoParaExcluir?.codigoDisplay}</Text>?
               {'\n\n'}
               O histórico permanecerá preservado para auditoria contábil.
             </Text>
@@ -1566,7 +1566,7 @@ function PedidosDesktop() {
               <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setModalExcluirAberto(false)}>
                 <Text style={styles.modalBtnCancelText}>Voltar</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtnConfirm, { backgroundColor: '#DC2626' }]} onPress={confirmarExclusao}>
+              <TouchableOpacity style={[styles.modalBtnConfirm, { backgroundColor: '#B42318' }]} onPress={confirmarExclusao}>
                 <Text style={styles.modalBtnConfirmText}>Sim, Cancelar Pedido</Text>
               </TouchableOpacity>
             </View>
@@ -1587,7 +1587,7 @@ function PedidosDesktop() {
       {/* TOAST DE FEEDBACK DE SUCESSO (IDÊNTICO À VISÃO GERAL) */}
       {toastSucesso && (
         <View style={styles.toastSuccess}>
-          <Feather name="check-circle" size={18} color="#FFFFFF" />
+          <Feather name="check-circle" size={18} color="#FFFDFA" />
           <Text style={styles.toastSuccessText}>{toastSucesso}</Text>
         </View>
       )}
@@ -1604,7 +1604,7 @@ const styles = paraCelular(StyleSheet.create({
   viewport: {
     flex: 1,
     height: '100%',
-    backgroundColor: '#F4F7FB',
+    backgroundColor: '#F8F6F2',
   },
   mainLayout: {
     flex: 1,
@@ -1615,9 +1615,9 @@ const styles = paraCelular(StyleSheet.create({
 
   // SIDEBAR
   sidebar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRightWidth: 1.5,
-    borderRightColor: '#E2E8F0',
+    borderRightColor: '#E8E0D6',
     height: '100%',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -1649,7 +1649,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderWidth: 1.5,
     borderColor: KipiPalette.icedDenim,
     alignItems: 'center',
@@ -1673,12 +1673,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     letterSpacing: -0.3,
   },
   saasTag: {
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 1,
@@ -1688,12 +1688,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 8,
     fontWeight: '800',
-    color: '#708018',
+    color: '#7A4520',
   },
   brandSubtitle: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   sidebarNav: {
     flex: 1,
@@ -1733,17 +1733,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   navItemTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   sidebarFooter: {
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
   },
   pinBtn: {
     flexDirection: 'row',
@@ -1752,10 +1752,10 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
   },
   pinBtnActive: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
   },
   pinBtnCollapsed: {
     width: 42,
@@ -1768,7 +1768,7 @@ const styles = paraCelular(StyleSheet.create({
   pinBtnText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontWeight: '600',
   },
   userMiniCard: {
@@ -1806,25 +1806,25 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   userMiniRole: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // ÁREA DE CONTEÚDO
   contentArea: {
     flex: 1,
     height: '100%',
-    backgroundColor: '#F4F7FB',
+    backgroundColor: '#F8F6F2',
   },
   topBar: {
     height: 64,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderBottomWidth: 1.5,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1834,9 +1834,9 @@ const styles = paraCelular(StyleSheet.create({
   topBarSearchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 38,
@@ -1847,13 +1847,13 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: Fonts.sans,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     outlineWidth: 0,
   },
   searchShortcutBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
@@ -1861,7 +1861,7 @@ const styles = paraCelular(StyleSheet.create({
   searchShortcutText: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
     fontWeight: '700',
   },
   topBarRight: {
@@ -1873,8 +1873,8 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 12,
@@ -1884,21 +1884,21 @@ const styles = paraCelular(StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#708018',
+    backgroundColor: '#7A4520',
   },
   kitchenBadgeText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#708018',
+    color: '#7A4520',
   },
   iconCircleBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -1910,7 +1910,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#B42318',
   },
   profileBadge: {
     flexDirection: 'row',
@@ -1942,7 +1942,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   profileRole: {
     fontFamily: Fonts.sans,
@@ -1970,9 +1970,9 @@ const styles = paraCelular(StyleSheet.create({
   pageHeaderAlertBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FBE7E4',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: '#F3C4BD',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -1982,7 +1982,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#B42318',
   },
 
   // FILTROS
@@ -1996,9 +1996,9 @@ const styles = paraCelular(StyleSheet.create({
   periodTabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 14,
     padding: 4,
     gap: 4,
@@ -2015,10 +2015,10 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   periodTabTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   filterActions: {
@@ -2030,9 +2030,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -2041,17 +2041,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   primaryActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
     borderRadius: 12,
     paddingVertical: 9,
     paddingHorizontal: 16,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -2061,15 +2061,15 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // SUB-FILTROS
   subFiltersStrip: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2084,7 +2084,7 @@ const styles = paraCelular(StyleSheet.create({
   subFilterLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   subFilterPills: {
@@ -2095,7 +2095,7 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
   },
   subPillActive: {
     backgroundColor: KipiPalette.icedDenim,
@@ -2103,18 +2103,18 @@ const styles = paraCelular(StyleSheet.create({
   subPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   subPillTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   customDateBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 10,
     gap: 12,
@@ -2128,17 +2128,17 @@ const styles = paraCelular(StyleSheet.create({
   customDateLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   customDateInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 4,
     fontSize: 11,
-    color: '#0F172A',
+    color: '#2E211A',
   },
   customDateInfo: {
     fontSize: 11,
@@ -2155,13 +2155,13 @@ const styles = paraCelular(StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 180,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 16,
     gap: 8,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -2169,7 +2169,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   kpiCardClickable: {
     borderStyle: 'solid',
-    borderColor: '#C7E0F7',
+    borderColor: '#D6D7F3',
   },
   kpiCardHeader: {
     flexDirection: 'row',
@@ -2180,7 +2180,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   kpiIconWrap: {
@@ -2194,7 +2194,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     letterSpacing: -0.4,
   },
   kpiFooter: {
@@ -2204,8 +2204,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingTop: 4,
   },
   kpiDiffPillGreen: {
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2215,11 +2215,11 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
-    color: '#708018',
+    color: '#7A4520',
   },
   kpiDiffPillBlue: {
-    backgroundColor: '#EAF3FA',
-    borderColor: '#B6D6F4',
+    backgroundColor: '#ECEBFA',
+    borderColor: '#D6D7F3',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2232,8 +2232,8 @@ const styles = paraCelular(StyleSheet.create({
     color: KipiPalette.icedDenim,
   },
   kpiDiffPillYellow: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FDE68A',
+    backgroundColor: '#FBF0DC',
+    borderColor: '#F2DDB0',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2243,12 +2243,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
-    color: '#D97706',
+    color: '#B9781A',
   },
   kpiFooterNote: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
 
   // GRID PRINCIPAL (2 COLUNAS)
@@ -2270,13 +2270,13 @@ const styles = paraCelular(StyleSheet.create({
 
   // COMPONENTES DOS CARDS PADRÃO (PANELCARD)
   panelCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 20,
     gap: 16,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -2298,7 +2298,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
   },
   miniAlertIcon: {
     width: 24,
@@ -2311,17 +2311,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     letterSpacing: -0.2,
   },
   panelSubtitle: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   panelChip: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -2338,16 +2338,16 @@ const styles = paraCelular(StyleSheet.create({
     gap: 10,
   },
   orderRowCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 14,
     gap: 10,
   },
   orderRowCardSelected: {
     borderColor: KipiPalette.icedDenim,
-    backgroundColor: '#F9FCFF',
+    backgroundColor: '#F8F6F2',
   },
   orderRowTop: {
     flexDirection: 'row',
@@ -2364,7 +2364,7 @@ const styles = paraCelular(StyleSheet.create({
   orderCodeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     fontFamily: Fonts.mono,
   },
   orderTypeBadge: {
@@ -2379,7 +2379,7 @@ const styles = paraCelular(StyleSheet.create({
   statusPaidPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#E4F1E9',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -2388,12 +2388,12 @@ const styles = paraCelular(StyleSheet.create({
   statusPaidPillText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   statusPendingPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FBE7E4',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -2402,7 +2402,7 @@ const styles = paraCelular(StyleSheet.create({
   statusPendingPillText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#B42318',
   },
 
   // CUSTO E LUCRO NO DETALHE
@@ -2416,7 +2416,7 @@ const styles = paraCelular(StyleSheet.create({
   sideDetailProfitText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // STATUS DE PRODUÇÃO
@@ -2445,14 +2445,14 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   prodTimelineText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
 
   // MODAL DE EDIÇÃO DO PEDIDO
@@ -2467,7 +2467,7 @@ const styles = paraCelular(StyleSheet.create({
   },
   editItemsBox: {
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -2478,24 +2478,24 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   editItemName: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   editItemSub: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   editStepper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
   },
   editStepperBtn: {
@@ -2508,7 +2508,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   editItemTotal: {
     minWidth: 76,
@@ -2516,7 +2516,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   editTotalRow: {
     flexDirection: 'row',
@@ -2524,20 +2524,20 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
   },
   editTotalLabel: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   editTotalValue: {
     fontFamily: Fonts.sans,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   orderSellerInfoRow: {
     flexDirection: 'row',
@@ -2546,10 +2546,10 @@ const styles = paraCelular(StyleSheet.create({
   },
   orderMetaText: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   orderDotDivider: {
-    color: '#CBD5E1',
+    color: '#D9CFC4',
   },
   orderRowMiddle: {
     flexDirection: 'row',
@@ -2560,11 +2560,11 @@ const styles = paraCelular(StyleSheet.create({
   orderClientTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     fontFamily: Fonts.sans,
   },
   clientTagBadge: {
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
@@ -2572,11 +2572,11 @@ const styles = paraCelular(StyleSheet.create({
   clientTagBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   orderItemsSummary: {
     fontSize: 12,
-    color: '#475569',
+    color: '#4A3E37',
     marginTop: 2,
   },
   orderPriceCol: {
@@ -2585,17 +2585,17 @@ const styles = paraCelular(StyleSheet.create({
   orderPriceLabel: {
     fontSize: 9,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   orderPriceValue: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     fontFamily: Fonts.sans,
   },
   orderPendingNote: {
     fontSize: 10,
-    color: '#DC2626',
+    color: '#B42318',
     fontWeight: '700',
   },
   orderRowActions: {
@@ -2604,7 +2604,7 @@ const styles = paraCelular(StyleSheet.create({
     justifyContent: 'space-between',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E8E0D6',
     flexWrap: 'wrap',
     gap: 8,
   },
@@ -2617,37 +2617,37 @@ const styles = paraCelular(StyleSheet.create({
   btnActionBaixa: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
     gap: 5,
   },
   btnActionBaixaText: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
     fontSize: 11,
   },
   btnActionWhatsApp: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#E4F1E9',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#BFDCCB',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 6,
     gap: 5,
   },
   btnActionWhatsAppText: {
-    color: '#16A34A',
+    color: '#2F7D55',
     fontWeight: '700',
     fontSize: 11,
   },
   btnActionDetalhes: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 6,
@@ -2662,7 +2662,7 @@ const styles = paraCelular(StyleSheet.create({
     fontSize: 11,
   },
   btnActionDetalhesTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   orderActionsRight: {
     flexDirection: 'row',
@@ -2672,9 +2672,9 @@ const styles = paraCelular(StyleSheet.create({
   btnMiniAction: {
     padding: 5,
     borderRadius: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
 
   // CARD DE DETALHES NA COLUNA LATERAL
@@ -2682,7 +2682,7 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     padding: 10,
     borderRadius: 10,
   },
@@ -2690,28 +2690,28 @@ const styles = paraCelular(StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sideDetailAvatarText: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '800',
     fontSize: 13,
   },
   sideDetailClientName: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   sideDetailClientSub: {
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   sideDetailSectionLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   sideDetailItemLine: {
@@ -2720,28 +2720,28 @@ const styles = paraCelular(StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   sideDetailItemName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   sideDetailItemSub: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   sideDetailItemTotal: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   sideDetailTotalBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 10,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     gap: 4,
   },
   sideDetailTotalLine: {
@@ -2752,7 +2752,7 @@ const styles = paraCelular(StyleSheet.create({
   sideDetailTotalLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   sideDetailTotalVal: {
     fontSize: 16,
@@ -2761,13 +2761,13 @@ const styles = paraCelular(StyleSheet.create({
   },
   sideDetailPendingAlert: {
     fontSize: 11,
-    color: '#DC2626',
+    color: '#B42318',
     fontWeight: '700',
   },
   sideDetailWppBox: {
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#E4F1E9',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#BFDCCB',
     borderRadius: 10,
     padding: 10,
     gap: 4,
@@ -2775,37 +2775,37 @@ const styles = paraCelular(StyleSheet.create({
   sideDetailWppTitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   sideDetailWppPreview: {
     fontSize: 11,
-    color: '#15803D',
+    color: '#2F7D55',
   },
   btnSideWppCopy: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
     paddingVertical: 6,
     borderRadius: 6,
     gap: 6,
   },
   btnSideWppCopyText: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
     fontSize: 11,
   },
   btnSideWppOpen: {
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#BFDCCB',
     borderRadius: 6,
   },
   btnSideWppOpenText: {
-    color: '#16A34A',
+    color: '#2F7D55',
     fontWeight: '700',
     fontSize: 11,
   },
@@ -2813,13 +2813,13 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
     paddingVertical: 8,
     borderRadius: 8,
     gap: 6,
   },
   btnSideBaixaConfirmText: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
     fontSize: 12,
   },
@@ -2831,21 +2831,21 @@ const styles = paraCelular(StyleSheet.create({
     gap: 10,
     paddingVertical: 6,
     borderBottomWidth: 1,
-    borderBottomColor: '#F8FAFC',
+    borderBottomColor: '#F8F6F2',
   },
   sideTopName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   sideTopTag: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#708018',
+    color: '#7A4520',
   },
   sideTopCat: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   sideTopQty: {
     fontSize: 12,
@@ -2854,13 +2854,13 @@ const styles = paraCelular(StyleSheet.create({
   },
   sideTopTotal: {
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   sideClientAvatarMini: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2878,14 +2878,14 @@ const styles = paraCelular(StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
     borderTopWidth: 1.5,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E8E0D6',
     flexWrap: 'wrap',
     gap: 12,
   },
   pageFooterBrand: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   pageFooterLinks: {
     flexDirection: 'row',
@@ -2895,14 +2895,14 @@ const styles = paraCelular(StyleSheet.create({
   pageFooterLink: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontWeight: '600',
   },
 
   // MODAIS
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    backgroundColor: 'rgba(43, 36, 33, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -2910,12 +2910,12 @@ const styles = paraCelular(StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 520,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 20,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.1,
     shadowRadius: 16,
@@ -2927,10 +2927,10 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'flex-start',
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   modalTagBadge: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     alignSelf: 'flex-start',
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2945,20 +2945,20 @@ const styles = paraCelular(StyleSheet.create({
   modalCardTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     fontFamily: Fonts.sans,
   },
   modalSummaryBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   modalInputLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 4,
   },
   modalPayGrid: {
@@ -2974,33 +2974,33 @@ const styles = paraCelular(StyleSheet.create({
     gap: 6,
     padding: 8,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
   },
   modalPayBtnActive: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderColor: KipiPalette.icedDenim,
   },
   modalPayBtnText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   modalPayBtnTextActive: {
     color: KipiPalette.icedDenim,
     fontWeight: '700',
   },
   modalTextInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalActionsRow: {
     flexDirection: 'row',
@@ -3012,18 +3012,18 @@ const styles = paraCelular(StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
   },
   modalBtnCancelText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   modalBtnConfirm: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
@@ -3031,7 +3031,7 @@ const styles = paraCelular(StyleSheet.create({
   modalBtnConfirmText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   modalPendingLine: {
@@ -3040,14 +3040,14 @@ const styles = paraCelular(StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   modalMiniBtnWpp: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0FDF4',
+    backgroundColor: '#E4F1E9',
     borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderColor: '#BFDCCB',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 6,
@@ -3056,7 +3056,7 @@ const styles = paraCelular(StyleSheet.create({
   modalMiniBtnBaixa: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
@@ -3064,20 +3064,20 @@ const styles = paraCelular(StyleSheet.create({
   },
 
   modalSearchField: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
     fontSize: 12,
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalCatChip: {
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
   },
   modalCatChipActive: {
     backgroundColor: KipiPalette.icedDenim,
@@ -3085,10 +3085,10 @@ const styles = paraCelular(StyleSheet.create({
   modalCatChipText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   modalCatChipTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   modalStockLine: {
@@ -3097,7 +3097,7 @@ const styles = paraCelular(StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   stockStatusBadge: {
     paddingHorizontal: 8,
@@ -3110,109 +3110,109 @@ const styles = paraCelular(StyleSheet.create({
   },
 
   // MODAIS NO PADRÃO DO SISTEMA (cabeçalho com ícone, seções em cartão, rodapé fixo)
-  md: { width: '100%', maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E2E8F0', ...Platform.select({ web: { boxShadow: '0 20px 50px rgba(15,23,42,0.18)' } }) },
-  mdHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  md: { width: '100%', maxHeight: '92%', backgroundColor: '#FFFDFA', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E8E0D6', ...Platform.select({ web: { boxShadow: '0 20px 50px rgba(43, 36, 33,0.18)' } }) },
+  mdHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3EEE7' },
   mdHeaderIcon: { width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  mdTitle: { fontFamily: Fonts.display, fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.2 },
-  mdSub: { fontFamily: Fonts.sans, fontSize: 11, color: '#64748B', marginTop: 1 },
-  mdSecao: { backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', padding: 12 },
-  mdLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.5, marginBottom: 8 },
+  mdTitle: { fontFamily: Fonts.display, fontSize: 16, fontWeight: '800', color: '#2E211A', letterSpacing: -0.2 },
+  mdSub: { fontFamily: Fonts.sans, fontSize: 11, color: '#6B615A', marginTop: 1 },
+  mdSecao: { backgroundColor: '#F8F6F2', borderRadius: 12, borderWidth: 1, borderColor: '#F3EEE7', padding: 12 },
+  mdLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#6B615A', letterSpacing: 0.5, marginBottom: 8 },
   mdLabelLinha: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  mdMiniLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '700', color: '#64748B', marginBottom: 4 },
+  mdMiniLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '700', color: '#6B615A', marginBottom: 4 },
   mdLink: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: KipiPalette.icedDenim, marginBottom: 8 },
-  mdDica: { fontFamily: Fonts.sans, fontSize: 11, color: '#64748B', marginTop: 6 },
+  mdDica: { fontFamily: Fonts.sans, fontSize: 11, color: '#6B615A', marginTop: 6 },
   mdLinha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mdInput: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '600', color: '#0F172A', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
-  mdInputIcone: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 10 },
-  mdInputSemBorda: { flex: 1, minWidth: 0, fontFamily: Fonts.sans, fontSize: 13, fontWeight: '600', color: '#0F172A', paddingVertical: 8, ...Platform.select({ web: { outlineStyle: 'none' } as any }) },
-  mdPrefixo: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#94A3B8' },
-  mdSegmento: { flexDirection: 'row', backgroundColor: '#EEF2F6', borderRadius: 10, padding: 3 },
+  mdInput: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '600', color: '#2E211A', backgroundColor: '#FFFDFA', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
+  mdInputIcone: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FFFDFA', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingHorizontal: 10 },
+  mdInputSemBorda: { flex: 1, minWidth: 0, fontFamily: Fonts.sans, fontSize: 13, fontWeight: '600', color: '#2E211A', paddingVertical: 8, ...Platform.select({ web: { outlineStyle: 'none' } as any }) },
+  mdPrefixo: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#9A8F87' },
+  mdSegmento: { flexDirection: 'row', backgroundColor: '#F3EEE7', borderRadius: 10, padding: 3 },
   mdSegmentoBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 7, borderRadius: 8 },
-  mdSegmentoBtnAtivo: { backgroundColor: '#FFFFFF', ...Platform.select({ web: { boxShadow: '0 1px 3px rgba(15,23,42,0.1)' } }) },
-  mdSegmentoTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '600', color: '#64748B' },
+  mdSegmentoBtnAtivo: { backgroundColor: '#FFFDFA', ...Platform.select({ web: { boxShadow: '0 1px 3px rgba(43, 36, 33,0.1)' } }) },
+  mdSegmentoTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '600', color: '#6B615A' },
   mdSegmentoTextoAtivo: { color: KipiPalette.icedDenim, fontWeight: '800' },
   mdChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  mdChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
+  mdChip: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFDFA', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
   mdChipAtivo: { backgroundColor: KipiPalette.icedDenim, borderColor: KipiPalette.icedDenim },
-  mdChipTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#475569' },
-  mdItem: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFFFF', borderRadius: 10, borderWidth: 1, borderColor: '#EEF2F6', paddingHorizontal: 10, paddingVertical: 8 },
-  mdItemNome: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  mdItemSub: { fontFamily: Fonts.sans, fontSize: 11, color: '#64748B', marginTop: 1 },
-  mdItemTotal: { width: 80, textAlign: 'right', fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: '#0F172A' },
-  mdStepper: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F8FAFC', borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', padding: 2 },
-  mdStepperBtn: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
-  mdStepperQtd: { minWidth: 22, textAlign: 'center', fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: '#0F172A' },
-  mdTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E2E8F0', borderStyle: 'dashed' },
-  mdTotalRotulo: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#475569' },
+  mdChipTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#4A3E37' },
+  mdItem: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFFDFA', borderRadius: 10, borderWidth: 1, borderColor: '#F3EEE7', paddingHorizontal: 10, paddingVertical: 8 },
+  mdItemNome: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '700', color: '#2E211A' },
+  mdItemSub: { fontFamily: Fonts.sans, fontSize: 11, color: '#6B615A', marginTop: 1 },
+  mdItemTotal: { width: 80, textAlign: 'right', fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: '#2E211A' },
+  mdStepper: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F8F6F2', borderRadius: 8, borderWidth: 1, borderColor: '#E8E0D6', padding: 2 },
+  mdStepperBtn: { width: 24, height: 24, borderRadius: 6, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFDFA' },
+  mdStepperQtd: { minWidth: 22, textAlign: 'center', fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: '#2E211A' },
+  mdTotal: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E8E0D6', borderStyle: 'dashed' },
+  mdTotalRotulo: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#4A3E37' },
   mdTotalValor: { fontFamily: Fonts.display, fontSize: 18, fontWeight: '800', color: KipiPalette.icedDenim },
   mdSaldo: { flex: 1, minWidth: 150, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 8, justifyContent: 'center' },
-  mdSaldoPendente: { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' },
-  mdSaldoOk: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
+  mdSaldoPendente: { backgroundColor: '#FBF0DC', borderColor: '#F2DDB0' },
+  mdSaldoOk: { backgroundColor: '#E4F1E9', borderColor: '#BFDCCB' },
   mdSaldoValor: { fontFamily: Fonts.display, fontSize: 16, fontWeight: '800' },
-  mdFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  mdBtnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0' },
-  mdBtnSecTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#334155' },
-  mdBtnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: KipiPalette.icedDenim },
-  mdBtnPriTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  mdFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 12, borderTopWidth: 1, borderTopColor: '#F3EEE7' },
+  mdBtnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, borderWidth: 1, borderColor: '#E8E0D6' },
+  mdBtnSecTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '700', color: '#3D312A' },
+  mdBtnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 10, backgroundColor: KipiPalette.caramelo },
+  mdBtnPriTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800', color: '#FFFDFA' },
   // Baixa de pagamento
-  mdBaixaHero: { alignItems: 'center', backgroundColor: '#FFFBEB', borderRadius: 14, borderWidth: 1, borderColor: '#FDE68A', paddingVertical: 14, paddingHorizontal: 12 },
-  mdBaixaHeroRotulo: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#B45309', letterSpacing: 0.6 },
-  mdBaixaHeroValor: { fontFamily: Fonts.display, fontSize: 28, fontWeight: '800', color: '#92400E', letterSpacing: -0.5, marginVertical: 2 },
+  mdBaixaHero: { alignItems: 'center', backgroundColor: '#FBF0DC', borderRadius: 14, borderWidth: 1, borderColor: '#F2DDB0', paddingVertical: 14, paddingHorizontal: 12 },
+  mdBaixaHeroRotulo: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#9A6516', letterSpacing: 0.6 },
+  mdBaixaHeroValor: { fontFamily: Fonts.display, fontSize: 28, fontWeight: '800', color: '#9A6516', letterSpacing: -0.5, marginVertical: 2 },
   mdBaixaHeroLinha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  mdBaixaHeroInfo: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#B45309' },
-  mdBaixaHeroPonto: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#D97706' },
+  mdBaixaHeroInfo: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#9A6516' },
+  mdBaixaHeroPonto: { width: 3, height: 3, borderRadius: 2, backgroundColor: '#B9781A' },
   mdFormas: { flexDirection: 'row', gap: 8 },
-  mdForma: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
-  mdFormaAtiva: { borderColor: '#16A34A', backgroundColor: '#F0FDF4' },
-  mdFormaTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#475569' },
-  mdFormaTextoAtivo: { color: '#15803D', fontWeight: '800' },
+  mdForma: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, borderColor: '#E8E0D6', backgroundColor: '#FFFDFA' },
+  mdFormaAtiva: { borderColor: '#2F7D55', backgroundColor: '#E4F1E9' },
+  mdFormaTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '600', color: '#4A3E37' },
+  mdFormaTextoAtivo: { color: '#2F7D55', fontWeight: '800' },
   // A receber e estoque
   mdResumo: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  mdResumoCard: { flex: 1, minWidth: 100, backgroundColor: '#F8FAFC', borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', paddingHorizontal: 12, paddingVertical: 9 },
-  mdResumoRotulo: { fontFamily: Fonts.sans, fontSize: 9, fontWeight: '800', color: '#64748B', letterSpacing: 0.5 },
-  mdResumoValor: { fontFamily: Fonts.display, fontSize: 17, fontWeight: '800', color: '#0F172A', marginTop: 2 },
+  mdResumoCard: { flex: 1, minWidth: 100, backgroundColor: '#F8F6F2', borderRadius: 12, borderWidth: 1, borderColor: '#F3EEE7', paddingHorizontal: 12, paddingVertical: 9 },
+  mdResumoRotulo: { fontFamily: Fonts.sans, fontSize: 9, fontWeight: '800', color: '#6B615A', letterSpacing: 0.5 },
+  mdResumoValor: { fontFamily: Fonts.display, fontSize: 17, fontWeight: '800', color: '#2E211A', marginTop: 2 },
   mdVazio: { alignItems: 'center', gap: 4, paddingVertical: 28 },
-  mdVazioTitulo: { fontFamily: Fonts.display, fontSize: 14, fontWeight: '800', color: '#0F172A' },
-  mdDevedor: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, borderColor: '#EEF2F6', backgroundColor: '#FFFFFF', paddingHorizontal: 10, paddingVertical: 9 },
-  mdAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#EAF3FA', alignItems: 'center', justifyContent: 'center' },
+  mdVazioTitulo: { fontFamily: Fonts.display, fontSize: 14, fontWeight: '800', color: '#2E211A' },
+  mdDevedor: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, borderWidth: 1, borderColor: '#F3EEE7', backgroundColor: '#FFFDFA', paddingHorizontal: 10, paddingVertical: 9 },
+  mdAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#ECEBFA', alignItems: 'center', justifyContent: 'center' },
   mdAvatarTexto: { fontFamily: Fonts.display, fontSize: 13, fontWeight: '800', color: KipiPalette.icedDenim },
   mdLinhaNome: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  mdCodigo: { backgroundColor: '#F1F5F9', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
-  mdCodigoTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '700', color: '#64748B' },
-  mdDevedorValor: { fontFamily: Fonts.display, fontSize: 14, fontWeight: '800', color: '#B45309' },
-  mdIconeBtnWpp: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F0FDF4', borderWidth: 1, borderColor: '#BBF7D0' },
-  mdBtnBaixa: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#16A34A', borderRadius: 8, paddingHorizontal: 10, height: 30 },
-  mdBtnBaixaTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
-  mdProduto: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, borderColor: '#EEF2F6', backgroundColor: '#FFFFFF', paddingRight: 12, paddingVertical: 8, overflow: 'hidden' },
+  mdCodigo: { backgroundColor: '#F3EEE7', borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 },
+  mdCodigoTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '700', color: '#6B615A' },
+  mdDevedorValor: { fontFamily: Fonts.display, fontSize: 14, fontWeight: '800', color: '#9A6516' },
+  mdIconeBtnWpp: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: '#E4F1E9', borderWidth: 1, borderColor: '#BFDCCB' },
+  mdBtnBaixa: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#2F7D55', borderRadius: 8, paddingHorizontal: 10, height: 30 },
+  mdBtnBaixaTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '800', color: '#FFFDFA' },
+  mdProduto: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 10, borderWidth: 1, borderColor: '#F3EEE7', backgroundColor: '#FFFDFA', paddingRight: 12, paddingVertical: 8, overflow: 'hidden' },
   mdProdutoBarra: { width: 3, alignSelf: 'stretch', borderRadius: 2, marginLeft: 6 },
   mdStatus: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   mdStatusTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800' },
   mdProdutoQtd: { width: 58, textAlign: 'right', fontFamily: Fonts.display, fontSize: 15, fontWeight: '800' },
-  mdProdutoUn: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '600', color: '#94A3B8' },
+  mdProdutoUn: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '600', color: '#9A8F87' },
   // Topo: botão Filtros com dropdown
   filtrosEsq: { flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 50 },
-  filtrosBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 40, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: '#E2E8F0', backgroundColor: '#FFFFFF' },
-  filtrosBtnAtivo: { borderColor: KipiPalette.icedDenim, backgroundColor: '#EAF3FA' },
-  filtrosBtnTexto: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '700', color: '#475569' },
+  filtrosBtn: { flexDirection: 'row', alignItems: 'center', gap: 7, height: 40, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: '#E8E0D6', backgroundColor: '#FFFDFA' },
+  filtrosBtnAtivo: { borderColor: KipiPalette.icedDenim, backgroundColor: '#ECEBFA' },
+  filtrosBtnTexto: { fontFamily: Fonts.sans, fontSize: 13, fontWeight: '700', color: '#4A3E37' },
   filtrosBadge: { minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: KipiPalette.icedDenim, alignItems: 'center', justifyContent: 'center' },
-  filtrosBadgeTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
-  filtrosMenu: { position: 'absolute', top: 46, left: 0, width: 320, backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1, borderColor: '#E2E8F0', padding: 14, gap: 14, zIndex: 100, ...Platform.select({ web: { boxShadow: '0 16px 40px rgba(15,23,42,0.16)' } }) },
-  filtrosGrupoLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.5, marginBottom: 7 },
-  filtrosRodape: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  filtrosBadgeTexto: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#FFFDFA' },
+  filtrosMenu: { position: 'absolute', top: 46, left: 0, width: 320, backgroundColor: '#FFFDFA', borderRadius: 14, borderWidth: 1, borderColor: '#E8E0D6', padding: 14, gap: 14, zIndex: 100, ...Platform.select({ web: { boxShadow: '0 16px 40px rgba(43, 36, 33,0.16)' } }) },
+  filtrosGrupoLabel: { fontFamily: Fonts.sans, fontSize: 10, fontWeight: '800', color: '#6B615A', letterSpacing: 0.5, marginBottom: 7 },
+  filtrosRodape: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F3EEE7' },
   filtrosDir: { flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 'auto' },
   // TOAST DE SUCESSO (IDÊNTICO À VISÃO GERAL)
   toastSuccess: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    shadowColor: '#16A34A',
+    shadowColor: '#2F7D55',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 10,
@@ -3223,6 +3223,6 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 }));

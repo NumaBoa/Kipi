@@ -26,7 +26,7 @@ function Campo({ rotulo, style, ...props }: TextInputProps & { rotulo: string })
     <View style={[{ gap: 6 }, style]}>
       <T style={s.rotulo}>{rotulo}</T>
       <TextInput
-        placeholderTextColor="#94A3B8"
+        placeholderTextColor="#9A8F87"
         {...props}
         onFocus={(e) => {
           setFoco(true);
@@ -282,11 +282,11 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 12, paddingTop: 8, paddingBottom: 6 },
   titulo: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
   sub: { fontSize: 12, color: cor.textoSuave },
-  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   conteudo: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 32 },
   erro: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro },
   erroTexto: { flex: 1, fontSize: 13, fontWeight: '700', color: cor.vermelho },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, gap: 14 },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 22, padding: 16, gap: 14 },
   linha: { flexDirection: 'row', gap: 10 },
   rotulo: { fontSize: 13, fontWeight: '700', color: cor.textoMedio },
   input: {
@@ -294,7 +294,7 @@ const s = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: cor.borda,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     paddingHorizontal: 14,
     fontSize: 15,
     color: cor.texto,
@@ -312,8 +312,8 @@ const s = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: '#9CC3E8',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#D6D7F3',
+    backgroundColor: '#FFFDFA',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -325,5 +325,5 @@ const s = StyleSheet.create({
   ocultar: { fontSize: 13, fontWeight: '800', color: cor.textoSuave },
   cepInfo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   cepOk: { fontSize: 12, fontWeight: '700', color: cor.verde },
-  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
 });

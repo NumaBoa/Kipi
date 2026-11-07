@@ -60,20 +60,20 @@ const EMOJI_CATEGORIA: Record<string, string> = {
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
-const KIPI_BLUE = '#5798D7';
-const KIPI_BLUE_DARK = '#3E7BB8';
-const KIPI_BLUE_TINT = '#EAF3FA';
-const KIPI_BLUE_ACCENT = '#2563EB';
-const KIPI_FROST_BG = '#F8FAFC';
-const SUCCESS_GREEN = '#16A34A';
-const SUCCESS_TINT = '#DCFCE7';
-const WARNING_AMBER = '#D97706';
-const WARNING_TINT = '#FEF3C7';
-const DANGER_RED = '#DC2626';
-const DANGER_TINT = '#FEE2E2';
+const KIPI_BLUE = '#9E5D25';
+const KIPI_BLUE_DARK = '#7A4520';
+const KIPI_BLUE_TINT = '#ECEBFA';
+const KIPI_BLUE_ACCENT = '#4B4FC4';
+const KIPI_FROST_BG = '#F8F6F2';
+const SUCCESS_GREEN = '#2F7D55';
+const SUCCESS_TINT = '#E4F1E9';
+const WARNING_AMBER = '#B9781A';
+const WARNING_TINT = '#FBF0DC';
+const DANGER_RED = '#B42318';
+const DANGER_TINT = '#FBE7E4';
 
 export type FiltroComissao = 'todas' | TipoComissao;
 type ModalRevenda = 'dossie' | 'entrega' | 'acerto' | null;
@@ -419,7 +419,7 @@ function AcessosDesktop() {
 
             <View style={styles.topActionsRow}>
               <TouchableOpacity style={styles.btnPrimary} onPress={abrirNovaRevendedora} activeOpacity={0.85}>
-                <Feather name="user-plus" size={16} color="#FFFFFF" />
+                <Feather name="user-plus" size={16} color="#FFFDFA" />
                 <Text style={styles.btnPrimaryText}>Nova Revendedora</Text>
               </TouchableOpacity>
             </View>
@@ -428,17 +428,17 @@ function AcessosDesktop() {
           {/* BARRA DE CONTROLE: BUSCA E FILTRO DE COMISSÃO */}
           <View style={styles.controlsBar}>
             <View style={styles.searchBox}>
-              <Feather name="search" size={16} color="#94A3B8" />
+              <Feather name="search" size={16} color="#9A8F87" />
               <TextInput
                 style={styles.searchInput}
                 placeholder="Buscar por nome, telefone, e-mail, CPF, tag ou bairro..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#9A8F87"
                 value={busca}
                 onChangeText={setBusca}
               />
               {busca ? (
                 <TouchableOpacity onPress={() => setBusca('')}>
-                  <Feather name="x" size={15} color="#94A3B8" />
+                  <Feather name="x" size={15} color="#9A8F87" />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -468,9 +468,9 @@ function AcessosDesktop() {
           {/* INDICADORES COMPACTOS */}
           <View style={styles.statsStrip}>
             {[
-              { rotulo: 'Revendedoras', valor: String(stats.total), cor: '#0F172A' },
+              { rotulo: 'Revendedoras', valor: String(stats.total), cor: '#2E211A' },
               { rotulo: 'Comissões pendentes', valor: formatMoney(totalComissoesPendentes), cor: totalComissoesPendentes > 0 ? WARNING_AMBER : SUCCESS_GREEN },
-              { rotulo: 'Unidades em posse', valor: `${totalEmPosse} un`, cor: '#0F172A' },
+              { rotulo: 'Unidades em posse', valor: `${totalEmPosse} un`, cor: '#2E211A' },
               { rotulo: 'Sabores p/ repor', valor: String(alertas.length), cor: alertas.length > 0 ? DANGER_RED : SUCCESS_GREEN },
             ].map((ind, idx) => (
               <View key={ind.rotulo} style={[styles.statItem, idx > 0 && styles.statItemBorda]}>
@@ -488,14 +488,14 @@ function AcessosDesktop() {
                 <Text style={styles.alertaTitulo}>
                   {alertas.length} {alertas.length === 1 ? 'sabor precisa' : 'sabores precisam'} de reposição
                 </Text>
-                <Feather name={alertasAbertos ? 'chevron-up' : 'chevron-down'} size={15} color="#92400E" />
+                <Feather name={alertasAbertos ? 'chevron-up' : 'chevron-down'} size={15} color="#9A6516" />
               </TouchableOpacity>
               {alertasAbertos &&
                 alertas.map(({ revendedora: r, sabor }) => (
                   <View key={`${r.id}-${sabor.produtoId || sabor.nome}`} style={styles.alertaLinha}>
                     <Text style={styles.alertaTexto} numberOfLines={1}>
                       <Text style={{ fontWeight: '700' }}>{r.nome}</Text> · {sabor.nome}:{' '}
-                      <Text style={{ fontWeight: '800', color: sabor.status === 'esgotado' ? DANGER_RED : '#92400E' }}>
+                      <Text style={{ fontWeight: '800', color: sabor.status === 'esgotado' ? DANGER_RED : '#9A6516' }}>
                         {sabor.saldo} un
                       </Text>
                     </Text>
@@ -515,7 +515,7 @@ function AcessosDesktop() {
           <ScrollView style={styles.tabContentScroll} showsVerticalScrollIndicator={false}>
             {revendedorasFiltradas.length === 0 ? (
               <View style={styles.emptyContainer}>
-                <Feather name="users" size={36} color="#94A3B8" />
+                <Feather name="users" size={36} color="#9A8F87" />
                 <Text style={styles.emptyTitle}>Nenhuma revendedora encontrada</Text>
                 <Text style={styles.emptySubtitle}>
                   {revendedoras.length === 0
@@ -545,13 +545,13 @@ function AcessosDesktop() {
                           ) : null}
                         </View>
                         <Text style={styles.cardContact}>
-                          <Feather name="phone" size={11} color="#64748B" /> {r.telefone}
+                          <Feather name="phone" size={11} color="#6B615A" /> {r.telefone}
                         </Text>
                         <Text style={styles.cardContact} numberOfLines={1}>
-                          <Feather name="mail" size={11} color="#64748B" /> {r.email || 'Sem e-mail'}
+                          <Feather name="mail" size={11} color="#6B615A" /> {r.email || 'Sem e-mail'}
                         </Text>
-                        <Text style={[styles.cardContact, { color: acessoDaRevendedora(r.id) ? '#16A34A' : '#D97706' }]} numberOfLines={1}>
-                          <Feather name="key" size={11} color={acessoDaRevendedora(r.id) ? '#16A34A' : '#D97706'} />{' '}
+                        <Text style={[styles.cardContact, { color: acessoDaRevendedora(r.id) ? '#2F7D55' : '#B9781A' }]} numberOfLines={1}>
+                          <Feather name="key" size={11} color={acessoDaRevendedora(r.id) ? '#2F7D55' : '#B9781A'} />{' '}
                           {acessoDaRevendedora(r.id) ? `Entra com o e-mail · senha inicial ${SENHA_PADRAO_REVENDEDORA}` : 'Sem acesso: cadastre um e-mail'}
                         </Text>
                       </View>
@@ -579,7 +579,7 @@ function AcessosDesktop() {
                         <Text
                           style={[
                             styles.commissionValue,
-                            { color: (saldosPorId[r.id] || 0) > 0 ? WARNING_AMBER : '#0F172A' },
+                            { color: (saldosPorId[r.id] || 0) > 0 ? WARNING_AMBER : '#2E211A' },
                           ]}>
                           {formatMoney(saldosPorId[r.id] || 0)}
                         </Text>
@@ -589,7 +589,7 @@ function AcessosDesktop() {
                     {/* ESTOQUE EM POSSE */}
                     <View style={styles.posseRow}>
                       <Text style={styles.posseText}>
-                        📦 <Text style={{ fontWeight: '800', color: '#0F172A' }}>{emPossePorId[r.id]?.unidades ?? 0} un</Text> em posse
+                        📦 <Text style={{ fontWeight: '800', color: '#2E211A' }}>{emPossePorId[r.id]?.unidades ?? 0} un</Text> em posse
                       </Text>
                       {emPossePorId[r.id]?.repor ? (
                         <View style={styles.reporPill}>
@@ -657,7 +657,7 @@ function AcessosDesktop() {
                 <Text style={styles.modalSubtitle}>Campos com * são obrigatórios.</Text>
               </View>
               <TouchableOpacity onPress={() => setModalAberto(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -678,7 +678,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="Ex: Juliana Martins Costa"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formNome}
                     onChangeText={setFormNome}
                   />
@@ -688,7 +688,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="(21) 99999-9999"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="phone-pad"
                     value={formTelefone}
                     onChangeText={(t) => setFormTelefone(formatarTelefone(t))}
@@ -702,7 +702,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={[styles.formInput, formEmail.length > 0 && !emailValido(formEmail) && styles.formInputInvalid]}
                     placeholder="nome@gmail.com"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -715,7 +715,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={[styles.formInput, formCpf.length === 14 && !cpfValido(formCpf) && styles.formInputInvalid]}
                     placeholder="000.000.000-00"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formCpf}
                     onChangeText={(t) => setFormCpf(formatarCpf(t))}
@@ -727,7 +727,7 @@ function AcessosDesktop() {
               <TextInput
                 style={styles.formInput}
                 placeholder="Ex: Revendedora"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#9A8F87"
                 value={formTag}
                 onChangeText={setFormTag}
               />
@@ -757,7 +757,7 @@ function AcessosDesktop() {
                       key={op.id}
                       style={[styles.segmentedBtn, ativo && styles.segmentedBtnActive]}
                       onPress={() => setFormTipoComissao(op.id as TipoComissao)}>
-                      <Feather name={op.icon} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#64748B'} />
+                      <Feather name={op.icon} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#6B615A'} />
                       <Text style={[styles.segmentedText, ativo && styles.segmentedTextActive]}>{op.label}</Text>
                     </TouchableOpacity>
                   );
@@ -772,7 +772,7 @@ function AcessosDesktop() {
                 <TextInput
                   style={styles.affixInput}
                   placeholder={formTipoComissao === 'porcentagem' ? '15' : '3,50'}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   keyboardType="decimal-pad"
                   value={formValorComissao}
                   onChangeText={(t) => setFormValorComissao(formatarDecimal(t))}
@@ -794,7 +794,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="00000-000"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     value={formCep}
                     onChangeText={(t) => setFormCep(formatarCep(t))}
@@ -805,7 +805,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="Ex: Rua General Severiano"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formRua}
                     onChangeText={setFormRua}
                   />
@@ -818,7 +818,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="84"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formNumero}
                     onChangeText={setFormNumero}
                   />
@@ -828,7 +828,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="Apto, bloco..."
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formComplemento}
                     onChangeText={setFormComplemento}
                   />
@@ -838,7 +838,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="Ex: Botafogo"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formBairro}
                     onChangeText={setFormBairro}
                   />
@@ -851,7 +851,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="Ex: Rio de Janeiro"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     value={formCidade}
                     onChangeText={setFormCidade}
                   />
@@ -861,7 +861,7 @@ function AcessosDesktop() {
                   <TextInput
                     style={styles.formInput}
                     placeholder="RJ"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     autoCapitalize="characters"
                     maxLength={2}
                     value={formEstado}
@@ -875,7 +875,7 @@ function AcessosDesktop() {
               <TextInput
                 style={[styles.formInput, styles.formTextarea]}
                 placeholder="Ex: dias de retirada, produtos que revende, combinados de acerto..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#9A8F87"
                 multiline
                 numberOfLines={4}
                 value={formObservacoes}
@@ -897,10 +897,10 @@ function AcessosDesktop() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.btnPrimary} onPress={handleSalvar} disabled={salvando}>
                 {salvando ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color="#FFFDFA" />
                 ) : (
                   <>
-                    <Feather name="check" size={16} color="#FFFFFF" />
+                    <Feather name="check" size={16} color="#FFFDFA" />
                     <Text style={styles.btnPrimaryText}>{editandoId ? 'Salvar Alterações' : 'Cadastrar Revendedora'}</Text>
                   </>
                 )}
@@ -974,7 +974,7 @@ function AcessosDesktop() {
 const styles = paraCelular(StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   screenWrapper: {
     flex: 1,
@@ -1010,7 +1010,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // CONTROLES
@@ -1026,9 +1026,9 @@ const styles = paraCelular(StyleSheet.create({
     minWidth: 260,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -1038,16 +1038,16 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     flexWrap: 'wrap',
     gap: 4,
   },
@@ -1066,26 +1066,26 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   tabButtonTextActive: {
     color: KIPI_BLUE_ACCENT,
     fontWeight: '800',
   },
   tabBadge: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 8,
   },
   tabBadgeActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
   },
   tabBadgeText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   tabBadgeTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1105,11 +1105,11 @@ const styles = paraCelular(StyleSheet.create({
     width: '32%',
     minWidth: 300,
     flexGrow: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     gap: 12,
   },
   resellerCardMobile: {
@@ -1146,11 +1146,11 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     flexShrink: 1,
   },
   tagPill: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1159,12 +1159,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   cardContact: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   commissionBox: {
@@ -1186,22 +1186,22 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
+    color: '#9A8F87',
     letterSpacing: 0.6,
   },
   commissionValue: {
     fontFamily: FONT_DISPLAY,
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     marginTop: 1,
   },
   statsStrip: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingVertical: 8,
     marginBottom: 10,
@@ -1213,13 +1213,13 @@ const styles = paraCelular(StyleSheet.create({
   },
   statItemBorda: {
     borderLeftWidth: 1,
-    borderLeftColor: '#F1F5F9',
+    borderLeftColor: '#F3EEE7',
   },
   statRotulo: {
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
@@ -1232,7 +1232,7 @@ const styles = paraCelular(StyleSheet.create({
   alertaBar: {
     backgroundColor: WARNING_TINT,
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: '#E8C47A',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -1249,13 +1249,13 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '700',
-    color: '#92400E',
+    color: '#9A6516',
   },
   alertaLinha: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -1264,7 +1264,7 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#475569',
+    color: '#4A3E37',
   },
   alertaBtn: {
     backgroundColor: KIPI_BLUE_TINT,
@@ -1288,7 +1288,7 @@ const styles = paraCelular(StyleSheet.create({
   posseText: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
   reporPill: {
     backgroundColor: WARNING_TINT,
@@ -1300,7 +1300,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '700',
-    color: '#92400E',
+    color: '#9A6516',
   },
   notesBox: {
     flexDirection: 'row',
@@ -1313,7 +1313,7 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#78350F',
+    color: '#6E4A10',
     lineHeight: 16,
   },
   cardActionsRow: {
@@ -1331,12 +1331,12 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#BFDBFE',
+    borderColor: '#D6D7F3',
     backgroundColor: KIPI_BLUE_TINT,
   },
   cardActionBtnAcerto: {
-    borderColor: '#BBF7D0',
-    backgroundColor: '#F0FDF4',
+    borderColor: '#BFDCCB',
+    backgroundColor: '#E4F1E9',
   },
   cardActionText: {
     fontFamily: FONT_SANS,
@@ -1349,7 +1349,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
     paddingTop: 10,
     gap: 8,
   },
@@ -1357,7 +1357,7 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   cardFooterRight: {
     flexDirection: 'row',
@@ -1368,34 +1368,34 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 10,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 16,
     paddingVertical: 40,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     gap: 8,
   },
   emptyTitle: {
     fontFamily: FONT_DISPLAY,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   emptySubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // MODAL
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(43, 36, 33, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -1404,10 +1404,10 @@ const styles = paraCelular(StyleSheet.create({
     width: '100%',
     maxWidth: 640,
     maxHeight: '92%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     boxShadow: '0 20px 40px rgba(0,0,0,0.18)',
     overflow: 'hidden',
   },
@@ -1417,7 +1417,7 @@ const styles = paraCelular(StyleSheet.create({
     gap: 12,
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   modalHeaderIcon: {
     width: 38,
@@ -1431,12 +1431,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   modalSubtitle: {
     fontFamily: FONT_SANS,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   errorAlert: {
@@ -1484,24 +1484,24 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
     marginBottom: 6,
   },
   formInput: {
     fontFamily: FONT_SANS,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   formInputInvalid: {
-    borderColor: '#FCA5A5',
-    backgroundColor: '#FFF7F7',
+    borderColor: '#F3C4BD',
+    backgroundColor: '#FBE7E4',
   },
   formTextarea: {
     minHeight: 90,
@@ -1518,8 +1518,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   tagQuickChipActive: {
     borderColor: KIPI_BLUE,
@@ -1529,7 +1529,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   tagQuickChipTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1551,8 +1551,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
   },
   segmentedBtnActive: {
     borderColor: KIPI_BLUE,
@@ -1562,7 +1562,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   segmentedTextActive: {
     color: KIPI_BLUE_ACCENT,
@@ -1573,7 +1573,7 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     backgroundColor: KIPI_FROST_BG,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 12,
     maxWidth: 220,
@@ -1583,21 +1583,21 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_DISPLAY,
     fontSize: 14,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
   },
   affixInput: {
     flex: 1,
     fontFamily: FONT_DISPLAY,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     paddingVertical: 9,
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
   helperText: {
     fontFamily: FONT_SANS,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
     marginTop: 6,
   },
   accessNotice: {
@@ -1622,22 +1622,22 @@ const styles = paraCelular(StyleSheet.create({
     gap: 10,
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
   },
   btnCancel: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E0D6',
+    backgroundColor: '#FFFDFA',
     justifyContent: 'center',
   },
   btnCancelText: {
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
 
   // TOAST
@@ -1645,7 +1645,7 @@ const styles = paraCelular(StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     alignSelf: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#2E211A',
     paddingHorizontal: 18,
     paddingVertical: 12,
     borderRadius: 12,
@@ -1655,6 +1655,6 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: FONT_SANS,
     fontSize: 13,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 }));

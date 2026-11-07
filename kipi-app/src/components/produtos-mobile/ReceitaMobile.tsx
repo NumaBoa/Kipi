@@ -83,10 +83,10 @@ export default function ReceitaMobile({
   const margemSugerida = margemReal(calc.precoSugerido, calc.custoUnitario);
   const rend = Math.max(1, num(rendimento));
   const partes = [
-    { id: 'ing', rotulo: 'Ingredientes', valor: calc.ingredientes / rend, cor: '#5798D7' },
-    { id: 'emb', rotulo: 'Embalagens', valor: calc.embalagens / rend, cor: '#A78BFA' },
-    { id: 'mao', rotulo: `Mão de obra (${num(tempo)} min)`, valor: calc.maoDeObra / rend, cor: '#F59E0B' },
-    { id: 'ext', rotulo: 'Extras', valor: calc.extras / rend, cor: '#94A3B8' },
+    { id: 'ing', rotulo: 'Ingredientes', valor: calc.ingredientes / rend, cor: '#4B4FC4' },
+    { id: 'emb', rotulo: 'Embalagens', valor: calc.embalagens / rend, cor: '#9EA0E0' },
+    { id: 'mao', rotulo: `Mão de obra (${num(tempo)} min)`, valor: calc.maoDeObra / rend, cor: '#B9781A' },
+    { id: 'ext', rotulo: 'Extras', valor: calc.extras / rend, cor: '#9A8F87' },
   ];
 
   const opcoes = useMemo(() => {
@@ -157,7 +157,7 @@ export default function ReceitaMobile({
                   <View key={it.insumoId} style={[s.itemLinha, s.borda]}>
                     <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
                       <T style={s.itemNome} numberOfLines={1}>{item.nome}</T>
-                      <T style={[s.sub, numeros, emb && { color: '#7C3AED' }]}>
+                      <T style={[s.sub, numeros, emb && { color: '#4B4FC4' }]}>
                         {emb ? 'Embalagem' : 'Ingrediente'} · {brl(num(it.qtd) * item.custoUnitario)}
                       </T>
                     </View>
@@ -195,7 +195,7 @@ export default function ReceitaMobile({
                     value={c.descricao}
                     onChangeText={(v) => setExtras((prev) => prev.map((x, i) => (i === idx ? { ...x, descricao: v } : x)))}
                     placeholder="Descrição"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     style={[s.input, { flex: 1, minWidth: 0 }]}
                     accessibilityLabel="Descrição do custo"
                   />
@@ -203,7 +203,7 @@ export default function ReceitaMobile({
                     value={c.valor}
                     onChangeText={(v) => setExtras((prev) => prev.map((x, i) => (i === idx ? { ...x, valor: v } : x)))}
                     placeholder="R$ 0,00"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="decimal-pad"
                     style={[s.input, { width: 84, flexShrink: 0 }]}
                     accessibilityLabel="Valor do custo"
@@ -290,7 +290,7 @@ export default function ReceitaMobile({
         <Gaveta aberta={buscando} aoFechar={() => setBuscando(false)} titulo="Adicionar insumo" subtitulo="Ingredientes e embalagens ativos">
           <View style={s.buscaCaixa}>
             <Feather name="search" size={16} color={cor.textoSuave} />
-            <TextInput value={busca} onChangeText={setBusca} placeholder="Buscar ingrediente ou embalagem…" placeholderTextColor="#94A3B8" style={s.buscaInput} accessibilityLabel="Buscar insumo" />
+            <TextInput value={busca} onChangeText={setBusca} placeholder="Buscar ingrediente ou embalagem…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar insumo" />
           </View>
           <View>
             {opcoes.length === 0 && <T style={s.sub}>Nenhum insumo encontrado.</T>}
@@ -345,29 +345,29 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 12, paddingTop: 8, paddingBottom: 6 },
   titulo: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3 },
   sub: { fontSize: 12, color: cor.textoSuave },
-  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   conteudo: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 24 },
   erro: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro },
   erroTexto: { flex: 1, fontSize: 13, fontWeight: '700', color: cor.vermelho },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16 },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 22, padding: 16 },
   blocoTopo: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 },
   blocoTitulo: { fontSize: 15, fontWeight: '700' },
   rotulo: { fontSize: 13, fontWeight: '700', color: cor.textoMedio },
-  input: { height: 46, borderRadius: 12, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF', paddingHorizontal: 12, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
+  input: { height: 46, borderRadius: 12, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA', paddingHorizontal: 12, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   itemLinha: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 },
   itemNome: { fontSize: 14, fontWeight: '700' },
   qtdCaixa: { width: 96, height: 42, borderRadius: 12, borderWidth: 1, borderColor: cor.borda, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, gap: 4 },
   qtdInput: { flex: 1, minWidth: 0, fontSize: 15, fontWeight: '700', textAlign: 'right', color: cor.texto, fontFamily: fonte.texto, padding: 0, ...campoWeb },
   tirar: { width: 36, height: 36, borderRadius: 18, backgroundColor: cor.cinzaClaro, alignItems: 'center', justifyContent: 'center' },
-  adicionar: { marginTop: 6, height: 46, borderRadius: 23, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9CC3E8', alignItems: 'center', justifyContent: 'center' },
+  adicionar: { marginTop: 6, height: 46, borderRadius: 23, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#D6D7F3', alignItems: 'center', justifyContent: 'center' },
   adicionarTexto: { fontSize: 14, fontWeight: '800', color: cor.azulTexto },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
-  segmento: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#E8EEF5' },
+  segmento: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#F3EEE7' },
   segItem: { width: 52, height: 38, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  segItemOn: { backgroundColor: '#FFFFFF' },
+  segItemOn: { backgroundColor: '#FFFDFA' },
   segTexto: { fontSize: 14, fontWeight: '800', color: cor.textoSuave },
-  rodape: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 12, gap: 10, borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { backgroundColor: '#FFFDFA', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 12, gap: 10, borderTopWidth: 1, borderTopColor: cor.borda },
   resumo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   resumoRotulo: { fontSize: 11, fontWeight: '700', color: cor.textoSuave },
   resumoValor: { fontSize: 17, fontWeight: '700' },

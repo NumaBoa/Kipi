@@ -16,10 +16,10 @@ import ReceitaMobile from './ReceitaMobile';
 // PRODUTOS NO CELULAR: lista, detalhe, cadastro e receita (mesmos dados da versão de computador)
 // ============================================================================
 
-const AZUL_FREEZER = '#0369A1';
-const LARANJA = '#C2410C';
-const LARANJA_ESCURO = '#9A3412';
-const LARANJA_CLARO = '#FFEDD5';
+const AZUL_FREEZER = '#3A3D9E';
+const LARANJA = '#9A6516';
+const LARANJA_ESCURO = '#9A6516';
+const LARANJA_CLARO = '#FBF0DC';
 
 // Ícone de cada produto (o mesmo da versão de computador); escolhas novas ficam guardadas aqui
 export const FOTOS: Record<string, string> = {
@@ -251,8 +251,8 @@ export default function ProdutosMobile() {
         {/* BUSCA + FILTROS */}
         <View style={s.buscaLinha}>
           <View style={[s.busca, sombra]}>
-            <Feather name="search" size={18} color="#94A3B8" />
-            <TextInput value={busca} onChangeText={setBusca} placeholder="Nome ou categoria…" placeholderTextColor="#94A3B8" style={s.buscaInput} accessibilityLabel="Buscar produto" />
+            <Feather name="search" size={18} color="#9A8F87" />
+            <TextInput value={busca} onChangeText={setBusca} placeholder="Nome ou categoria…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar produto" />
             {!!busca && (
               <TouchableOpacity onPress={() => setBusca('')} style={s.limpar} accessibilityRole="button" accessibilityLabel="Limpar busca">
                 <Feather name="x" size={14} color={cor.textoMedio} />
@@ -331,7 +331,7 @@ export default function ProdutosMobile() {
                   <View style={{ alignItems: 'flex-end', gap: 2 }}>
                     <T style={[s.preco, numeros]}>{brl(p.v.preco)}</T>
                     {promo && <T style={[s.nota, numeros, { color: cor.ambar }]}>🏷 {brl(p.v.preco - (p.v.desconto ?? 0))}</T>}
-                    <T style={[s.nota, numeros, { color: !p.temFicha ? '#94A3B8' : margemBaixa ? cor.vermelho : cor.verde }]}>
+                    <T style={[s.nota, numeros, { color: !p.temFicha ? '#9A8F87' : margemBaixa ? cor.vermelho : cor.verde }]}>
                       {!p.temFicha ? 'sem custo' : `${margemBaixa ? '⚠ ' : ''}margem ${p.margem}%`}
                     </T>
                   </View>
@@ -348,7 +348,7 @@ export default function ProdutosMobile() {
         accessibilityRole="button"
         accessibilityLabel="Novo produto"
         activeOpacity={0.9}>
-        <Feather name="plus" size={22} color="#FFFFFF" />
+        <Feather name="plus" size={22} color="#FFFDFA" />
         {!fabCompacto && <T style={s.fabTexto}>Novo produto</T>}
       </TouchableOpacity>
 
@@ -521,7 +521,7 @@ function DetalheProduto({
                 <T style={s.numRotulo}>Custo por un</T>
                 <T titulo style={[s.numValor, numeros, { color: cor.textoMedio }]}>{p.custo ? brl(p.custo) : '—'}</T>
               </View>
-              <View style={[s.margemCaixa, { backgroundColor: !p.temFicha ? cor.fundo : margemBaixa ? cor.vermelhoClaro : '#DCFCE7' }]}>
+              <View style={[s.margemCaixa, { backgroundColor: !p.temFicha ? cor.fundo : margemBaixa ? cor.vermelhoClaro : '#E4F1E9' }]}>
                 <T style={[s.numRotulo, { color: !p.temFicha ? cor.textoSuave : margemBaixa ? cor.vermelho : cor.verde, fontWeight: '800' }]}>
                   {margemBaixa ? '⚠ Margem baixa' : 'Margem'}
                 </T>
@@ -547,7 +547,7 @@ function DetalheProduto({
           {/* ESTOQUE */}
           <View style={[s.cartao, sombra, { padding: 0, gap: 0 }]}>
             <View style={s.estLinha}>
-              <View style={[s.estIcone, { backgroundColor: '#DCFCE7' }]}>
+              <View style={[s.estIcone, { backgroundColor: '#E4F1E9' }]}>
                 <Feather name="check" size={17} color={cor.verde} />
               </View>
               <View style={{ flex: 1, gap: 1 }}>
@@ -561,7 +561,7 @@ function DetalheProduto({
               </View>
             </View>
             <View style={[s.estLinha, s.borda]}>
-              <View style={[s.estIcone, { backgroundColor: '#E0F2FE' }]}>
+              <View style={[s.estIcone, { backgroundColor: '#ECEBFA' }]}>
                 <T style={{ fontSize: 15, color: AZUL_FREEZER }}>❄</T>
               </View>
               <View style={{ flex: 1, gap: 1 }}>
@@ -698,13 +698,13 @@ function DetalheProduto({
           <T style={s.rotulo}>
             Observação <T style={[s.dica, { fontWeight: '500' }]}>(opcional)</T>
           </T>
-          <TextInput value={obs} onChangeText={setObs} placeholder="Ex.: doado para a feira do bairro" placeholderTextColor="#94A3B8" style={s.campo} />
+          <TextInput value={obs} onChangeText={setObs} placeholder="Ex.: doado para a feira do bairro" placeholderTextColor="#9A8F87" style={s.campo} />
           <View style={s.perda}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <T style={[s.perdaTexto, { flex: 1 }]}>Perda de material</T>
               <T style={[s.perdaTexto, numeros]}>{brl(custoUnit * qtdDesc)}</T>
             </View>
-            <T style={[s.dica, { color: '#991B1B' }]}>
+            <T style={[s.dica, { color: '#8A1C12' }]}>
               {brl(custoUnit)}/un · {origem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'} · entra em Perdas e desconta do estoque
             </T>
           </View>
@@ -755,22 +755,22 @@ const s = StyleSheet.create({
   dica: { fontSize: 12, color: cor.textoSuave },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
   rotulo: { fontSize: 13, fontWeight: '800', color: cor.textoMedio },
-  resumo: { marginHorizontal: 16, marginTop: 14, padding: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 12 },
+  resumo: { marginHorizontal: 16, marginTop: 14, padding: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 12 },
   resumoRotulo: { fontSize: 12, fontWeight: '700' },
   resumoValor: { fontSize: 20, fontWeight: '700' },
   alerta: { minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro, flexDirection: 'row', alignItems: 'center', gap: 8 },
   alertaTexto: { flex: 1, fontSize: 13, fontWeight: '800', color: cor.vermelho },
   alertaAcao: { fontSize: 13, fontWeight: '800', color: cor.vermelho },
   buscaLinha: { flexDirection: 'row', gap: 8, marginHorizontal: 16, marginTop: 12 },
-  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  busca: { flex: 1, height: 48, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 10 },
   buscaInput: { flex: 1, minWidth: 0, height: 44, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   limpar: { width: 32, height: 32, borderRadius: 16, backgroundColor: cor.cinzaClaro, alignItems: 'center', justifyContent: 'center' },
-  filtroBotao: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  filtroBotao: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   filtroBadge: { position: 'absolute', top: 4, right: 4, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: cor.azulBotao, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
-  filtroBadgeTexto: { fontSize: 11, fontWeight: '800', color: '#FFFFFF' },
+  filtroBadgeTexto: { fontSize: 11, fontWeight: '800', color: '#FFFDFA' },
   mostrando: { marginHorizontal: 20, marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   mostrandoTexto: { flex: 1, fontSize: 13, color: cor.textoMedio },
-  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  lista: { marginHorizontal: 16, marginTop: 12, borderRadius: 22, backgroundColor: '#FFFDFA', overflow: 'hidden' },
   linha: { paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   icone: { width: 46, height: 46, borderRadius: 14, backgroundColor: cor.fundo, alignItems: 'center', justifyContent: 'center' },
@@ -781,7 +781,7 @@ const s = StyleSheet.create({
   estoque: { fontSize: 12, fontWeight: '700' },
   preco: { fontSize: 14, fontWeight: '800' },
   nota: { fontSize: 11, fontWeight: '700' },
-  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 6 },
+  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', gap: 6 },
   vazioTitulo: { fontSize: 16, fontWeight: '700' },
   vazioTexto: { fontSize: 13, color: cor.textoSuave, marginBottom: 8, textAlign: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -803,17 +803,17 @@ const s = StyleSheet.create({
     elevation: 6,
   },
   fabCompacto: { width: 56, paddingLeft: 0, paddingRight: 0, justifyContent: 'center' },
-  fabTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  fabTexto: { color: '#FFFDFA', fontSize: 15, fontWeight: '800' },
 
   // DETALHE
   detTopo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingTop: 6, paddingBottom: 4 },
   detTopoTexto: { flex: 1, fontSize: 15, fontWeight: '700', color: cor.textoMedio },
-  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   identidade: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingTop: 4 },
-  iconeGrande: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  iconeGrande: { width: 64, height: 64, borderRadius: 20, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   detNome: { fontSize: 20, fontWeight: '700', letterSpacing: -0.3, lineHeight: 25 },
   etiquetas: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
-  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFFFF', gap: 12 },
+  cartao: { marginHorizontal: 16, marginTop: 12, padding: 16, borderRadius: 22, backgroundColor: '#FFFDFA', gap: 12 },
   cartaoTopo: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 },
   cartaoTitulo: { fontSize: 15, fontWeight: '700' },
   numRotulo: { fontSize: 11, fontWeight: '700', color: cor.textoSuave },
@@ -833,14 +833,14 @@ const s = StyleSheet.create({
   insumoNome: { flex: 1, fontSize: 14 },
   insumoCusto: { width: 72, textAlign: 'right', fontSize: 13, fontWeight: '800' },
   explica: { fontSize: 14, lineHeight: 20, color: cor.textoMedio },
-  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
   menuItem: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 12 },
   menuTexto: { fontSize: 15, fontWeight: '700' },
   erro: { padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro },
   erroTexto: { fontSize: 13, fontWeight: '700', color: cor.vermelho },
   campo: { height: 48, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   perda: { padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro, gap: 2 },
-  perdaTexto: { fontSize: 14, fontWeight: '800', color: '#991B1B' },
+  perdaTexto: { fontSize: 14, fontWeight: '800', color: '#8A1C12' },
   contador: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   contadorMenos: { width: 52, height: 52, borderRadius: 26, borderWidth: 1.5, borderColor: cor.borda, alignItems: 'center', justifyContent: 'center' },
   contadorMais: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },

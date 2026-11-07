@@ -18,21 +18,21 @@ import { brl, cor, numeros, sombra } from '@/components/mobile/tema';
 // A fornada é registrada depois que sai do forno (sem timer).
 // Mesmas regras e funções da versão de computador (producao.tsx).
 // ============================================================================
-const AZUL_FREEZER = '#0369A1';
-const AZUL_FREEZER_ESCURO = '#075985';
-const AZUL_FREEZER_CLARO = '#E0F2FE';
-const AZUL_FREEZER_FUNDO = '#F0F9FF';
-const LARANJA = '#C2410C';
-const LARANJA_ESCURO = '#9A3412';
-const LARANJA_CLARO = '#FFEDD5';
-const LARANJA_FUNDO = '#FFF7ED';
+const AZUL_FREEZER = '#3A3D9E';
+const AZUL_FREEZER_ESCURO = '#3A3D9E';
+const AZUL_FREEZER_CLARO = '#ECEBFA';
+const AZUL_FREEZER_FUNDO = '#ECEBFA';
+const LARANJA = '#9A6516';
+const LARANJA_ESCURO = '#9A6516';
+const LARANJA_CLARO = '#FBF0DC';
+const LARANJA_FUNDO = '#FBF0DC';
 
 const TEMPO_FORNO: Record<string, number> = { 'prod-1': 14, 'prod-2': 14, 'prod-4': 35, 'prod-6': 16, 'prod-9': 10, 'prod-11': 20, 'prod-12': 18 };
 const TEMPO_FORNO_PADRAO = 15;
 const STATUS_ENCOMENDA: Record<string, { label: string; fg: string; bg: string }> = {
-  a_fazer: { label: 'A fazer', fg: '#475569', bg: '#F1F5F9' },
-  em_producao: { label: 'Em produção', fg: '#92400E', bg: '#FEF3C7' },
-  pronto: { label: 'Pronto', fg: '#1D4ED8', bg: '#EAF3FA' },
+  a_fazer: { label: 'A fazer', fg: '#4A3E37', bg: '#F3EEE7' },
+  em_producao: { label: 'Em produção', fg: '#9A6516', bg: '#FBF0DC' },
+  pronto: { label: 'Pronto', fg: '#3A3D9E', bg: '#ECEBFA' },
 };
 const PROXIMO: Record<string, { id: Pedido['statusProducao']; label: string } | undefined> = {
   a_fazer: { id: 'em_producao', label: 'Iniciar produção' },
@@ -46,7 +46,7 @@ const ROTULO_TIPO: Record<TipoHist, string> = { todos: 'Todos', preparo_massa: '
 const VISUAL_TIPO: Record<RegistroProducao['tipo'], { acao: string; fg: string; bg: string; icone: keyof typeof MaterialCommunityIcons.glyphMap; sinal: string }> = {
   assar_fornada: { acao: 'Fornada registrada', fg: LARANJA, bg: LARANJA_CLARO, icone: 'fire', sinal: '+' },
   preparo_massa: { acao: 'Massa para o freezer', fg: AZUL_FREEZER, bg: AZUL_FREEZER_CLARO, icone: 'snowflake', sinal: '+' },
-  perda: { acao: 'Descarte', fg: cor.vermelho, bg: '#FEE2E2', icone: 'trash-can-outline', sinal: '−' },
+  perda: { acao: 'Descarte', fg: cor.vermelho, bg: '#FBE7E4', icone: 'trash-can-outline', sinal: '−' },
   ajuste: { acao: 'Ajuste de estoque', fg: cor.textoMedio, bg: cor.cinzaClaro, icone: 'pencil-outline', sinal: '' },
 };
 const POR_PAGINA = 15;
@@ -277,11 +277,11 @@ export default function ProducaoMobile() {
 
         {/* AÇÕES EM LOTE: pílulas que cabem na largura (sem rolagem lateral) */}
         <View style={s.acoes}>
-          <TouchableOpacity style={[s.pilula, { backgroundColor: AZUL_FREEZER_FUNDO, borderColor: '#BAE6FD' }]} onPress={() => abrirLote('preparo')} accessibilityRole="button">
+          <TouchableOpacity style={[s.pilula, { backgroundColor: AZUL_FREEZER_FUNDO, borderColor: '#D6D7F3' }]} onPress={() => abrirLote('preparo')} accessibilityRole="button">
             {ic('snowflake', 16, AZUL_FREEZER_ESCURO)}
             <T style={[s.pilulaTexto, { color: AZUL_FREEZER_ESCURO }]} numberOfLines={1}>Preparar massa</T>
           </TouchableOpacity>
-          <TouchableOpacity style={[s.pilula, { backgroundColor: LARANJA_FUNDO, borderColor: '#FED7AA' }]} onPress={() => abrirLote('assar')} accessibilityRole="button">
+          <TouchableOpacity style={[s.pilula, { backgroundColor: LARANJA_FUNDO, borderColor: '#F2DDB0' }]} onPress={() => abrirLote('assar')} accessibilityRole="button">
             {ic('fire', 16, LARANJA_ESCURO)}
             <T style={[s.pilulaTexto, { color: LARANJA_ESCURO }]} numberOfLines={1}>Registrar fornada</T>
           </TouchableOpacity>
@@ -308,7 +308,7 @@ export default function ProducaoMobile() {
                 {ic('check-circle-outline', 14, cor.verde)}
                 <T style={[s.resumoRotulo, { color: cor.verde }]}>Pronto para venda</T>
               </View>
-              <T titulo style={[s.resumoValor, numeros, { color: '#166534' }]}>{totalVitrine} un</T>
+              <T titulo style={[s.resumoValor, numeros, { color: '#24603F' }]}>{totalVitrine} un</T>
               <T style={[s.resumoNota, { color: cor.verde }]}>
                 {fornadasHoje} {fornadasHoje === 1 ? 'fornada hoje' : 'fornadas hoje'}
               </T>
@@ -361,7 +361,7 @@ export default function ProducaoMobile() {
                     ? { t: 'Hora de assar', bg: LARANJA_CLARO, fg: LARANJA_ESCURO }
                     : massa
                     ? p.freezer === 0
-                      ? { t: 'Sem massa no freezer', bg: '#FEE2E2', fg: cor.vermelho }
+                      ? { t: 'Sem massa no freezer', bg: '#FBE7E4', fg: cor.vermelho }
                       : { t: 'Fazer massa', bg: cor.ambarClaro, fg: cor.ambarTexto }
                     : null;
                   return (
@@ -453,7 +453,7 @@ export default function ProducaoMobile() {
                         <T style={s.forte}>{px.label}</T>
                       </TouchableOpacity>
                     ) : (
-                      <T style={[s.forte, { fontSize: 12, color: '#1D4ED8' }]}>Aguardando entrega</T>
+                      <T style={[s.forte, { fontSize: 12, color: '#3A3D9E' }]}>Aguardando entrega</T>
                     )}
                   </View>
                 </View>
@@ -523,7 +523,7 @@ export default function ProducaoMobile() {
         <T style={s.rotulo}>Quantas unidades de massa vai modelar?</T>
         <Contador valor={qtdPrep} min={1} aoMudar={setQtdPrep} cor={AZUL_FREEZER_ESCURO} fundo={AZUL_FREEZER_CLARO} />
         <TouchableOpacity style={s.checkLinha} onPress={() => setDescontar((v) => !v)} accessibilityRole="checkbox" accessibilityState={{ checked: descontar }}>
-          <View style={[s.check, descontar && { backgroundColor: AZUL_FREEZER, borderColor: AZUL_FREEZER }]}>{descontar && <Feather name="check" size={13} color="#FFFFFF" />}</View>
+          <View style={[s.check, descontar && { backgroundColor: AZUL_FREEZER, borderColor: AZUL_FREEZER }]}>{descontar && <Feather name="check" size={13} color="#FFFDFA" />}</View>
           <T style={[s.forte, { flex: 1, fontSize: 14 }]}>Descontar os ingredientes do estoque de insumos</T>
         </TouchableOpacity>
         {descontar && ingredientes.length > 0 && (
@@ -680,10 +680,10 @@ export default function ProducaoMobile() {
             <TextInput value={descObs} onChangeText={setDescObs} placeholder="Ex.: doado para a feira do bairro" placeholderTextColor={cor.textoSuave} style={s.campo} />
             <View style={[s.faixa, { backgroundColor: cor.vermelhoClaro, gap: 2 }]}>
               <View style={s.linha}>
-                <T style={[s.forte, { flex: 1, color: '#991B1B', fontSize: 14 }]}>Perda de material</T>
-                <T style={[s.forte, numeros, { color: '#991B1B', fontSize: 14 }]}>{brl(custoUnit * descQtd)}</T>
+                <T style={[s.forte, { flex: 1, color: '#8A1C12', fontSize: 14 }]}>Perda de material</T>
+                <T style={[s.forte, numeros, { color: '#8A1C12', fontSize: 14 }]}>{brl(custoUnit * descQtd)}</T>
               </View>
-              <T style={[s.dicaPequena, { color: '#991B1B' }]}>
+              <T style={[s.dicaPequena, { color: '#8A1C12' }]}>
                 {brl(custoUnit)}/un · {descOrigem === 'freezer' ? 'ingredientes da massa' : 'ingredientes + embalagem'} · entra em Perdas e desconta do estoque
               </T>
             </View>
@@ -712,7 +712,7 @@ export default function ProducaoMobile() {
       {/* PERDAS */}
       <Gaveta aberta={gaveta === 'perdas'} aoFechar={() => setGaveta(null)} titulo="Perdas · 30 dias" subtitulo="Custo de material descartado por motivo">
         <View style={[s.faixa, s.linha, { backgroundColor: cor.vermelhoClaro }]}>
-          <T style={[s.forte, { flex: 1, color: '#991B1B' }]}>Total perdido</T>
+          <T style={[s.forte, { flex: 1, color: '#8A1C12' }]}>Total perdido</T>
           <T titulo style={[s.resumoValor, numeros, { color: cor.vermelho }]}>{brl(perdas.total)}</T>
         </View>
         {perdas.porMotivo.length === 0 && <T style={s.dica}>Nenhum descarte nos últimos 30 dias.</T>}
@@ -771,9 +771,9 @@ const s = StyleSheet.create({
   subtitulo: { fontSize: 14, color: cor.textoSuave },
   acoes: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14 },
   pilula: { flex: 1, height: 40, borderRadius: 20, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, paddingHorizontal: 6 },
-  pilulaIcone: { width: 40, height: 40, flexGrow: 0, flexShrink: 0, borderRadius: 20, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  pilulaIcone: { width: 40, height: 40, flexGrow: 0, flexShrink: 0, borderRadius: 20, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   pilulaTexto: { fontSize: 12.5, fontWeight: '700' },
-  resumo: { marginHorizontal: 16, marginTop: 12, padding: 4, borderRadius: 22, backgroundColor: '#FFFFFF' },
+  resumo: { marginHorizontal: 16, marginTop: 12, padding: 4, borderRadius: 22, backgroundColor: '#FFFDFA' },
   resumoLinha: { flexDirection: 'row', gap: 4 },
   resumoCelula: { flex: 1, padding: 12, borderRadius: 18, gap: 2 },
   resumoRotulo: { fontSize: 13, fontWeight: '600' },
@@ -784,16 +784,16 @@ const s = StyleSheet.create({
   medio: { fontSize: 13, color: cor.textoMedio },
   forte: { fontSize: 13, fontWeight: '800', color: cor.texto },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
-  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 16, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#E8EEF5' },
+  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 16, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#F3EEE7' },
   segItem: { flex: 1, height: 40, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segItemOn: { backgroundColor: '#FFFDFA', shadowColor: '#2E211A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   segTexto: { fontSize: 13, fontWeight: '600', color: cor.textoMedio },
   segTextoOn: { fontWeight: '800', color: cor.texto },
   segNum: { minWidth: 18, height: 18, paddingHorizontal: 5, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
-  segNumTexto: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
-  busca: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, marginHorizontal: 16, marginTop: 14, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#FFFFFF' },
+  segNumTexto: { color: '#FFFDFA', fontSize: 11, fontWeight: '800' },
+  busca: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, marginHorizontal: 16, marginTop: 14, paddingHorizontal: 14, borderRadius: 22, backgroundColor: '#FFFDFA' },
   buscaInput: { flex: 1, minWidth: 0, fontSize: 14, color: cor.texto, padding: 0 },
-  lista: { marginHorizontal: 16, marginTop: 12, backgroundColor: '#FFFFFF', borderRadius: 22, overflow: 'hidden' },
+  lista: { marginHorizontal: 16, marginTop: 12, backgroundColor: '#FFFDFA', borderRadius: 22, overflow: 'hidden' },
   produto: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingLeft: 16, paddingRight: 12 },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   produtoNome: { fontSize: 15, fontWeight: '700', lineHeight: 19 },
@@ -805,15 +805,15 @@ const s = StyleSheet.create({
   icone: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   legenda: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 14, marginTop: 12, paddingHorizontal: 20 },
   encomenda: { padding: 16, gap: 8 },
-  itensEnc: { fontSize: 14, color: '#334155' },
+  itensEnc: { fontSize: 14, color: '#3D312A' },
   obs: { fontSize: 13, fontStyle: 'italic', color: cor.textoSuave },
   status: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 10, borderRadius: 15 },
   ponto: { width: 8, height: 8, borderRadius: 4 },
   statusTexto: { fontSize: 12, fontWeight: '800' },
   botaoBorda: { height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1.5, borderColor: cor.apagado, justifyContent: 'center' },
   histTopo: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingTop: 14, alignItems: 'center' },
-  filtroHist: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF' },
-  buscaHist: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 38, paddingHorizontal: 12, borderRadius: 19, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF' },
+  filtroHist: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA' },
+  buscaHist: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 38, paddingHorizontal: 12, borderRadius: 19, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA' },
   grupoTitulo: { fontSize: 15, fontWeight: '700', color: cor.textoMedio, paddingHorizontal: 4, paddingBottom: 8 },
   registro: { flexDirection: 'row', gap: 12, paddingVertical: 12, paddingHorizontal: 16 },
   iconeHist: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
@@ -821,7 +821,7 @@ const s = StyleSheet.create({
   checkLinha: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: cor.borda },
   check: { width: 22, height: 22, borderRadius: 7, borderWidth: 2, borderColor: cor.apagado, alignItems: 'center', justifyContent: 'center' },
   erro: { padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro },
-  erroTexto: { fontSize: 13, lineHeight: 18, color: '#991B1B' },
+  erroTexto: { fontSize: 13, lineHeight: 18, color: '#8A1C12' },
   faixa: { padding: 12, borderRadius: 16, backgroundColor: cor.fundo },
   passo: { flexDirection: 'row', alignItems: 'center', height: 40, borderRadius: 20, backgroundColor: cor.cinzaClaro },
   passoBotao: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },

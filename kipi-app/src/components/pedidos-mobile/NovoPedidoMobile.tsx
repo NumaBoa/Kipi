@@ -321,7 +321,7 @@ export default function NovoPedidoMobile({
               <View style={s.wrapCentro}>
                 <Etiqueta texto={`${qtd} ${qtd === 1 ? 'item' : 'itens'}`} />
                 <Etiqueta texto={modo} />
-                <Etiqueta texto={saldo > 0 ? `Falta ${reais(saldo)}` : `Pago · ${forma}`} bg={saldo > 0 ? cor.ambarClaro : '#DCFCE7'} fg={saldo > 0 ? cor.ambarTexto : cor.verde} />
+                <Etiqueta texto={saldo > 0 ? `Falta ${reais(saldo)}` : `Pago · ${forma}`} bg={saldo > 0 ? cor.ambarClaro : '#E4F1E9'} fg={saldo > 0 ? cor.ambarTexto : cor.verde} />
               </View>
               <View style={{ alignSelf: 'stretch', gap: 8, marginTop: 6 }}>
                 {escolhidos.map((p) => (
@@ -464,11 +464,11 @@ export default function NovoPedidoMobile({
                         ) : (
                           <View style={s.passo}>
                             <TouchableOpacity style={s.passoBotao} onPress={() => mudar(p, -1)} accessibilityLabel={`Tirar um ${p.nome}`}>
-                              <Feather name="minus" size={15} color="#FFFFFF" />
+                              <Feather name="minus" size={15} color="#FFFDFA" />
                             </TouchableOpacity>
                             <T style={[s.passoNum, numeros]}>{n}</T>
                             <TouchableOpacity style={[s.passoBotao, noMax && { opacity: 0.4 }]} disabled={noMax} onPress={() => mudar(p, 1)} accessibilityLabel={`Mais um ${p.nome}`}>
-                              <Feather name="plus" size={15} color="#FFFFFF" />
+                              <Feather name="plus" size={15} color="#FFFDFA" />
                             </TouchableOpacity>
                           </View>
                         )}
@@ -492,7 +492,7 @@ export default function NovoPedidoMobile({
                   <T titulo style={[s.continuarTotal, numeros]}>{reais(total)}</T>
                   <View style={s.continuarAcao}>
                     <T style={s.continuarTexto}>Continuar</T>
-                    <Feather name="arrow-right" size={16} color="#FFFFFF" />
+                    <Feather name="arrow-right" size={16} color="#FFFDFA" />
                   </View>
                 </TouchableOpacity>
               )}
@@ -553,7 +553,7 @@ export default function NovoPedidoMobile({
                         />
                       </View>
                       <TouchableOpacity style={s.cadastrarCliente} onPress={() => setFormCliente(true)} accessibilityRole="button" accessibilityLabel="Cadastrar cliente">
-                        <Feather name="user-plus" size={19} color="#FFFFFF" />
+                        <Feather name="user-plus" size={19} color="#FFFDFA" />
                       </TouchableOpacity>
                     </View>
                     {(listaClientes || !!buscaCliente) && (
@@ -678,7 +678,7 @@ export default function NovoPedidoMobile({
                             accessibilityRole="button"
                             accessibilityState={{ selected: ep }}
                             accessibilityLabel={ep ? `Tirar promoção de ${p.nome}` : `Marcar promoção em ${p.nome} (−${reais(p.desconto)} por unidade)`}>
-                            <Feather name="tag" size={17} color={ep ? '#FFFFFF' : cor.ambar} />
+                            <Feather name="tag" size={17} color={ep ? '#FFFDFA' : cor.ambar} />
                           </TouchableOpacity>
                         )}
                         <View style={s.passoClaro}>
@@ -764,7 +764,7 @@ export default function NovoPedidoMobile({
                     <View style={s.linha}>
                       <View style={s.segPequeno}>
                         {(['porcentagem', 'valor'] as const).map((m) => (
-                          <TouchableOpacity key={m} style={[s.segPequenoItem, sinalModo === m && { backgroundColor: '#FFFFFF' }]} onPress={() => setSinalModo(m)} accessibilityRole="radio" accessibilityState={{ selected: sinalModo === m }}>
+                          <TouchableOpacity key={m} style={[s.segPequenoItem, sinalModo === m && { backgroundColor: '#FFFDFA' }]} onPress={() => setSinalModo(m)} accessibilityRole="radio" accessibilityState={{ selected: sinalModo === m }}>
                             <T style={s.forte}>{m === 'porcentagem' ? '%' : 'R$'}</T>
                           </TouchableOpacity>
                         ))}
@@ -787,7 +787,7 @@ export default function NovoPedidoMobile({
                 {forma === 'Dinheiro' && (
                   <View style={s.caixa}>
                     <T style={s.rotuloCampo}>Valor recebido (R$)</T>
-                    <TextInput value={recebido} onChangeText={setRecebido} placeholder="0,00" placeholderTextColor={cor.textoSuave} keyboardType="decimal-pad" style={[s.campo, { backgroundColor: '#FFFFFF' }]} />
+                    <TextInput value={recebido} onChangeText={setRecebido} placeholder="0,00" placeholderTextColor={cor.textoSuave} keyboardType="decimal-pad" style={[s.campo, { backgroundColor: '#FFFDFA' }]} />
                     <T style={[s.forte, numeros, { color: cor.verde }]}>Troco: {reais(Math.max(0, recebidoCent - pagoAgora))}</T>
                   </View>
                 )}
@@ -843,28 +843,28 @@ const s = StyleSheet.create({
   progresso: { height: 4, marginHorizontal: 16, borderRadius: 2, backgroundColor: cor.borda, marginBottom: 6 },
   progressoCheio: { height: '100%', borderRadius: 2, backgroundColor: cor.azulBotao },
   cabecalhoFixo: { gap: 12, paddingTop: 8, paddingBottom: 6 },
-  segmento: { flexDirection: 'row', marginHorizontal: 16, padding: 4, gap: 4, borderRadius: 18, backgroundColor: '#E8EEF5' },
+  segmento: { flexDirection: 'row', marginHorizontal: 16, padding: 4, gap: 4, borderRadius: 18, backgroundColor: '#F3EEE7' },
   segItem: { flex: 1, height: 40, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segItemOn: { backgroundColor: '#FFFDFA', shadowColor: '#2E211A', shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   segTexto: { fontSize: 13, fontWeight: '600' },
-  busca: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, marginHorizontal: 16, paddingHorizontal: 14, borderRadius: 23, backgroundColor: '#FFFFFF' },
+  busca: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, marginHorizontal: 16, paddingHorizontal: 14, borderRadius: 23, backgroundColor: '#FFFDFA' },
   buscaInput: { flex: 1, minWidth: 0, fontSize: 14, color: cor.texto, padding: 0, ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : {}) },
   faixa: { gap: 6, paddingHorizontal: 16, alignItems: 'center' },
   chip: { minHeight: 36, borderRadius: 18, borderWidth: 1 },
   separador: { width: 1, height: 22, backgroundColor: cor.apagado, marginHorizontal: 2 },
   conteudo: { paddingHorizontal: 16, paddingTop: 8, gap: 12 },
-  lista: { backgroundColor: '#FFFFFF', borderRadius: 22, overflow: 'hidden' },
+  lista: { backgroundColor: '#FFFDFA', borderRadius: 22, overflow: 'hidden' },
   produto: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
   borda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   foto: { width: 56, height: 56, borderRadius: 16, backgroundColor: cor.pistacheClaro },
   produtoNome: { fontSize: 14, fontWeight: '800', lineHeight: 18 },
   dispTexto: { fontSize: 12, fontWeight: '700' },
   limite: { fontSize: 12, fontWeight: '700', color: cor.ambar },
-  mais: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  mais: { width: 44, height: 44, borderRadius: 22, borderWidth: 1.5, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   passo: { flexDirection: 'row', alignItems: 'center', height: 44, borderRadius: 22, backgroundColor: cor.azulBotao },
   passoClaro: { flexDirection: 'row', alignItems: 'center', height: 38, borderRadius: 19, backgroundColor: cor.cinzaClaro },
   passoBotao: { width: 38, height: 44, alignItems: 'center', justifyContent: 'center' },
-  passoNum: { minWidth: 18, textAlign: 'center', color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  passoNum: { minWidth: 18, textAlign: 'center', color: '#FFFDFA', fontSize: 15, fontWeight: '800' },
   passoNumEscuro: { minWidth: 18, textAlign: 'center', fontSize: 14, fontWeight: '800' },
   rodape: {
     position: 'absolute',
@@ -873,17 +873,17 @@ const s = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderTopWidth: 1,
     borderTopColor: cor.borda,
   },
   continuar: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 56, paddingLeft: 18, paddingRight: 8, borderRadius: 28, backgroundColor: cor.azulBotao },
-  contador: { minWidth: 26, height: 26, paddingHorizontal: 6, borderRadius: 13, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  contador: { minWidth: 26, height: 26, paddingHorizontal: 6, borderRadius: 13, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   contadorTexto: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
-  continuarTotal: { flex: 1, color: '#FFFFFF', fontSize: 17, fontWeight: '700' },
+  continuarTotal: { flex: 1, color: '#FFFDFA', fontSize: 17, fontWeight: '700' },
   continuarAcao: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.18)' },
-  continuarTexto: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 24, padding: 16, gap: 10 },
+  continuarTexto: { color: '#FFFDFA', fontSize: 14, fontWeight: '800' },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 24, padding: 16, gap: 10 },
   blocoTitulo: { fontSize: 15, fontWeight: '700' },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   linhaEntre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
@@ -896,47 +896,47 @@ const s = StyleSheet.create({
   forte: { fontSize: 13, fontWeight: '800', color: cor.texto },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
   cliente: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 60, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 1.5 },
-  clienteOk: { borderColor: cor.borda, borderStyle: 'solid', backgroundColor: '#FFFFFF' },
-  clienteVazio: { borderColor: cor.azul, borderStyle: 'dashed', backgroundColor: '#F5F9FD' },
+  clienteOk: { borderColor: cor.borda, borderStyle: 'solid', backgroundColor: '#FFFDFA' },
+  clienteVazio: { borderColor: cor.azul, borderStyle: 'dashed', backgroundColor: '#F8F6F2' },
   avatar: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   avatarTexto: { fontWeight: '800', color: cor.azulTexto },
   rotuloCampo: { fontSize: 13, fontWeight: '700', color: cor.textoMedio },
   campo: { height: 50, borderRadius: 16, borderWidth: 1.5, borderColor: cor.borda, paddingHorizontal: 14, fontSize: 15, color: cor.texto },
   itemCarrinho: { paddingVertical: 10, gap: 8 },
   promo: { height: 30, paddingHorizontal: 10, borderRadius: 15, borderWidth: 1, borderColor: cor.borda, justifyContent: 'center' },
-  promoOn: { backgroundColor: cor.ambarClaro, borderColor: '#FCD34D' },
+  promoOn: { backgroundColor: cor.ambarClaro, borderColor: '#E8C47A' },
   promoTexto: { fontSize: 12, fontWeight: '800', color: cor.ambarTexto },
   comissao: { height: 30, paddingHorizontal: 10, borderRadius: 15, backgroundColor: cor.azulClaro, justifyContent: 'center' },
   comissaoTexto: { fontSize: 12, fontWeight: '700', color: cor.azulTexto },
-  etiquetaPromo: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: '#FCD34D', backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  etiquetaPromoOn: { backgroundColor: '#D97706', borderColor: '#D97706' },
-  motivo: { padding: 12, borderRadius: 18, backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FDE68A', gap: 10 },
+  etiquetaPromo: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: '#E8C47A', backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
+  etiquetaPromoOn: { backgroundColor: '#B9781A', borderColor: '#B9781A' },
+  motivo: { padding: 12, borderRadius: 18, backgroundColor: '#FBF0DC', borderWidth: 1, borderColor: '#F2DDB0', gap: 10 },
   motivoTitulo: { fontSize: 13, fontWeight: '800', color: cor.ambarTexto },
   motivoFechar: { width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.7)', alignItems: 'center', justifyContent: 'center' },
   motivoNome: { fontSize: 13, fontWeight: '800' },
   seloPromo: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 30, paddingLeft: 10, paddingRight: 5, borderRadius: 15, backgroundColor: cor.ambarClaro },
   seloPromoTexto: { fontSize: 12, fontWeight: '800', color: cor.ambarTexto },
   seloPromoFechar: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(146,64,14,0.12)', alignItems: 'center', justifyContent: 'center' },
-  motivoBotao: { flex: 1, minHeight: 66, padding: 10, borderRadius: 14, backgroundColor: '#FFFFFF', gap: 2, shadowColor: '#92400E', shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  motivoBotao: { flex: 1, minHeight: 66, padding: 10, borderRadius: 14, backgroundColor: '#FFFDFA', gap: 2, shadowColor: '#9A6516', shadowOpacity: 0.12, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
   grade2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   formaCelula: { width: '48.5%', minHeight: 52, borderRadius: 16, justifyContent: 'flex-start', paddingHorizontal: 14 },
   caixa: { padding: 12, borderRadius: 16, backgroundColor: cor.fundo, gap: 8 },
   segPequeno: { flexDirection: 'row', padding: 3, borderRadius: 14, backgroundColor: cor.borda },
   segPequenoItem: { width: 46, height: 42, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  campoSinal: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: cor.borda, backgroundColor: '#FFFFFF' },
+  campoSinal: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, height: 48, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1.5, borderColor: cor.borda, backgroundColor: '#FFFDFA' },
   inputSinal: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: '800', color: cor.texto, padding: 0 },
   ponto: { width: 8, height: 8, borderRadius: 4 },
   dicaRodape: { flex: 1, fontSize: 12, lineHeight: 16, fontWeight: '700' },
   totalRodape: { fontSize: 18, fontWeight: '700' },
   atalhoCliente: { flex: 1, height: 54, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   clienteLinha: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingVertical: 8 },
-  buscaCliente: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1.5, borderColor: cor.azul, backgroundColor: '#F5F9FD' },
+  buscaCliente: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, height: 48, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1.5, borderColor: cor.azul, backgroundColor: '#F8F6F2' },
   cadastrarCliente: { width: 48, height: 48, borderRadius: 16, backgroundColor: cor.azulBotao, alignItems: 'center', justifyContent: 'center' },
-  sugestoes: { borderRadius: 16, borderWidth: 1, borderColor: cor.borda, paddingHorizontal: 10, backgroundColor: '#FFFFFF' },
-  ok: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' },
+  sugestoes: { borderRadius: 16, borderWidth: 1, borderColor: cor.borda, paddingHorizontal: 10, backgroundColor: '#FFFDFA' },
+  ok: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#E4F1E9', alignItems: 'center', justifyContent: 'center' },
   okTitulo: { fontSize: 24, fontWeight: '700' },
   divisa: { borderTopWidth: 1, borderTopColor: cor.borda, paddingTop: 10 },
   totalGrande: { fontSize: 20, fontWeight: '700' },
   mensagem: { padding: 14, borderRadius: 16, backgroundColor: cor.verdeClaro },
-  mensagemTexto: { fontSize: 13, lineHeight: 19, color: '#14532D' },
+  mensagemTexto: { fontSize: 13, lineHeight: 19, color: '#24603F' },
 });

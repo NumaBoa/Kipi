@@ -121,9 +121,9 @@ const EMOJI_CATEGORIA_VG: Record<string, string> = {
 };
 
 const STATUS_FUNIL = {
-  a_fazer: { titulo: 'CONFIRMADAS', icone: 'check-circle', cor: '#5798D7', fundo: '#EAF3FA' },
-  em_producao: { titulo: 'EM PRODUÇÃO', icone: 'loader', cor: '#708018', fundo: '#F1F6D8' },
-  pronto: { titulo: 'PRONTAS', icone: 'box', cor: '#16A34A', fundo: '#DCFCE7' },
+  a_fazer: { titulo: 'CONFIRMADAS', icone: 'check-circle', cor: '#4B4FC4', fundo: '#ECEBFA' },
+  em_producao: { titulo: 'EM PRODUÇÃO', icone: 'loader', cor: '#7A4520', fundo: '#F6E8D6' },
+  pronto: { titulo: 'PRONTAS', icone: 'box', cor: '#2F7D55', fundo: '#E4F1E9' },
 } as const;
 
 // Celular (app e navegador do celular): layout mobile; computador: layout com menu lateral
@@ -497,11 +497,11 @@ function VisaoGeralDesktop() {
               </View>
               <View style={styles.chartLegend}>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendBox, { backgroundColor: KipiPalette.icedDenim }]} />
+                  <View style={[styles.legendBox, { backgroundColor: KipiPalette.carameloMarca }]} />
                   <Text style={styles.legendLabel}>Vendas Concluídas</Text>
                 </View>
                 <View style={styles.legendItem}>
-                  <View style={[styles.legendBox, { backgroundColor: KipiPalette.pistachio }]} />
+                  <View style={[styles.legendBox, { backgroundColor: KipiPalette.icedDenim }]} />
                   <Text style={styles.legendLabel}>Meta Diária</Text>
                 </View>
               </View>
@@ -518,10 +518,10 @@ function VisaoGeralDesktop() {
                         {
                           height: `${Math.max(15, item.pct)}%`,
                           backgroundColor: item.pico
-                            ? KipiPalette.pistachio
-                            : item.atual
                             ? KipiPalette.icedDenim
-                            : '#7BAEE0',
+                            : item.atual
+                            ? KipiPalette.carameloEscuro
+                            : '#D9B48F',
                         },
                       ]}
                     />
@@ -616,8 +616,8 @@ function VisaoGeralDesktop() {
                   Saúde financeira, disponibilidades e lançamentos futuros
                 </Text>
               </View>
-              <View style={[styles.cashStatusBadge, caixa.saldoPrevisto < 0 && { backgroundColor: '#FEE2E2' }]}>
-                <Text style={[styles.cashStatusBadgeText, caixa.saldoPrevisto < 0 && { color: '#DC2626' }]}>
+              <View style={[styles.cashStatusBadge, caixa.saldoPrevisto < 0 && { backgroundColor: '#FBE7E4' }]}>
+                <Text style={[styles.cashStatusBadgeText, caixa.saldoPrevisto < 0 && { color: '#B42318' }]}>
                   {caixa.saldoPrevisto >= 0 ? 'Saldo Positivo' : 'Saldo Negativo'}
                 </Text>
               </View>
@@ -638,12 +638,12 @@ function VisaoGeralDesktop() {
               </View>
               <View style={styles.cashBox}>
                 <Text style={styles.cashBoxLabel}>A RECEBER</Text>
-                <Text style={[styles.cashBoxValue, { color: '#16A34A' }]}>+ {formatMoney(caixa.aReceber)}</Text>
+                <Text style={[styles.cashBoxValue, { color: '#2F7D55' }]}>+ {formatMoney(caixa.aReceber)}</Text>
                 <Text style={styles.cashBoxSub}>Saldos de pedidos pendentes</Text>
               </View>
               <View style={styles.cashBox}>
                 <Text style={styles.cashBoxLabel}>A PAGAR</Text>
-                <Text style={[styles.cashBoxValue, { color: '#DC2626' }]}>- {formatMoney(caixa.aPagar)}</Text>
+                <Text style={[styles.cashBoxValue, { color: '#B42318' }]}>- {formatMoney(caixa.aPagar)}</Text>
                 <Text style={styles.cashBoxSub}>Contas + {formatMoney(caixa.comissoesAPagar)} de comissões</Text>
               </View>
             </View>
@@ -659,8 +659,8 @@ function VisaoGeralDesktop() {
                   return (
                     <View key={l.id} style={styles.launchItem}>
                       <View style={styles.launchLeft}>
-                        <View style={[styles.launchIconBox, { backgroundColor: entrada ? '#DCFCE7' : '#FEE2E2' }]}>
-                          <Feather name={entrada ? 'arrow-down-left' : 'arrow-up-right'} size={15} color={entrada ? '#16A34A' : '#DC2626'} />
+                        <View style={[styles.launchIconBox, { backgroundColor: entrada ? '#E4F1E9' : '#FBE7E4' }]}>
+                          <Feather name={entrada ? 'arrow-down-left' : 'arrow-up-right'} size={15} color={entrada ? '#2F7D55' : '#B42318'} />
                         </View>
                         <View>
                           <Text style={styles.launchDesc}>{l.descricao}</Text>
@@ -688,12 +688,12 @@ function VisaoGeralDesktop() {
             <View style={styles.panelHeader}>
               <View>
                 <View style={styles.panelTitleRow}>
-                  <View style={[styles.miniAlertIcon, { backgroundColor: '#F1F6D8' }]}>
-                    <Feather name="shopping-bag" size={14} color="#708018" />
+                  <View style={[styles.miniAlertIcon, { backgroundColor: '#F6E8D6' }]}>
+                    <Feather name="shopping-bag" size={14} color="#7A4520" />
                   </View>
                   <Text style={styles.panelTitle}>Rede de Revendedoras & Consignação</Text>
-                  <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
-                    <Text style={[styles.panelChipText, { color: '#708018' }]}>
+                  <View style={[styles.panelChip, { backgroundColor: '#F6E8D6' }]}>
+                    <Text style={[styles.panelChipText, { color: '#7A4520' }]}>
                       {revendedoras.length} {revendedoras.length === 1 ? 'Parceira Ativa' : 'Parceiras Ativas'}
                     </Text>
                   </View>
@@ -728,7 +728,7 @@ function VisaoGeralDesktop() {
               </View>
               <View style={styles.resellerMetricBox}>
                 <Text style={styles.resellerMetricLabel}>FATURAMENTO REPASSE</Text>
-                <Text style={[styles.resellerMetricNumber, { color: '#16A34A' }]}>
+                <Text style={[styles.resellerMetricNumber, { color: '#2F7D55' }]}>
                   {kpis.revendaTotal}
                 </Text>
                 <Text style={styles.resellerMetricSub}>
@@ -741,13 +741,13 @@ function VisaoGeralDesktop() {
             <View style={styles.channelArea}>
               <Text style={styles.channelTitle}>VENDA DIRETA × REVENDA NO PERÍODO</Text>
               <View style={styles.channelBarTrack}>
-                <View style={[styles.channelBarFill, { width: `${canais.pctDireta}%`, backgroundColor: KipiPalette.icedDenim }]} />
-                <View style={[styles.channelBarFill, { width: `${canais.pctRevenda}%`, backgroundColor: '#B9C255' }]} />
+                <View style={[styles.channelBarFill, { width: `${canais.pctDireta}%`, backgroundColor: KipiPalette.carameloMarca }]} />
+                <View style={[styles.channelBarFill, { width: `${canais.pctRevenda}%`, backgroundColor: '#B06A2C' }]} />
               </View>
               <View style={styles.channelRow}>
                 <View style={styles.channelBox}>
                   <View style={styles.channelBoxHeader}>
-                    <View style={[styles.channelDot, { backgroundColor: KipiPalette.icedDenim }]} />
+                    <View style={[styles.channelDot, { backgroundColor: KipiPalette.carameloMarca }]} />
                     <Text style={styles.channelBoxLabel}>Venda direta / balcão</Text>
                   </View>
                   <Text style={styles.channelBoxValue}>{formatMoney(canais.diretaTotal)}</Text>
@@ -757,7 +757,7 @@ function VisaoGeralDesktop() {
                 </View>
                 <View style={styles.channelBox}>
                   <View style={styles.channelBoxHeader}>
-                    <View style={[styles.channelDot, { backgroundColor: '#B9C255' }]} />
+                    <View style={[styles.channelDot, { backgroundColor: '#B06A2C' }]} />
                     <Text style={styles.channelBoxLabel}>Revendedoras (consignação)</Text>
                   </View>
                   <Text style={styles.channelBoxValue}>{formatMoney(kpis.revendaNum)}</Text>
@@ -771,7 +771,7 @@ function VisaoGeralDesktop() {
             {/* ALERTA DE ESTOQUE DAS REVENDEDORAS (entregue − vendido de cada uma) */}
             <View style={styles.resellerStockAlertArea}>
               <View style={styles.resellerAlertHeader}>
-                <Feather name="alert-circle" size={15} color={revendedorasEmAlerta > 0 ? '#DC2626' : '#16A34A'} />
+                <Feather name="alert-circle" size={15} color={revendedorasEmAlerta > 0 ? '#B42318' : '#2F7D55'} />
                 <Text style={styles.resellerAlertTitle}>
                   STATUS DO ESTOQUE NAS REVENDEDORAS ({revendedorasEmAlerta} EM ALERTA DE REPOSIÇÃO)
                 </Text>
@@ -781,7 +781,7 @@ function VisaoGeralDesktop() {
                 {situacaoRevenda.slice(0, 3).map((s) => (
                   <View key={s.revendedora.id} style={styles.resellerAlertItem}>
                     <View style={styles.resellerAlertLeft}>
-                      <View style={[styles.resellerStatusDot, { backgroundColor: s.emAlerta ? '#DC2626' : '#16A34A' }]} />
+                      <View style={[styles.resellerStatusDot, { backgroundColor: s.emAlerta ? '#B42318' : '#2F7D55' }]} />
                       <View>
                         <Text style={styles.resellerName}>{s.revendedora.nome}</Text>
                         {s.emAlerta ? (
@@ -790,7 +790,7 @@ function VisaoGeralDesktop() {
                               ? 'Estoque zerado'
                               : `${s.saboresEmFalta} ${s.saboresEmFalta === 1 ? 'sabor precisa' : 'sabores precisam'} de reposição${s.menor ? ` (${s.menor.nome}: ${s.menor.quantidade} un)` : ''}`}
                             {s.diasSemReposicao !== null && (
-                              <Text style={{ color: '#DC2626', fontWeight: '700' }}>
+                              <Text style={{ color: '#B42318', fontWeight: '700' }}>
                                 {' '}• Sem reposição há {s.diasSemReposicao} {s.diasSemReposicao === 1 ? 'dia' : 'dias'}
                               </Text>
                             )}
@@ -825,8 +825,8 @@ function VisaoGeralDesktop() {
             {editControls}
             <View style={styles.panelHeader}>
               <View style={styles.panelTitleRow}>
-                <View style={[styles.miniAlertIcon, { backgroundColor: '#FEE2E2' }]}>
-                  <Feather name="alert-triangle" size={14} color="#DC2626" />
+                <View style={[styles.miniAlertIcon, { backgroundColor: '#FBE7E4' }]}>
+                  <Feather name="alert-triangle" size={14} color="#B42318" />
                 </View>
                 <Text style={styles.panelTitle}>O que Comprar</Text>
               </View>
@@ -856,7 +856,7 @@ function VisaoGeralDesktop() {
                       <View
                         style={[
                           styles.insumoProgressFill,
-                          { width: `${pct}%`, backgroundColor: pct < 30 ? '#DC2626' : '#F59E0B' },
+                          { width: `${pct}%`, backgroundColor: pct < 30 ? '#B42318' : '#B9781A' },
                         ]}
                       />
                     </View>
@@ -876,7 +876,7 @@ function VisaoGeralDesktop() {
             </View>
 
             <TouchableOpacity style={styles.buyOrderBtn} activeOpacity={0.85} onPress={copiarListaCompras}>
-              <Feather name="copy" size={15} color="#5798D7" />
+              <Feather name="copy" size={15} color="#4B4FC4" />
               <Text style={styles.buyOrderBtnText}>Copiar lista para WhatsApp</Text>
             </TouchableOpacity>
           </View>
@@ -889,12 +889,12 @@ function VisaoGeralDesktop() {
             {editControls}
             <View style={styles.panelHeader}>
               <View style={styles.panelTitleRow}>
-                <View style={[styles.miniAlertIcon, { backgroundColor: '#FFEDD5' }]}>
-                  <Feather name="package" size={14} color="#EA580C" />
+                <View style={[styles.miniAlertIcon, { backgroundColor: '#FBF0DC' }]}>
+                  <Feather name="package" size={14} color="#B9781A" />
                 </View>
                 <Text style={styles.panelTitle}>Vitrine Zerada</Text>
               </View>
-              <Text style={[styles.criticalCountBadge, vitrineZerada.length === 0 && { color: '#16A34A' }]}>
+              <Text style={[styles.criticalCountBadge, vitrineZerada.length === 0 && { color: '#2F7D55' }]}>
                 {vitrineZerada.length} zerados
               </Text>
             </View>
@@ -956,7 +956,7 @@ function VisaoGeralDesktop() {
                           styles.rankingBarFill,
                           {
                             width: `${Math.max(8, Math.round((prod.qtd / ranking[0].qtd) * 100))}%`,
-                            backgroundColor: [KipiPalette.icedDenim, KipiPalette.pistachio, '#7BAEE0'][idx],
+                            backgroundColor: [KipiPalette.icedDenim, KipiPalette.pistachio, '#C08550'][idx],
                           },
                         ]}
                       />
@@ -978,8 +978,8 @@ function VisaoGeralDesktop() {
                 <View style={styles.sectionDot} />
                 <Text style={styles.panelTitle}>Clientes & Fidelidade</Text>
               </View>
-              <View style={[styles.panelChip, { backgroundColor: '#F1F6D8' }]}>
-                <Text style={[styles.panelChipText, { color: '#708018' }]}>{indClientes.recompra}% Recompra</Text>
+              <View style={[styles.panelChip, { backgroundColor: '#F6E8D6' }]}>
+                <Text style={[styles.panelChipText, { color: '#7A4520' }]}>{indClientes.recompra}% Recompra</Text>
               </View>
             </View>
 
@@ -990,7 +990,7 @@ function VisaoGeralDesktop() {
                 <Text style={styles.clientMetricLabel}>Ativos</Text>
               </View>
               <View style={styles.clientMetricCard}>
-                <Text style={[styles.clientMetricNum, { color: '#16A34A' }]}>+{indClientes.novos}</Text>
+                <Text style={[styles.clientMetricNum, { color: '#2F7D55' }]}>+{indClientes.novos}</Text>
                 <Text style={styles.clientMetricLabel}>Novos no Período</Text>
               </View>
               <View style={styles.clientMetricCard}>
@@ -1060,8 +1060,8 @@ function VisaoGeralDesktop() {
                   {escopo.revendedora ? descreverComissao(escopo.revendedora) : ''} · item em promoção paga metade
                 </Text>
               </View>
-              <View style={[styles.panelChip, { backgroundColor: (resumo?.saldo ?? 0) > 0 ? '#FEF3C7' : '#DCFCE7' }]}>
-                <Text style={[styles.panelChipText, { color: (resumo?.saldo ?? 0) > 0 ? '#B45309' : '#16A34A' }]}>
+              <View style={[styles.panelChip, { backgroundColor: (resumo?.saldo ?? 0) > 0 ? '#FBF0DC' : '#E4F1E9' }]}>
+                <Text style={[styles.panelChipText, { color: (resumo?.saldo ?? 0) > 0 ? '#9A6516' : '#2F7D55' }]}>
                   {(resumo?.saldo ?? 0) > 0 ? 'A RECEBER' : 'EM DIA'}
                 </Text>
               </View>
@@ -1073,11 +1073,11 @@ function VisaoGeralDesktop() {
                 <Text style={styles.clientMetricLabel}>Comissão total</Text>
               </View>
               <View style={styles.clientMetricCard}>
-                <Text style={[styles.clientMetricNum, { color: '#16A34A' }]}>{formatMoney(resumo?.pago ?? 0)}</Text>
+                <Text style={[styles.clientMetricNum, { color: '#2F7D55' }]}>{formatMoney(resumo?.pago ?? 0)}</Text>
                 <Text style={styles.clientMetricLabel}>Já recebido</Text>
               </View>
               <View style={styles.clientMetricCard}>
-                <Text style={[styles.clientMetricNum, { color: '#D97706' }]}>{formatMoney(Math.max(0, resumo?.saldo ?? 0))}</Text>
+                <Text style={[styles.clientMetricNum, { color: '#B9781A' }]}>{formatMoney(Math.max(0, resumo?.saldo ?? 0))}</Text>
                 <Text style={styles.clientMetricLabel}>Ateliê me deve</Text>
               </View>
             </View>
@@ -1089,15 +1089,15 @@ function VisaoGeralDesktop() {
                 {extrato.map((e) => (
                   <View key={e.id} style={styles.bdayItem}>
                     <View style={styles.bdayLeft}>
-                      <View style={[styles.bdayAvatar, { backgroundColor: e.valor >= 0 ? '#EAF3FA' : '#DCFCE7' }]}>
-                        <Feather name={e.valor >= 0 ? 'arrow-up-right' : 'arrow-down-left'} size={13} color={e.valor >= 0 ? '#2563EB' : '#16A34A'} />
+                      <View style={[styles.bdayAvatar, { backgroundColor: e.valor >= 0 ? '#ECEBFA' : '#E4F1E9' }]}>
+                        <Feather name={e.valor >= 0 ? 'arrow-up-right' : 'arrow-down-left'} size={13} color={e.valor >= 0 ? '#4B4FC4' : '#2F7D55'} />
                       </View>
                       <View style={{ flexShrink: 1 }}>
                         <Text style={styles.bdayName} numberOfLines={1}>{e.titulo}</Text>
                         <Text style={styles.bdayDate}>{new Date(e.data).toLocaleDateString('pt-BR')}</Text>
                       </View>
                     </View>
-                    <Text style={[styles.bdayName, { color: e.valor >= 0 ? '#2563EB' : '#16A34A' }]}>
+                    <Text style={[styles.bdayName, { color: e.valor >= 0 ? '#4B4FC4' : '#2F7D55' }]}>
                       {e.valor >= 0 ? '+' : '−'}{formatMoney(Math.abs(e.valor))}
                     </Text>
                   </View>
@@ -1118,8 +1118,8 @@ function VisaoGeralDesktop() {
                 <View style={styles.sectionDot} />
                 <Text style={styles.panelTitle}>Estoque Comigo</Text>
               </View>
-              <View style={[styles.panelChip, { backgroundColor: saborAcabando.length > 0 ? '#FEF3C7' : '#DCFCE7' }]}>
-                <Text style={[styles.panelChipText, { color: saborAcabando.length > 0 ? '#B45309' : '#16A34A' }]}>
+              <View style={[styles.panelChip, { backgroundColor: saborAcabando.length > 0 ? '#FBF0DC' : '#E4F1E9' }]}>
+                <Text style={[styles.panelChipText, { color: saborAcabando.length > 0 ? '#9A6516' : '#2F7D55' }]}>
                   {unidadesComigo} UN
                 </Text>
               </View>
@@ -1129,10 +1129,10 @@ function VisaoGeralDesktop() {
               {escopo.sabores.map((x) => {
                 const st =
                   x.status === 'esgotado'
-                    ? { texto: 'Esgotado', cor: '#DC2626', fundo: '#FEE2E2' }
+                    ? { texto: 'Esgotado', cor: '#B42318', fundo: '#FBE7E4' }
                     : x.status === 'baixo'
-                    ? { texto: 'Acabando', cor: '#B45309', fundo: '#FEF3C7' }
-                    : { texto: 'Ok', cor: '#16A34A', fundo: '#DCFCE7' };
+                    ? { texto: 'Acabando', cor: '#9A6516', fundo: '#FBF0DC' }
+                    : { texto: 'Ok', cor: '#2F7D55', fundo: '#E4F1E9' };
                 return (
                   <View key={x.produtoId || x.nome} style={styles.bdayItem}>
                     <View style={[styles.bdayLeft, { flexShrink: 1 }]}>
@@ -1143,7 +1143,7 @@ function VisaoGeralDesktop() {
                         <Text style={styles.bdayName} numberOfLines={1}>{x.nome}</Text>
                         <Text style={styles.bdayDate}>
                           recebi {x.entregue} · vendi {x.vendido} ·{' '}
-                          <Text style={{ fontWeight: '800', color: x.saldo > 0 ? '#0F172A' : '#DC2626' }}>
+                          <Text style={{ fontWeight: '800', color: x.saldo > 0 ? '#2E211A' : '#B42318' }}>
                             {x.saldo > 0 ? `${x.saldo} disponíve${x.saldo === 1 ? 'l' : 'is'}` : 'nenhum disponível'}
                           </Text>
                         </Text>
@@ -1183,11 +1183,11 @@ function VisaoGeralDesktop() {
           {/* BARRA SUPERIOR DE AÇÕES E STATUS */}
           <View style={styles.topBar}>
             <View style={styles.topBarSearchBox}>
-              <Feather name="search" size={16} color="#94A3B8" />
+              <Feather name="search" size={16} color="#9A8F87" />
               <TextInput
                 style={styles.topBarSearchInput}
                 placeholder="Buscar receitas, lotes, clientes..."
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor="#9A8F87"
               />
               <View style={styles.searchShortcutBadge}>
                 <Text style={styles.searchShortcutText}>⌘K</Text>
@@ -1203,7 +1203,7 @@ function VisaoGeralDesktop() {
                 <Feather
                   name={editMode ? 'check' : 'layout'}
                   size={14}
-                  color={editMode ? '#FFFFFF' : KipiPalette.icedDenim}
+                  color={editMode ? '#FFFDFA' : KipiPalette.icedDenim}
                 />
                 <Text
                   style={[
@@ -1220,7 +1220,7 @@ function VisaoGeralDesktop() {
               </View>
 
               <TouchableOpacity style={styles.iconCircleBtn} activeOpacity={0.8}>
-                <Feather name="bell" size={17} color="#475569" />
+                <Feather name="bell" size={17} color="#4A3E37" />
                 <View style={styles.bellAlertDot} />
               </TouchableOpacity>
 
@@ -1249,7 +1249,7 @@ function VisaoGeralDesktop() {
             {editMode && (
               <View style={styles.editModeNoticeBar}>
                 <View style={styles.editModeNoticeLeft}>
-                  <Feather name="info" size={16} color="#708018" />
+                  <Feather name="info" size={16} color="#7A4520" />
                   <Text style={styles.editModeNoticeText}>
                     Modo de Customização: Use os botões ▲ e ▼ para reordenar, ou ⇄ para trocar entre as colunas.
                   </Text>
@@ -1286,7 +1286,7 @@ function VisaoGeralDesktop() {
                 <View style={styles.greetingTextCol}>
                   <View style={styles.greetingTitleRow}>
                     <Text style={styles.greetingTitle}>
-                      {saudacao}, {usuario.nome.split(' ')[0]}!
+                      {saudacao}, <Text style={{ color: '#4B4FC4' }}>{usuario.nome.split(' ')[0]}!</Text>
                     </Text>
                     <View style={styles.ovenBadge}>
                       <View style={styles.ovenDot} />
@@ -1326,7 +1326,7 @@ function VisaoGeralDesktop() {
                 {/* Vendas de hoje (independe do filtro): faturamento do dia, % da meta diária e lucro estimado */}
                 <View style={styles.greetingKpiCard}>
                   <View style={styles.greetingKpiIconBox}>
-                    <Feather name="trending-up" size={18} color="#FFFFFF" />
+                    <Feather name="trending-up" size={18} color="#FFFDFA" />
                   </View>
                   <View style={styles.greetingKpiInfo}>
                     <Text style={styles.greetingKpiTag}>{ehRevendedora ? 'SUAS VENDAS HOJE' : 'VENDAS DE HOJE'}</Text>
@@ -1342,14 +1342,14 @@ function VisaoGeralDesktop() {
 
                 <View style={styles.greetingAcoes}>
                   <View style={styles.calendarPill}>
-                    <Feather name="calendar" size={14} color="#64748B" />
+                    <Feather name="calendar" size={14} color="#6B615A" />
                     <Text style={styles.calendarPillText}>{dataExtenso}</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.primaryActionBtn}
                     onPress={() => setModalNovoPedidoAberto(true)}
                     activeOpacity={0.85}>
-                    <Feather name="plus" size={16} color="#FFFFFF" />
+                    <Feather name="plus" size={16} color="#FFFDFA" />
                     <Text style={styles.primaryActionBtnText}>Novo Pedido</Text>
                   </TouchableOpacity>
                 </View>
@@ -1367,7 +1367,7 @@ function VisaoGeralDesktop() {
                     value={deTxt}
                     onChangeText={(t) => setDeTxt(mascaraData(t))}
                     placeholder="DD/MM/AAAA"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     onSubmitEditing={aplicarDigitado}
                   />
@@ -1379,7 +1379,7 @@ function VisaoGeralDesktop() {
                     value={ateTxt}
                     onChangeText={(t) => setAteTxt(mascaraData(t))}
                     placeholder="DD/MM/AAAA"
-                    placeholderTextColor="#94A3B8"
+                    placeholderTextColor="#9A8F87"
                     keyboardType="numeric"
                     onSubmitEditing={aplicarDigitado}
                   />
@@ -1404,8 +1404,8 @@ function VisaoGeralDesktop() {
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>{ehRevendedora ? 'MINHAS VENDAS' : 'FATURAMENTO GERAL'}</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#F1F6D8' }]}>
-                    <Feather name="dollar-sign" size={15} color="#708018" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#F6E8D6' }]}>
+                    <Feather name="dollar-sign" size={15} color="#7A4520" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{kpis.faturamento}</Text>
@@ -1421,8 +1421,8 @@ function VisaoGeralDesktop() {
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>{ehRevendedora ? 'MINHA COMISSÃO' : 'LUCRO LÍQUIDO'}</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
-                    <Feather name="pie-chart" size={15} color="#5798D7" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#ECEBFA' }]}>
+                    <Feather name="pie-chart" size={15} color="#4B4FC4" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{ehRevendedora ? formatMoney(minhaComissao) : kpis.lucroLiquido}</Text>
@@ -1432,7 +1432,7 @@ function VisaoGeralDesktop() {
                       {ehRevendedora ? `${kpis.faturamentoNum > 0 ? Math.round((minhaComissao / kpis.faturamentoNum) * 100) : 0}% das vendas` : kpis.margem}
                     </Text>
                   </View>
-                  <Text style={[styles.kpiFooterNote, kpis.perdasNum > 0 && { color: '#DC2626' }]}>
+                  <Text style={[styles.kpiFooterNote, kpis.perdasNum > 0 && { color: '#B42318' }]}>
                     {ehRevendedora ? 'Ganho no período' : kpis.perdasNum > 0 ? `🗑 Perdas −${kpis.perdas}` : 'Estimado no período'}
                   </Text>
                 </View>
@@ -1442,8 +1442,8 @@ function VisaoGeralDesktop() {
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>TICKET MÉDIO</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#F8FAFC' }]}>
-                    <Feather name="shopping-bag" size={15} color="#64748B" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#F8F6F2' }]}>
+                    <Feather name="shopping-bag" size={15} color="#6B615A" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{kpis.ticketMedio}</Text>
@@ -1459,8 +1459,8 @@ function VisaoGeralDesktop() {
               <View style={styles.kpiCard}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>A RECEBER</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#FEF3C7' }]}>
-                    <Feather name="clock" size={15} color="#D97706" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#FBF0DC' }]}>
+                    <Feather name="clock" size={15} color="#B9781A" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{kpis.aReceber}</Text>
@@ -1478,8 +1478,8 @@ function VisaoGeralDesktop() {
                 <View style={styles.kpiCard}>
                   <View style={styles.kpiCardHeader}>
                     <Text style={styles.kpiLabel}>ATELIÊ ME DEVE</Text>
-                    <View style={[styles.kpiIconWrap, { backgroundColor: '#DCFCE7' }]}>
-                      <Feather name="briefcase" size={15} color="#16A34A" />
+                    <View style={[styles.kpiIconWrap, { backgroundColor: '#E4F1E9' }]}>
+                      <Feather name="briefcase" size={15} color="#2F7D55" />
                     </View>
                   </View>
                   <Text style={styles.kpiMainNumber}>{formatMoney(Math.max(0, escopo.resumo?.saldo ?? 0))}</Text>
@@ -1497,8 +1497,8 @@ function VisaoGeralDesktop() {
                 activeOpacity={0.85}>
                 <View style={styles.kpiCardHeader}>
                   <Text style={styles.kpiLabel}>ENCOMENDAS ATIVAS</Text>
-                  <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
-                    <Feather name="inbox" size={15} color="#5798D7" />
+                  <View style={[styles.kpiIconWrap, { backgroundColor: '#ECEBFA' }]}>
+                    <Feather name="inbox" size={15} color="#4B4FC4" />
                   </View>
                 </View>
                 <Text style={styles.kpiMainNumber}>{kpis.encomendasAtivas}</Text>
@@ -1573,8 +1573,8 @@ function VisaoGeralDesktop() {
         <View style={styles.scheduleOverlay}>
           <View style={styles.scheduleBox}>
             <View style={styles.scheduleHeader}>
-              <View style={[styles.kpiIconWrap, { backgroundColor: '#EAF3FA' }]}>
-                <Feather name="truck" size={15} color="#5798D7" />
+              <View style={[styles.kpiIconWrap, { backgroundColor: '#ECEBFA' }]}>
+                <Feather name="truck" size={15} color="#4B4FC4" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.scheduleTitle}>Cronograma de entregas</Text>
@@ -1583,7 +1583,7 @@ function VisaoGeralDesktop() {
                 </Text>
               </View>
               <TouchableOpacity onPress={() => setCronogramaAberto(false)}>
-                <Feather name="x" size={20} color="#64748B" />
+                <Feather name="x" size={20} color="#6B615A" />
               </TouchableOpacity>
             </View>
 
@@ -1617,7 +1617,7 @@ function VisaoGeralDesktop() {
                             ) : null}
                           </View>
                           <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                            <Text style={[styles.schedulePay, { color: temSaldo ? '#D97706' : '#16A34A' }]}>
+                            <Text style={[styles.schedulePay, { color: temSaldo ? '#B9781A' : '#2F7D55' }]}>
                               {temSaldo ? `Falta ${formatMoney(enc.saldoNaEntrega)}` : '100% pago'}
                             </Text>
                             <TouchableOpacity
@@ -1642,7 +1642,7 @@ function VisaoGeralDesktop() {
       {/* TOAST DE FEEDBACK DE SUCESSO */}
       {toastSucesso && (
         <View style={styles.toastSuccess}>
-          <Feather name="check-circle" size={18} color="#FFFFFF" />
+          <Feather name="check-circle" size={18} color="#FFFDFA" />
           <Text style={styles.toastSuccessText}>{toastSucesso}</Text>
         </View>
       )}
@@ -1654,7 +1654,7 @@ const styles = paraCelular(StyleSheet.create({
   viewport: {
     flex: 1,
     height: '100%',
-    backgroundColor: '#F4F7FB',
+    backgroundColor: '#F8F6F2',
   },
   mainLayout: {
     flex: 1,
@@ -1667,9 +1667,9 @@ const styles = paraCelular(StyleSheet.create({
   // SIDEBAR ESTILOS (AJUSTE PERFEITO DO ÍCONE ATIVO RETRAÍDO)
   // =========================================================================
   sidebar: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRightWidth: 1.5,
-    borderRightColor: '#E2E8F0',
+    borderRightColor: '#E8E0D6',
     height: '100%',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -1701,7 +1701,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderWidth: 1.5,
     borderColor: KipiPalette.icedDenim,
     alignItems: 'center',
@@ -1725,12 +1725,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     letterSpacing: -0.3,
   },
   saasTag: {
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 1,
@@ -1740,12 +1740,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 8,
     fontWeight: '800',
-    color: '#708018',
+    color: '#7A4520',
   },
   brandSubtitle: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   sidebarNav: {
     flex: 1,
@@ -1786,17 +1786,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   navItemTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   sidebarFooter: {
     gap: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: '#F3EEE7',
   },
   pinBtn: {
     flexDirection: 'row',
@@ -1805,10 +1805,10 @@ const styles = paraCelular(StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
   },
   pinBtnActive: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
   },
   pinBtnCollapsed: {
     width: 42,
@@ -1821,7 +1821,7 @@ const styles = paraCelular(StyleSheet.create({
   pinBtnText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     fontWeight: '600',
   },
   userMiniCard: {
@@ -1859,12 +1859,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   userMiniRole: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // =========================================================================
@@ -1873,13 +1873,13 @@ const styles = paraCelular(StyleSheet.create({
   contentArea: {
     flex: 1,
     height: '100%',
-    backgroundColor: '#F4F7FB',
+    backgroundColor: '#F8F6F2',
   },
   topBar: {
     height: 64,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderBottomWidth: 1.5,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -1889,9 +1889,9 @@ const styles = paraCelular(StyleSheet.create({
   topBarSearchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingHorizontal: 12,
     height: 38,
@@ -1902,13 +1902,13 @@ const styles = paraCelular(StyleSheet.create({
     flex: 1,
     fontFamily: Fonts.sans,
     fontSize: 13,
-    color: '#0F172A',
+    color: '#2E211A',
     outlineWidth: 0,
   },
   searchShortcutBadge: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
@@ -1916,7 +1916,7 @@ const styles = paraCelular(StyleSheet.create({
   searchShortcutText: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
     fontWeight: '700',
   },
   topBarRight: {
@@ -1928,9 +1928,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderWidth: 1.5,
-    borderColor: '#B6D6F4',
+    borderColor: '#D6D7F3',
     borderRadius: 10,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -1946,14 +1946,14 @@ const styles = paraCelular(StyleSheet.create({
     color: KipiPalette.icedDenim,
   },
   customizeLayoutBtnTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
   kitchenBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 12,
@@ -1963,21 +1963,21 @@ const styles = paraCelular(StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#708018',
+    backgroundColor: '#7A4520',
   },
   kitchenBadgeText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#708018',
+    color: '#7A4520',
   },
   iconCircleBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
@@ -1989,7 +1989,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#EF4444',
+    backgroundColor: '#B42318',
   },
   profileBadge: {
     flexDirection: 'row',
@@ -2021,7 +2021,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   profileRole: {
     fontFamily: Fonts.sans,
@@ -2040,8 +2040,8 @@ const styles = paraCelular(StyleSheet.create({
 
   // BARRA DE AVISO DO MODO DE EDIÇÃO
   editModeNoticeBar: {
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1.5,
     borderRadius: 14,
     padding: 12,
@@ -2060,7 +2060,7 @@ const styles = paraCelular(StyleSheet.create({
   editModeNoticeText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#46500F',
+    color: '#7A4520',
     fontWeight: '600',
   },
   editModeNoticeActions: {
@@ -2069,9 +2069,9 @@ const styles = paraCelular(StyleSheet.create({
     gap: 8,
   },
   restoreDefaultBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#B9C255',
+    borderColor: '#B06A2C',
     borderRadius: 8,
     paddingVertical: 5,
     paddingHorizontal: 10,
@@ -2080,10 +2080,10 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#708018',
+    color: '#7A4520',
   },
   saveLayoutBtn: {
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -2092,7 +2092,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // CONTROLES DE REORDENAÇÃO DENTRO DO CARD
@@ -2102,11 +2102,11 @@ const styles = paraCelular(StyleSheet.create({
     gap: 8,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: '#E8E0D6',
     marginBottom: 4,
   },
   reorderBtn: {
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 6,
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -2115,10 +2115,10 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   reorderBtnCol: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
   },
   reorderBtnColText: {
     fontFamily: Fonts.sans,
@@ -2131,17 +2131,17 @@ const styles = paraCelular(StyleSheet.create({
   // BANNER DE SAUDAÇÃO
   // =========================================================================
   greetingBanner: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: 16,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 10,
@@ -2161,9 +2161,9 @@ const styles = paraCelular(StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 20,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2177,14 +2177,14 @@ const styles = paraCelular(StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#84CC16',
+    backgroundColor: '#7A4520',
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: '#FFFDFA',
     alignItems: 'center',
     justifyContent: 'center',
   },
   chefStatusPlus: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontSize: 10,
     fontWeight: '900',
     lineHeight: 12,
@@ -2203,15 +2203,15 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     letterSpacing: -0.4,
   },
   ovenBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 8,
@@ -2221,18 +2221,18 @@ const styles = paraCelular(StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#84CC16',
+    backgroundColor: '#7A4520',
   },
   ovenBadgeText: {
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
-    color: '#708018',
+    color: '#7A4520',
   },
   greetingDescription: {
     fontFamily: Fonts.sans,
     fontSize: 13,
-    color: '#475569',
+    color: '#4A3E37',
   },
   greetingTipLink: {
     fontFamily: Fonts.sans,
@@ -2255,7 +2255,7 @@ const styles = paraCelular(StyleSheet.create({
     marginTop: 8,
     padding: 3,
     borderRadius: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
   },
   periodTabBanner: {
     paddingVertical: 4,
@@ -2269,40 +2269,40 @@ const styles = paraCelular(StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   personalizarCampo: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  personalizarRotulo: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '800', color: '#64748B' },
+  personalizarRotulo: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '800', color: '#6B615A' },
   personalizarInput: {
     width: 110,
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
-    backgroundColor: '#F8FAFC',
+    color: '#2E211A',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  personalizarAplicar: { backgroundColor: KipiPalette.icedDenim, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
-  personalizarAplicarTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800', color: '#FFFFFF' },
+  personalizarAplicar: { backgroundColor: KipiPalette.caramelo, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 7 },
+  personalizarAplicarTexto: { fontFamily: Fonts.sans, fontSize: 12, fontWeight: '800', color: '#FFFDFA' },
   personalizarAtalhos: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginLeft: 'auto' },
-  personalizarChip: { backgroundColor: '#F1F5F9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  personalizarChipTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: '#475569' },
-  personalizarErro: { width: '100%', fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: '#DC2626' },
+  personalizarChip: { backgroundColor: '#F3EEE7', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  personalizarChipTexto: { fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: '#4A3E37' },
+  personalizarErro: { width: '100%', fontFamily: Fonts.sans, fontSize: 11, fontWeight: '700', color: '#B42318' },
   greetingKpiCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 10,
@@ -2313,7 +2313,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2325,32 +2325,32 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 9,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   greetingKpiValue: {
     fontFamily: Fonts.sans,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   greetingKpiSub: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '600',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   greetingKpiDesc: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   greetingKpiBtn: {
     paddingVertical: 6,
     paddingHorizontal: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 8,
   },
   greetingKpiBtnText: {
@@ -2373,9 +2373,9 @@ const styles = paraCelular(StyleSheet.create({
   periodTabs: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 14,
     padding: 4,
     gap: 4,
@@ -2392,10 +2392,10 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   periodTabTextActive: {
-    color: '#FFFFFF',
+    color: '#FFFDFA',
     fontWeight: '700',
   },
   filterActions: {
@@ -2407,9 +2407,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -2418,17 +2418,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '600',
-    color: '#475569',
+    color: '#4A3E37',
   },
   primaryActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
     borderRadius: 12,
     paddingVertical: 9,
     paddingHorizontal: 16,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -2438,7 +2438,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 
   // =========================================================================
@@ -2452,13 +2452,13 @@ const styles = paraCelular(StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: 180,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 16,
     gap: 8,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -2473,7 +2473,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   kpiIconWrap: {
@@ -2487,7 +2487,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 22,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
     letterSpacing: -0.4,
   },
   kpiFooter: {
@@ -2497,8 +2497,8 @@ const styles = paraCelular(StyleSheet.create({
     paddingTop: 4,
   },
   kpiDiffPillGreen: {
-    backgroundColor: '#F1F6D8',
-    borderColor: '#B9C255',
+    backgroundColor: '#F6E8D6',
+    borderColor: '#B06A2C',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2508,11 +2508,11 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
-    color: '#708018',
+    color: '#7A4520',
   },
   kpiDiffPillBlue: {
-    backgroundColor: '#EAF3FA',
-    borderColor: '#B6D6F4',
+    backgroundColor: '#ECEBFA',
+    borderColor: '#D6D7F3',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2525,8 +2525,8 @@ const styles = paraCelular(StyleSheet.create({
     color: KipiPalette.icedDenim,
   },
   kpiDiffPillYellow: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#FDE68A',
+    backgroundColor: '#FBF0DC',
+    borderColor: '#F2DDB0',
     borderWidth: 1,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -2536,18 +2536,18 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
-    color: '#D97706',
+    color: '#B9781A',
   },
   kpiFooterNote: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   kpiFooterMuted: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // =========================================================================
@@ -2570,13 +2570,13 @@ const styles = paraCelular(StyleSheet.create({
   },
 
   panelCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 20,
     gap: 16,
-    shadowColor: '#5798D7',
+    shadowColor: '#4B4FC4',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
@@ -2602,7 +2602,7 @@ const styles = paraCelular(StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: KipiPalette.icedDenim,
+    backgroundColor: KipiPalette.caramelo,
   },
   miniAlertIcon: {
     width: 24,
@@ -2615,17 +2615,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#2E211A',
     letterSpacing: -0.2,
   },
   panelSubtitle: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   panelChip: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderRadius: 6,
     paddingHorizontal: 7,
     paddingVertical: 2,
@@ -2672,7 +2672,7 @@ const styles = paraCelular(StyleSheet.create({
   legendLabel: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   chartBarsContainer: {
     flexDirection: 'row',
@@ -2681,7 +2681,7 @@ const styles = paraCelular(StyleSheet.create({
     height: 190,
     paddingTop: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   chartBarCol: {
     flex: 1,
@@ -2694,12 +2694,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   chartBarTrack: {
     width: 32,
     height: 125,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F3EEE7',
     borderRadius: 8,
     justifyContent: 'flex-end',
     overflow: 'hidden',
@@ -2714,19 +2714,19 @@ const styles = paraCelular(StyleSheet.create({
     borderRadius: 6,
   },
   chartXTagCurrent: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
   },
   chartXTagPeak: {
-    backgroundColor: '#F1F6D8',
+    backgroundColor: '#F6E8D6',
   },
   chartXText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   chartXTextHighlight: {
-    color: '#0F172A',
+    color: '#2E211A',
     fontWeight: '800',
   },
 
@@ -2739,9 +2739,9 @@ const styles = paraCelular(StyleSheet.create({
   funnelCard: {
     flex: 1,
     minWidth: 170,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 14,
     padding: 12,
     gap: 8,
@@ -2768,18 +2768,18 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   funnelTotal: {
     fontFamily: Fonts.sans,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   funnelOrderSnippet: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 8,
     padding: 8,
     gap: 2,
@@ -2788,17 +2788,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   funnelItemTitle: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // FLUXO DE CAIXA
   cashStatusBadge: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#E4F1E9',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -2807,7 +2807,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
   cashSummaryRow: {
     flexDirection: 'row',
@@ -2817,10 +2817,10 @@ const styles = paraCelular(StyleSheet.create({
   cashBox: {
     flex: 1,
     minWidth: 130,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 12,
     gap: 3,
   },
@@ -2828,7 +2828,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   cashBoxValuePrimary: {
@@ -2841,12 +2841,12 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   cashBoxSub: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   cashLaunchesArea: {
     gap: 10,
@@ -2856,7 +2856,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   launchesList: {
@@ -2866,9 +2866,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -2889,24 +2889,24 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   launchDate: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   launchValueExpense: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '800',
-    color: '#DC2626',
+    color: '#B42318',
   },
   launchValueIncome: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '800',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
 
   // =========================================================================
@@ -2920,10 +2920,10 @@ const styles = paraCelular(StyleSheet.create({
   resellerMetricBox: {
     flex: 1,
     minWidth: 140,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 12,
     gap: 3,
   },
@@ -2931,23 +2931,23 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   resellerMetricNumber: {
     fontFamily: Fonts.sans,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   resellerMetricSub: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   resellerStockAlertArea: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FDE68A',
+    backgroundColor: '#FBF0DC',
+    borderColor: '#F2DDB0',
     borderWidth: 1.5,
     borderRadius: 14,
     padding: 14,
@@ -2962,7 +2962,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '800',
-    color: '#B45309',
+    color: '#9A6516',
     letterSpacing: 0.4,
   },
   resellerAlertList: {
@@ -2972,9 +2972,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#F2DDB0',
     borderRadius: 10,
     paddingVertical: 9,
     paddingHorizontal: 12,
@@ -2997,17 +2997,17 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   resellerAlertDesc: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   resellerActionBtn: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderWidth: 1,
-    borderColor: '#B6D6F4',
+    borderColor: '#D6D7F3',
     borderRadius: 6,
     paddingVertical: 4,
     paddingHorizontal: 8,
@@ -3019,7 +3019,7 @@ const styles = paraCelular(StyleSheet.create({
     color: KipiPalette.icedDenim,
   },
   resellerOkBadge: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#E4F1E9',
     borderRadius: 6,
     paddingVertical: 3,
     paddingHorizontal: 8,
@@ -3028,7 +3028,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '700',
-    color: '#16A34A',
+    color: '#2F7D55',
   },
 
   // SIDEBAR DIREITA: INSUMOS
@@ -3036,8 +3036,8 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '800',
-    color: '#DC2626',
-    backgroundColor: '#FEE2E2',
+    color: '#B42318',
+    backgroundColor: '#FBE7E4',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -3046,9 +3046,9 @@ const styles = paraCelular(StyleSheet.create({
     gap: 12,
   },
   insumoItem: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 10,
     gap: 6,
@@ -3062,11 +3062,11 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     flex: 1,
   },
   insumoPctBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#FBE7E4',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -3075,11 +3075,11 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 9,
     fontWeight: '800',
-    color: '#DC2626',
+    color: '#B42318',
   },
   insumoProgressTrack: {
     height: 6,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -3095,14 +3095,14 @@ const styles = paraCelular(StyleSheet.create({
   insumoStockText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   orderInsumoBtn: {
     paddingVertical: 2,
     paddingHorizontal: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 4,
   },
   orderInsumoBtnText: {
@@ -3116,9 +3116,9 @@ const styles = paraCelular(StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderWidth: 1.5,
-    borderColor: '#B6D6F4',
+    borderColor: '#D6D7F3',
     borderRadius: 12,
     height: 40,
   },
@@ -3137,9 +3137,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 10,
   },
@@ -3147,9 +3147,9 @@ const styles = paraCelular(StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3164,16 +3164,16 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   rankingProdMeta: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   rankingBarTrack: {
     height: 5,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
     borderRadius: 3,
     overflow: 'hidden',
     marginTop: 2,
@@ -3190,9 +3190,9 @@ const styles = paraCelular(StyleSheet.create({
   },
   clientMetricCard: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 10,
     alignItems: 'center',
@@ -3202,13 +3202,13 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 18,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   clientMetricLabel: {
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   bdayArea: {
     gap: 8,
@@ -3218,7 +3218,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   bdayList: {
@@ -3228,9 +3228,9 @@ const styles = paraCelular(StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 10,
   },
@@ -3243,9 +3243,9 @@ const styles = paraCelular(StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#F1F6D8',
+    backgroundColor: '#F6E8D6',
     borderWidth: 1,
-    borderColor: '#B9C255',
+    borderColor: '#B06A2C',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3253,32 +3253,32 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '800',
-    color: '#708018',
+    color: '#7A4520',
   },
   bdayName: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
   },
   bdayDate: {
     fontFamily: Fonts.sans,
     fontSize: 10,
-    color: '#64748B',
+    color: '#6B615A',
   },
   bdayGiftBtn: {
     paddingVertical: 3,
     paddingHorizontal: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: '#D9CFC4',
     borderRadius: 6,
   },
   bdayGiftBtnText: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#D97706',
+    color: '#B9781A',
   },
 
   // FOOTER DA PÁGINA
@@ -3289,14 +3289,14 @@ const styles = paraCelular(StyleSheet.create({
     flexWrap: 'wrap',
     paddingVertical: 14,
     borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
+    borderTopColor: '#E8E0D6',
     marginTop: 10,
     gap: 10,
   },
   pageFooterBrand: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
   pageFooterLinks: {
     flexDirection: 'row',
@@ -3307,19 +3307,19 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '600',
-    color: '#64748B',
+    color: '#6B615A',
   },
   // KPI CLICÁVEL (ENCOMENDAS ATIVAS)
   kpiCardClickable: {
-    borderColor: '#BFDBFE',
+    borderColor: '#D6D7F3',
   },
 
   // VENDA DIRETA × REVENDA
   channelArea: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     padding: 12,
     gap: 10,
   },
@@ -3327,7 +3327,7 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#64748B',
+    color: '#6B615A',
     letterSpacing: 0.5,
   },
   channelBarTrack: {
@@ -3335,7 +3335,7 @@ const styles = paraCelular(StyleSheet.create({
     height: 10,
     borderRadius: 5,
     overflow: 'hidden',
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#E8E0D6',
   },
   channelBarFill: {
     height: '100%',
@@ -3364,32 +3364,32 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#475569',
+    color: '#4A3E37',
   },
   channelBoxValue: {
     fontFamily: Fonts.sans,
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   channelBoxSub: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
   },
 
   // O QUE COMPRAR / VITRINE ZERADA
   purchaseIntro: {
     fontFamily: Fonts.sans,
     fontSize: 11,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: -4,
   },
   purchaseTotalBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FBF0DC',
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -3398,34 +3398,34 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 10,
     fontWeight: '800',
-    color: '#92400E',
+    color: '#9A6516',
     letterSpacing: 0.5,
   },
   purchaseTotalValue: {
     fontFamily: Fonts.sans,
     fontSize: 16,
     fontWeight: '800',
-    color: '#92400E',
+    color: '#9A6516',
   },
   purchaseBuyText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '800',
-    color: '#DC2626',
+    color: '#B42318',
   },
   purchaseCostText: {
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   vitrineItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 10,
   },
@@ -3433,7 +3433,7 @@ const styles = paraCelular(StyleSheet.create({
   // MODAL CRONOGRAMA DE ENTREGAS
   scheduleOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.55)',
+    backgroundColor: 'rgba(43, 36, 33, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -3442,10 +3442,10 @@ const styles = paraCelular(StyleSheet.create({
     width: '100%',
     maxWidth: 680,
     maxHeight: '90%',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDFA',
     borderRadius: 18,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     overflow: 'hidden',
   },
   scheduleHeader: {
@@ -3454,18 +3454,18 @@ const styles = paraCelular(StyleSheet.create({
     gap: 12,
     padding: 18,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: '#F3EEE7',
   },
   scheduleTitle: {
     fontFamily: Fonts.display,
     fontSize: 17,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   scheduleSubtitle: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   scheduleScroll: {
@@ -3481,33 +3481,33 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '800',
-    color: '#3E7BB8',
+    color: '#4B4FC4',
     letterSpacing: 0.8,
   },
   scheduleGroupCount: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#64748B',
+    color: '#6B615A',
   },
   scheduleEmpty: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#9A8F87',
   },
   scheduleItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#F8F6F2',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#E8E0D6',
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
   },
   scheduleTimePill: {
-    backgroundColor: '#EAF3FA',
+    backgroundColor: '#ECEBFA',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -3516,25 +3516,25 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 12,
     fontWeight: '800',
-    color: '#2563EB',
+    color: '#4B4FC4',
   },
   scheduleClient: {
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#2E211A',
   },
   scheduleItems: {
     fontFamily: Fonts.sans,
     fontSize: 12,
-    color: '#475569',
+    color: '#4A3E37',
     marginTop: 2,
   },
   scheduleObs: {
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontStyle: 'italic',
-    color: '#64748B',
+    color: '#6B615A',
     marginTop: 2,
   },
   schedulePay: {
@@ -3546,14 +3546,14 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 11,
     fontWeight: '700',
-    color: '#5798D7',
+    color: '#4B4FC4',
   },
 
   toastSuccess: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#16A34A',
+    backgroundColor: '#2F7D55',
     borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -3571,6 +3571,6 @@ const styles = paraCelular(StyleSheet.create({
     fontFamily: Fonts.sans,
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#FFFDFA',
   },
 }));

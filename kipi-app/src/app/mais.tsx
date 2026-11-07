@@ -47,7 +47,7 @@ export default function MaisScreen() {
             <T style={s.perfilNome}>{nome}</T>
             <T style={s.perfilSub}>{CARGO_DO_PERFIL[perfil]} · {config.nome}</T>
           </View>
-          {perfil === 'dona' && <Feather name="chevron-right" size={18} color="#FFFFFF" />}
+          {perfil === 'dona' && <Feather name="chevron-right" size={18} color="#FFFDFA" />}
         </TouchableOpacity>
 
         {grupos.map((g) => (
@@ -126,10 +126,10 @@ const s = StyleSheet.create({
   perfil: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 24, backgroundColor: cor.azulBotao },
   avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: cor.pistache, alignItems: 'center', justifyContent: 'center' },
   avatarTexto: { fontSize: 18, fontWeight: '700' },
-  perfilNome: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
-  perfilSub: { color: '#EAF3FA', fontSize: 13 },
+  perfilNome: { color: '#FFFDFA', fontSize: 16, fontWeight: '800' },
+  perfilSub: { color: '#ECEBFA', fontSize: 13 },
   grupoTitulo: { paddingHorizontal: 12, fontSize: 13, fontWeight: '800', color: cor.textoMedio },
-  lista: { backgroundColor: '#FFFFFF', borderRadius: 24, overflow: 'hidden' },
+  lista: { backgroundColor: '#FFFDFA', borderRadius: 24, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 60, paddingHorizontal: 16 },
   itemBorda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   itemIcone: { width: 38, height: 38, borderRadius: 13, backgroundColor: cor.azulClaro, alignItems: 'center', justifyContent: 'center' },

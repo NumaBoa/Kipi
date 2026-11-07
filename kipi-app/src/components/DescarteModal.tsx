@@ -18,11 +18,11 @@ import {
 // Escolhe de onde sai (vitrine ou freezer), quantas unidades e o motivo;
 // o custo de material entra como perda.
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const DANGER = '#DC2626';
-const DANGER_TINT = '#FEF2F2';
-const KIPI_BLUE = '#5798D7';
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const DANGER = '#B42318';
+const DANGER_TINT = '#FBE7E4';
+const KIPI_BLUE = '#9E5D25';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -104,7 +104,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Feather name="x" size={18} color="#64748B" />
+              <Feather name="x" size={18} color="#6B615A" />
             </TouchableOpacity>
           </View>
 
@@ -135,7 +135,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
             {!produtoId && !produto && (
               <View style={s.bloco}>
                 <Text style={s.label}>PRODUTO</Text>
-                <TextInput style={s.input} placeholder="Buscar produto..." placeholderTextColor="#94A3B8" value={busca} onChangeText={setBusca} />
+                <TextInput style={s.input} placeholder="Buscar produto..." placeholderTextColor="#9A8F87" value={busca} onChangeText={setBusca} />
                 <ScrollView style={s.lista} contentContainerStyle={{ gap: 4 }} nestedScrollEnabled>
                   {opcoes.length === 0 ? (
                     <Text style={s.hint}>Nenhum produto com estoque.</Text>
@@ -144,8 +144,8 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
                       const ativo = p.id === escolhido;
                       return (
                         <TouchableOpacity key={p.id} style={[s.opcao, ativo && s.opcaoAtiva]} onPress={() => escolher(p.id)}>
-                          <Text style={[s.opcaoNome, ativo && { color: '#FFFFFF' }]} numberOfLines={1}>{p.nome}</Text>
-                          <Text style={[s.opcaoQtd, ativo && { color: '#FFFFFF' }]}>
+                          <Text style={[s.opcaoNome, ativo && { color: '#FFFDFA' }]} numberOfLines={1}>{p.nome}</Text>
+                          <Text style={[s.opcaoQtd, ativo && { color: '#FFFDFA' }]}>
                             {p.estoque} vitrine · {freezer[p.id] ?? 0} freezer
                           </Text>
                         </TouchableOpacity>
@@ -179,11 +179,11 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
                   <Text style={s.label}>QUANTIDADE</Text>
                   <View style={s.linha}>
                     <TouchableOpacity style={s.stepBtn} onPress={() => setQtd(String(Math.max(1, quantidade - 1)))}>
-                      <Feather name="minus" size={14} color="#334155" />
+                      <Feather name="minus" size={14} color="#3D312A" />
                     </TouchableOpacity>
                     <TextInput style={[s.input, s.qtdInput]} keyboardType="numeric" value={qtd} onChangeText={(t) => setQtd(t.replace(/\D/g, ''))} />
                     <TouchableOpacity style={s.stepBtn} onPress={() => setQtd(String(Math.min(disponivel, quantidade + 1)))}>
-                      <Feather name="plus" size={14} color="#334155" />
+                      <Feather name="plus" size={14} color="#3D312A" />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => setQtd(String(disponivel))}>
                       <Text style={s.link}>Tudo ({disponivel})</Text>
@@ -207,7 +207,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
 
                 <View style={s.bloco}>
                   <Text style={s.label}>OBSERVAÇÃO (OPCIONAL)</Text>
-                  <TextInput style={s.input} placeholder="Ex.: doado para a feira do bairro" placeholderTextColor="#94A3B8" value={obs} onChangeText={setObs} />
+                  <TextInput style={s.input} placeholder="Ex.: doado para a feira do bairro" placeholderTextColor="#9A8F87" value={obs} onChangeText={setObs} />
                 </View>
 
                 <View style={s.resumo}>
@@ -226,7 +226,7 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
               <Text style={s.btnSecText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[s.btnPri, !produto && { opacity: 0.5 }]} onPress={confirmar} disabled={!produto}>
-              <Feather name="trash-2" size={13} color="#FFFFFF" />
+              <Feather name="trash-2" size={13} color="#FFFDFA" />
               <Text style={s.btnPriText}>Descartar</Text>
             </TouchableOpacity>
           </View>
@@ -237,46 +237,46 @@ export default function DescarteModal({ visible, produtoId, origemInicial = 'vit
 }
 
 const s = paraCelular(StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
-  box: { width: '100%', maxWidth: 460, maxHeight: '92%', backgroundColor: '#FFFFFF', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E2E8F0' },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  overlay: { flex: 1, backgroundColor: 'rgba(43, 36, 33, 0.55)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+  box: { width: '100%', maxWidth: 460, maxHeight: '92%', backgroundColor: '#FFFDFA', borderRadius: 18, padding: 18, borderWidth: 1, borderColor: '#E8E0D6' },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingBottom: 12, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3EEE7' },
   headerIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: DANGER_TINT, alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: '800', color: '#0F172A' },
-  subtitle: { fontFamily: FONT_SANS, fontSize: 11, color: '#64748B', marginTop: 1 },
+  title: { fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: '800', color: '#2E211A' },
+  subtitle: { fontFamily: FONT_SANS, fontSize: 11, color: '#6B615A', marginTop: 1 },
   erro: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: DANGER_TINT, borderRadius: 8, padding: 8, marginBottom: 10 },
   erroText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: DANGER },
   bloco: { marginBottom: 12 },
   linha: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  label: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#475569', letterSpacing: 0.4, marginBottom: 6 },
-  hint: { fontFamily: FONT_SANS, fontSize: 12, color: '#94A3B8', paddingVertical: 6 },
-  input: { fontFamily: FONT_SANS, fontSize: 13, color: '#0F172A', backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
+  label: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#4A3E37', letterSpacing: 0.4, marginBottom: 6 },
+  hint: { fontFamily: FONT_SANS, fontSize: 12, color: '#9A8F87', paddingVertical: 6 },
+  input: { fontFamily: FONT_SANS, fontSize: 13, color: '#2E211A', backgroundColor: '#F8F6F2', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
   lista: { marginTop: 6, maxHeight: 220 },
-  escolhido: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },
-  escolhidoNome: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  opcao: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#F8FAFC' },
+  escolhido: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F8F6F2', borderWidth: 1, borderColor: '#E8E0D6', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },
+  escolhidoNome: { fontFamily: FONT_SANS, fontSize: 13, fontWeight: '700', color: '#2E211A' },
+  opcao: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: '#F8F6F2' },
   opcaoAtiva: { backgroundColor: KIPI_BLUE },
-  opcaoNome: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#0F172A' },
-  opcaoQtd: { fontFamily: FONT_SANS, fontSize: 10, color: '#64748B' },
-  toggle: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 8, padding: 2 },
+  opcaoNome: { flex: 1, fontFamily: FONT_SANS, fontSize: 12, fontWeight: '600', color: '#2E211A' },
+  opcaoQtd: { fontFamily: FONT_SANS, fontSize: 10, color: '#6B615A' },
+  toggle: { flexDirection: 'row', backgroundColor: '#F3EEE7', borderRadius: 8, padding: 2 },
   toggleBtn: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 6 },
-  toggleBtnAtivo: { backgroundColor: '#FFFFFF' },
-  toggleText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#64748B' },
-  toggleTextAtivo: { color: '#0F172A', fontWeight: '700' },
-  stepBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'center', justifyContent: 'center' },
+  toggleBtnAtivo: { backgroundColor: '#FFFDFA' },
+  toggleText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#6B615A' },
+  toggleTextAtivo: { color: '#2E211A', fontWeight: '700' },
+  stepBtn: { width: 30, height: 30, borderRadius: 8, borderWidth: 1, borderColor: '#E8E0D6', alignItems: 'center', justifyContent: 'center' },
   qtdInput: { width: 60, textAlign: 'center' },
-  link: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#2563EB' },
+  link: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#4B4FC4' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { backgroundColor: '#F1F5F9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#E2E8F0' },
+  chip: { backgroundColor: '#F3EEE7', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: '#E8E0D6' },
   chipAtivo: { backgroundColor: DANGER, borderColor: DANGER },
-  chipText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#475569' },
-  chipTextAtivo: { color: '#FFFFFF' },
+  chipText: { fontFamily: FONT_SANS, fontSize: 11, fontWeight: '600', color: '#4A3E37' },
+  chipTextAtivo: { color: '#FFFDFA' },
   resumo: { backgroundColor: DANGER_TINT, borderRadius: 12, padding: 12 },
-  resumoLabel: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#991B1B' },
+  resumoLabel: { fontFamily: FONT_SANS, fontSize: 10, fontWeight: '700', color: '#8A1C12' },
   resumoVal: { fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: '800', color: DANGER, marginVertical: 2 },
-  resumoHint: { fontFamily: FONT_SANS, fontSize: 10, color: '#7F1D1D' },
-  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 10, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
-  btnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: '#E2E8F0' },
-  btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#334155' },
+  resumoHint: { fontFamily: FONT_SANS, fontSize: 10, color: '#8A1C12' },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, paddingTop: 12, marginTop: 10, borderTopWidth: 1, borderTopColor: '#F3EEE7' },
+  btnSec: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, borderWidth: 1, borderColor: '#E8E0D6' },
+  btnSecText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#3D312A' },
   btnPri: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 8, backgroundColor: DANGER },
-  btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
+  btnPriText: { fontFamily: FONT_SANS, fontSize: 12, fontWeight: '700', color: '#FFFDFA' },
 }));

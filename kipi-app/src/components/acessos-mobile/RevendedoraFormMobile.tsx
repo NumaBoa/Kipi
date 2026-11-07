@@ -42,7 +42,7 @@ function Campo({ rotulo, style, ...props }: TextInputProps & { rotulo: string })
   return (
     <View style={[{ gap: 6 }, style]}>
       <T style={s.rotulo}>{rotulo}</T>
-      <TextInput placeholderTextColor="#94A3B8" {...props} style={s.input} />
+      <TextInput placeholderTextColor="#9A8F87" {...props} style={s.input} />
     </View>
   );
 }
@@ -201,7 +201,7 @@ export default function RevendedoraFormMobile({
                   value={valor}
                   onChangeText={(t) => setValor(formatarDecimal(t))}
                   placeholder={tipo === 'porcentagem' ? 'Ex: 15' : 'Ex: 3,50'}
-                  placeholderTextColor="#94A3B8"
+                  placeholderTextColor="#9A8F87"
                   keyboardType="decimal-pad"
                   style={s.valorInput}
                   accessibilityLabel="Valor da comissão"
@@ -243,7 +243,7 @@ export default function RevendedoraFormMobile({
             <View style={s.bloco}>
               <View style={{ gap: 6 }}>
                 <T style={s.rotulo}>Observações</T>
-                <TextInput value={obs} onChangeText={setObs} placeholder="Opcional" placeholderTextColor="#94A3B8" multiline numberOfLines={3} textAlignVertical="top" style={[s.input, { height: 90, paddingTop: 12 }]} />
+                <TextInput value={obs} onChangeText={setObs} placeholder="Opcional" placeholderTextColor="#9A8F87" multiline numberOfLines={3} textAlignVertical="top" style={[s.input, { height: 90, paddingTop: 12 }]} />
               </View>
             </View>
           </ScrollView>
@@ -262,15 +262,15 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 12, paddingTop: 8, paddingBottom: 6 },
   titulo: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },
   sub: { fontSize: 12, color: cor.textoSuave },
-  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  fechar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   conteudo: { padding: 16, paddingTop: 8, gap: 12, paddingBottom: 32 },
   erro: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: cor.vermelhoClaro },
   erroTexto: { flex: 1, fontSize: 13, fontWeight: '700', color: cor.vermelho },
-  bloco: { backgroundColor: '#FFFFFF', borderRadius: 22, padding: 16, gap: 14 },
+  bloco: { backgroundColor: '#FFFDFA', borderRadius: 22, padding: 16, gap: 14 },
   linha: { flexDirection: 'row', gap: 10 },
   rotulo: { fontSize: 13, fontWeight: '700', color: cor.textoMedio },
   dica: { fontSize: 12, color: cor.textoSuave },
-  input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFFFF', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
+  input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   aviso: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12 },
   avisoTexto: { fontSize: 12, fontWeight: '600' },
   tipo: { flex: 1, minHeight: 58, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1.5, borderColor: cor.borda, gap: 1, justifyContent: 'center' },
@@ -279,7 +279,7 @@ const s = StyleSheet.create({
   valorCaixa: { height: 54, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14 },
   afixo: { fontSize: 16, fontWeight: '800', color: cor.textoSuave },
   valorInput: { flex: 1, minWidth: 0, fontSize: 20, fontWeight: '800', color: cor.texto, fontFamily: fonte.texto, padding: 0, ...campoWeb },
-  addEndereco: { minHeight: 56, borderRadius: 22, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9CC3E8', backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  addEndereco: { minHeight: 56, borderRadius: 22, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#D6D7F3', backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   addEnderecoTexto: { fontSize: 14, fontWeight: '800', color: cor.azulTexto },
-  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFFFF', borderTopWidth: 1, borderTopColor: cor.borda },
+  rodape: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: '#FFFDFA', borderTopWidth: 1, borderTopColor: cor.borda },
 });

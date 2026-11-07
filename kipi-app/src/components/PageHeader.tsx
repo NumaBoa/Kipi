@@ -6,11 +6,11 @@ import { View, Text, StyleSheet, Platform, ViewStyle } from 'react-native';
 // TOPO PADRÃO DAS TELAS (COMPACTO) — mesmo visual da Gestão de Clientes:
 // faixa branca com etiqueta, título e subtítulo à esquerda e ações à direita
 // ============================================================================
-const FONT_DISPLAY = Platform.select({ web: '"Sora", ui-sans-serif, system-ui, sans-serif', default: 'System' });
-const FONT_SANS = Platform.select({ web: '"Manrope", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_DISPLAY = Platform.select({ web: '"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif', default: 'System' });
+const FONT_SANS = Platform.select({ web: '"Instrument Sans", ui-sans-serif, system-ui, sans-serif', default: 'System' });
 
-const ATELIE_GREEN = '#2D7A58';
-const ATELIE_TINT = '#EAF5F1';
+const ATELIE_GREEN = '#7A4520';
+const ATELIE_TINT = '#F6E8D6';
 
 // Faixa do topo para telas cujo conteúdo tem padding 28 (lados) e 24 (topo):
 // as margens negativas fazem a faixa ir de ponta a ponta, como na tela de Clientes
@@ -25,9 +25,9 @@ export const TOPO_COMPACTO: ViewStyle = {
   marginBottom: 16,
   paddingHorizontal: 28,
   paddingVertical: 18,
-  backgroundColor: '#FFFFFF',
+  backgroundColor: '#FFFDFA',
   borderBottomWidth: 1,
-  borderBottomColor: '#E2E8F0',
+  borderBottomColor: '#E8E0D6',
 };
 
 interface PageHeaderTituloProps {
@@ -70,13 +70,13 @@ const styles = paraCelular(StyleSheet.create({
   pageTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#1E293B',
+    color: '#2E211A',
     fontFamily: FONT_DISPLAY,
     letterSpacing: -0.3,
   },
   pageSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#6B615A',
     fontFamily: FONT_SANS,
   },
 }));

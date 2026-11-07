@@ -25,7 +25,7 @@ type Pagamento = 'todos' | 'pendentes' | 'pagos';
 type Gav = null | 'periodo' | 'filtros' | 'resumo' | 'receber' | 'estoque';
 
 const ROTULO_PERIODO: Record<Periodo, string> = { hoje: 'Hoje', '7dias': 'Últimos 7 dias', mes: 'Este mês', personalizar: 'Personalizado' };
-const MEDALHA = ['#FDE68A', '#E2E8F0', '#FED7AA'];
+const MEDALHA = ['#F2DDB0', '#E8E0D6', '#F2DDB0'];
 
 const somarDias = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const chaveValida = (t: string) => /^\d{4}-\d{2}-\d{2}$/.test(t);
@@ -251,7 +251,7 @@ export default function PedidosMobile() {
             return (
               <TouchableOpacity key={a.id} style={[s.segItem, on && s.segItemOn]} onPress={() => setPag(a.id)} accessibilityRole="tab" accessibilityState={{ selected: on }}>
                 <T style={[s.segTexto, on && s.segTextoOn]}>{a.rotulo}</T>
-                <T style={[s.segNum, on && { color: a.cor }]}>{a.qtd}</T>
+                <T style={[s.segNum, on && { color: cor.creme }]}>{a.qtd}</T>
               </TouchableOpacity>
             );
           })}
@@ -334,7 +334,7 @@ export default function PedidosMobile() {
                           <T style={s.itens} numberOfLines={1}>{p.itens.map((it) => `${it.quantidade}x ${it.nome}`).join(' • ')}</T>
                           {encomenda && (
                             <View style={s.entrega}>
-                              <Feather name="calendar" size={12} color={cor.ambar} />
+                              <Feather name="calendar" size={12} color={cor.mirtilo} />
                               <T style={s.entregaTexto}>Encomenda · {rotuloEntrega(p.dataEntrega)}</T>
                             </View>
                           )}
@@ -392,7 +392,7 @@ export default function PedidosMobile() {
         accessibilityRole="button"
         accessibilityLabel="Novo pedido"
         activeOpacity={0.9}>
-        <Feather name="plus" size={22} color="#FFFFFF" />
+        <Feather name="plus" size={22} color="#FFFDFA" />
         {!fabCompacto && <T style={s.fabTexto}>Novo pedido</T>}
       </TouchableOpacity>
 
@@ -472,7 +472,7 @@ export default function PedidosMobile() {
             <T style={[s.kpiRotulo, { color: cor.vermelho }]}>A receber ›</T>
             <T titulo style={[s.kpiValor, numeros, { color: cor.vermelho }]}>{brl(aReceber)}</T>
             <T style={[s.kpiNota, { color: cor.vermelho }]}>{pendentesTodos.length} pendentes</T>
-            <T style={[s.kpiSub, { color: '#7F1D1D' }]}>Ver clientes devedores</T>
+            <T style={[s.kpiSub, { color: '#8A1C12' }]}>Ver clientes devedores</T>
           </TouchableOpacity>
           <TouchableOpacity style={s.kpi} onPress={() => setGaveta('estoque')}>
             <T style={s.kpiRotulo}>{rev ? 'Estoque comigo ›' : 'Estoque geral ›'}</T>
@@ -579,7 +579,7 @@ export default function PedidosMobile() {
             { r: 'Unidades', v: totalEstoque, bg: cor.fundo, fg: cor.texto },
             { r: 'Produtos', v: estoque.length, bg: cor.fundo, fg: cor.texto },
             { r: 'Acabando', v: estoque.filter((e) => e.status === 'baixo').length, bg: cor.ambarClaro, fg: cor.ambarTexto },
-            { r: 'Esgotados', v: estoque.filter((e) => e.status === 'zerado').length, bg: '#FEE2E2', fg: cor.vermelho },
+            { r: 'Esgotados', v: estoque.filter((e) => e.status === 'zerado').length, bg: '#FBE7E4', fg: cor.vermelho },
           ].map((k) => (
             <View key={k.r} style={[s.mini, { backgroundColor: k.bg, paddingHorizontal: 8 }]}>
               <T style={[s.miniRotulo, { color: k.fg }]}>{k.r}</T>
@@ -644,20 +644,20 @@ const s = StyleSheet.create({
   topo: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 10, paddingRight: 16 },
   etiquetaTopo: { fontSize: 12, fontWeight: '700', color: cor.textoSuave },
   titulo: { fontSize: 28, fontWeight: '700', letterSpacing: -0.6 },
-  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  redondo: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', justifyContent: 'center' },
   seloFiltro: { position: 'absolute', top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: cor.azulBotao, alignItems: 'center', justifyContent: 'center' },
-  seloFiltroTexto: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  seloFiltroTexto: { color: '#FFFDFA', fontSize: 11, fontWeight: '800' },
   faixa: { gap: 8, paddingHorizontal: 20, paddingTop: 14 },
   periodo: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', minHeight: 32 },
   periodoTexto: { color: cor.azulTexto, fontSize: 14, fontWeight: '700' },
-  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#E8EEF5' },
+  segmento: { flexDirection: 'row', marginHorizontal: 16, marginTop: 14, padding: 4, gap: 4, borderRadius: 16, backgroundColor: '#F3EEE7' },
   segItem: { flex: 1, height: 40, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  segItemOn: { backgroundColor: '#FFFFFF', shadowColor: '#0F172A', shadowOpacity: 0.1, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+  segItemOn: { backgroundColor: cor.mirtilo },
   segTexto: { fontSize: 13, fontWeight: '600', color: cor.textoMedio },
-  segTextoOn: { fontWeight: '800', color: cor.texto },
+  segTextoOn: { fontWeight: '800', color: '#FFFFFF' },
   segNum: { fontSize: 12, fontWeight: '800', color: cor.textoSuave },
   atalho: { minHeight: 38, borderRadius: 19, borderWidth: 1 },
-  resumo: { marginHorizontal: 16, marginTop: 14, padding: 4, borderRadius: 22, backgroundColor: '#FFFFFF' },
+  resumo: { marginHorizontal: 16, marginTop: 14, padding: 4, borderRadius: 22, backgroundColor: '#FFFDFA' },
   resumoLinha: { flexDirection: 'row', gap: 4 },
   resumoCelula: { flex: 1, padding: 12, borderRadius: 18, gap: 4 },
   resumoRotulo: { fontSize: 13, fontWeight: '600', color: cor.textoSuave },
@@ -675,7 +675,7 @@ const s = StyleSheet.create({
   grupoData: { fontSize: 13, fontWeight: '500', color: cor.textoSuave },
   grupoTotal: { marginLeft: 'auto', fontSize: 13, fontWeight: '600', color: cor.textoSuave },
   grupoPend: { paddingHorizontal: 4, paddingBottom: 8, fontSize: 12, fontWeight: '800', color: cor.vermelho },
-  lista: { backgroundColor: '#FFFFFF', borderRadius: 22, overflow: 'hidden' },
+  lista: { backgroundColor: '#FFFDFA', borderRadius: 22, overflow: 'hidden' },
   pedido: { paddingVertical: 14, paddingLeft: 16, paddingRight: 16, gap: 10 },
   pedidoBorda: { borderTopWidth: 1, borderTopColor: cor.bordaSuave },
   pedidoInfo: { flexDirection: 'row', gap: 12 },
@@ -683,7 +683,7 @@ const s = StyleSheet.create({
   cliente: { flexShrink: 1, fontSize: 16, fontWeight: '700' },
   itens: { fontSize: 13, color: cor.textoSuave },
   entrega: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  entregaTexto: { fontSize: 12, fontWeight: '700', color: cor.ambar },
+  entregaTexto: { fontSize: 12, fontWeight: '700', color: cor.mirtilo },
   falta: { fontSize: 12, fontWeight: '700', color: cor.vermelho },
   meta: { fontSize: 12, color: cor.textoSuave },
   valor: { fontSize: 17, fontWeight: '700' },
@@ -694,10 +694,10 @@ const s = StyleSheet.create({
   statusTexto: { fontSize: 12, fontWeight: '800' },
   receber: { height: 38, paddingHorizontal: 16, borderRadius: 19, backgroundColor: cor.azulBotao, justifyContent: 'center' },
   receberGrande: { height: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: cor.azulBotao, justifyContent: 'center' },
-  receberTexto: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  receberTexto: { color: '#FFFDFA', fontSize: 13, fontWeight: '800' },
   mais: { width: 38, height: 38, borderRadius: 19, backgroundColor: cor.fundo, alignItems: 'center', justifyContent: 'center' },
   dicaLista: { marginTop: 14, marginHorizontal: 20, fontSize: 12, color: cor.textoSuave, textAlign: 'center' },
-  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFFFF', alignItems: 'center', gap: 6 },
+  vazio: { margin: 16, marginTop: 24, padding: 28, borderRadius: 22, backgroundColor: '#FFFDFA', alignItems: 'center', gap: 6 },
   vazioTitulo: { fontSize: 15, fontWeight: '700' },
   vazioTexto: { fontSize: 13, color: cor.textoSuave, marginBottom: 8 },
   fab: {
@@ -718,7 +718,7 @@ const s = StyleSheet.create({
     elevation: 6,
   },
   fabCompacto: { width: 56, paddingLeft: 0, paddingRight: 0, justifyContent: 'center' },
-  fabTexto: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
+  fabTexto: { color: '#FFFDFA', fontSize: 15, fontWeight: '800' },
   opcaoLarga: { minHeight: 52, borderRadius: 16, justifyContent: 'flex-start', paddingHorizontal: 16 },
   rotuloCampo: { fontSize: 13, fontWeight: '800', color: cor.textoMedio },
   campo: { height: 48, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, paddingHorizontal: 12, fontSize: 15, color: cor.texto },
