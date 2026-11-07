@@ -14,7 +14,8 @@ import { Botao, Opcao, T } from '@/components/mobile/ui';
 
 export type Disponibilidade = NonNullable<ProdutoVitrine['disponibilidade']>;
 export const EMOJIS_SUGESTOES = ['🍪', '🎂', '🧁', '🍬', '🥧', '🍫', '✨', '☕', '🥐', '🍓', '🎁', '🍩'];
-export const CATEGORIAS_PADRAO = ['Cookies', 'Bolos & Bentôs', 'Doces Finos & Brigadeiros', 'Macarons', 'Tortas & Fatias', 'Bebidas & Cafés', 'Kits & Presentes'];
+// Sem categorias prontas: cada ateliê cria as suas (a lista vem dos próprios produtos)
+export const CATEGORIAS_PADRAO: string[] = [];
 const DISPONIBILIDADES: { id: Disponibilidade; rotulo: string; sub: string }[] = [
   { id: 'pronta_entrega', rotulo: 'Pronta-entrega', sub: 'Fica na vitrine, sai na hora' },
   { id: 'sob_encomenda', rotulo: 'Sob encomenda', sub: 'Só faz quando alguém pede, com data' },
@@ -77,7 +78,7 @@ export default function ProdutoFormMobile({
     setEmoji(emojiAtual ?? '🍪');
     setNome(p?.nome ?? '');
     setCategoria(p?.categoria ?? '');
-    setCriandoCat(false);
+    setCriandoCat(!p && categorias.length === 0); // ateliê sem categorias: já abre o campo para criar a primeira
     setNovaCat('');
     setPreco(p ? p.preco.toFixed(2).replace('.', ',') : '');
     setDesconto(p?.desconto ? p.desconto.toFixed(2).replace('.', ',') : '');
@@ -179,6 +180,7 @@ export default function ProdutoFormMobile({
               <Campo rotulo="Nome do produto *" value={nome} onChangeText={setNome} placeholder="Ex: Cookie Black Nutella & Avelã" />
               <View style={{ gap: 8 }}>
                 <T style={s.rotulo}>Categoria *</T>
+                {todasCats.length === 0 && <T style={{ fontSize: 13, color: '#6B615A' }}>Você ainda não tem categorias. Crie a primeira, por exemplo "Cookies" ou "Bolos".</T>}
                 <View style={s.chips}>
                   {todasCats.map((c) => (
                     <Opcao key={c} rotulo={c} ativo={categoria === c} aoTocar={() => setCategoria(c)} style={s.chip} />

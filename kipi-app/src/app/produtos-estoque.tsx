@@ -160,16 +160,8 @@ const FOTOS_INICIAIS: Record<string, string> = {
   'prod-14': '☕',
 };
 
-const CATEGORIAS_PADRAO = [
-  'Todas',
-  'Cookies',
-  'Bolos & Bentôs',
-  'Doces Finos & Brigadeiros',
-  'Macarons',
-  'Tortas & Fatias',
-  'Bebidas & Cafés',
-  'Kits & Presentes',
-];
+// Só o filtro "Todas": as categorias vêm dos produtos do ateliê ou são criadas por ela
+const CATEGORIAS_PADRAO = ['Todas'];
 
 const EMOJIS_SUGESTOES = ['🍪', '🎂', '🧁', '🍬', '🥧', '🍫', '✨', '☕', '🥐', '🍓', '🎁', '🍩'];
 
@@ -1140,6 +1132,9 @@ function ProdutosEstoqueDesktop() {
                     </View>
                   )}
 
+                  {categorias.filter(c => c !== 'Todas').length === 0 && !mostrarInputNovaCategoria && (
+                    <Text style={{ fontSize: 13, color: '#6B615A', marginBottom: 6 }}>Você ainda não tem categorias. Clique em "+ Criar Nova Categoria" para criar a primeira.</Text>
+                  )}
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catChipsScroll}>
                     {categorias.filter(c => c !== 'Todas').map(cat => (
                       <TouchableOpacity
