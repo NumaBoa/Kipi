@@ -32,6 +32,8 @@ import { useEhCelular } from '@/lib/layout';
 import ProdutosMobile from '@/components/produtos-mobile/ProdutosMobile';
 import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
 import { ImagemProduto, escolherFotoProduto } from '@/components/ImagemProduto';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
+import InsumoFormMobile, { type TipoInsumo } from '@/components/insumos-mobile/InsumoFormMobile';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -303,15 +305,14 @@ function ProdutosEstoqueDesktop() {
   const [quantidadeEmbalagemInput, setQuantidadeEmbalagemInput] = useState('');
 
   // Ficha Técnica: Custos Indiretos (mão de obra = tempo de preparo × hora trabalhada)
-  // Gás e energia aparecem para preencher, mas começam vazios
-  const CUSTOS_INDIRETOS_VAZIOS: CustoIndireto[] = [
-    { id: 'ci-gas', tipo: 'gas', descricao: 'Gás / Forno', modo: 'fixo_reais', valor: 0, valorCalculado: 0 },
-    { id: 'ci-energia', tipo: 'energia', descricao: 'Energia Elétrica & Batedeira', modo: 'fixo_reais', valor: 0, valorCalculado: 0 },
-  ];
+  // Começa sem nenhum custo extra: a pessoa inclui os que tiver (gás, energia...)
+  const CUSTOS_INDIRETOS_VAZIOS: CustoIndireto[] = [];
+  // Cadastro de ingrediente/embalagem sem sair da ficha
+  const [cadastroInsumoTipo, setCadastroInsumoTipo] = useState<TipoInsumo | null>(null);
   const [custosIndiretos, setCustosIndiretos] = useState<CustoIndireto[]>(CUSTOS_INDIRETOS_VAZIOS);
 
   // Modo de Lucro Desejado: % ou R$
-  const [modoLucro, setModoLucro] = useState<'porcentagem' | 'reais'>('porcentagem');
+  const [modoLucro, setModoLucro] = useState<'porcentagem' | 'reais' | null>(null);
   const [margemLucroDesejada, setMargemLucroDesejada] = useState(''); // ex: 200 = 200% de markup
   const [lucroReaisDesejado, setLucroReaisDesejado] = useState(''); // ex: 15 = R$ 15,00 por unidade
   const [formErro, setFormErro] = useState<string | null>(null);
@@ -349,13 +350,13 @@ function ProdutosEstoqueDesktop() {
     let margemCalculadaPercentual = 0;
 
     if (modoLucro === 'porcentagem') {
-      const margemNum = parseFloat(margemLucroDesejada) || 0;
+      const margemNum = parseFloat(margemLucroDesejada.replace(',', '.')) || 0;
       // Preço de venda com markup sobre o custo: Custo * (1 + Margem/100)
       precoSugerido = custoUnitario * (1 + margemNum / 100);
       lucroEstimadoUnitario = precoSugerido - custoUnitario;
       margemCalculadaPercentual = margemNum;
-    } else {
-      const lucroNum = parseFloat(lucroReaisDesejado) || 0;
+    } else if (modoLucro === 'reais') {
+      const lucroNum = lerDinheiro(lucroReaisDesejado);
       precoSugerido = custoUnitario + lucroNum;
       lucroEstimadoUnitario = lucroNum;
       margemCalculadaPercentual = custoUnitario > 0 ? (lucroNum / custoUnitario) * 100 : 0;
@@ -507,7 +508,7 @@ function ProdutosEstoqueDesktop() {
     setFormDisponibilidade(null);
     setFormDesconto('');
     setCustosIndiretos(CUSTOS_INDIRETOS_VAZIOS);
-    setModoLucro('porcentagem');
+    setModoLucro(null);
     setMargemLucroDesejada('');
     setLucroReaisDesejado('');
     setEditandoId(null);
@@ -521,14 +522,14 @@ function ProdutosEstoqueDesktop() {
     setFormNome(prod.nome);
     setFormFotoEmoji(prod.fotoEmoji);
     setFormCategoria(prod.categoria);
-    setFormPreco(prod.preco.toFixed(2).replace('.', ','));
+    setFormPreco(dinheiroParaCampo(prod.preco));
     setFormFoto(prod.foto);
     setFormEscolhendoIcone(false);
     setFormEstoqueMinimo(String(prod.estoqueMinimo));
     setFormMinimoFreezer(prod.minimoFreezer ? String(prod.minimoFreezer) : '');
     setFormPromoTipo('valor');
     setFormDisponibilidade(prod.disponibilidade);
-    setFormDesconto(prod.desconto ? prod.desconto.toFixed(2).replace('.', ',') : '');
+    setFormDesconto(dinheiroParaCampo(prod.desconto));
     setHabilitarFichaTecnica(false);
     setFormErro(null);
     setModalDossieVisible(false);
@@ -567,6 +568,22 @@ function ProdutosEstoqueDesktop() {
     if (!formDisponibilidade) {
       setFormErro('Escolha como o produto é vendido (pronta-entrega, sob encomenda ou os dois).');
       return;
+    }
+    // Ficha técnica ligada: todos os campos da receita são obrigatórios
+    if (!editandoId && habilitarFichaTecnica) {
+      const lucroNum = modoLucro === 'reais' ? lerDinheiro(lucroReaisDesejado) : parseFloat(margemLucroDesejada.replace(',', '.')) || 0;
+      const falta =
+        !(parseFloat(formRendimento.replace(',', '.')) > 0) ? 'Informe quanto a receita rende.'
+        : !(parseFloat(formTempoPreparo.replace(',', '.')) > 0) ? 'Informe o tempo de preparo em minutos.'
+        : ingredientesUsados.length + embalagensUsadas.length === 0 ? 'Inclua ao menos um ingrediente ou embalagem na receita.'
+        : custosIndiretos.some((ci) => !ci.descricao.trim() || !(ci.valor > 0)) ? 'Preencha descrição e valor de cada custo extra (ou tire o que não usar).'
+        : !modoLucro ? 'Escolha o lucro desejado: % de margem ou R$ fixo.'
+        : !(lucroNum > 0) ? 'Informe o lucro desejado.'
+        : null;
+      if (falta) {
+        setFormErro(falta);
+        return;
+      }
     }
 
     if (editandoId) {
@@ -614,8 +631,8 @@ function ProdutosEstoqueDesktop() {
           descricao: ci.descricao,
           valor: ci.modo === 'porcentagem' ? (subtotalInsumos * ci.valor) / 100 : ci.valor,
         })),
-        modoLucro: modoLucro,
-        lucroDesejado: parseFloat(modoLucro === 'porcentagem' ? margemLucroDesejada : lucroReaisDesejado) || 0,
+        modoLucro: modoLucro ?? 'porcentagem',
+        lucroDesejado: modoLucro === 'reais' ? lerDinheiro(lucroReaisDesejado) : parseFloat(margemLucroDesejada.replace(',', '.')) || 0,
       });
     }
     setModalNovoProdutoVisible(false);
@@ -1198,7 +1215,7 @@ function ProdutosEstoqueDesktop() {
                         placeholderTextColor="#9A8F87"
                         keyboardType="numeric"
                         value={formPreco}
-                        onChangeText={setFormPreco}
+                        onChangeText={(t) => setFormPreco(mascaraDinheiro(t))}
                       />
                     </View>
                   </View>
@@ -1206,21 +1223,22 @@ function ProdutosEstoqueDesktop() {
                   <View style={[styles.inputGroup, { flex: 1.4 }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text style={styles.inputLabel}>PROMOÇÃO</Text>
-                      <View style={styles.promoTipos}>
+                      <View style={styles.profitModeSwitch}>
                         {(['valor', 'porcentagem'] as const).map((t) => (
                           <TouchableOpacity
                             key={t}
-                            style={[styles.promoTipo, formPromoTipo === t && styles.promoTipoOn]}
+                            style={[styles.profitModeBtn, formPromoTipo === t && styles.profitModeBtnActive]}
                             onPress={() => {
                               const pr = parseFloat(formPreco.replace(/\./g, '').replace(',', '.')) || 0;
                               const v = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
-                              if (pr > 0 && v > 0 && t !== formPromoTipo) {
-                                const novo = t === 'porcentagem' ? Math.round((v / pr) * 1000) / 10 : Math.round(pr * v) / 100;
-                                setFormDesconto(String(novo).replace('.', ','));
+                              if (t !== formPromoTipo) {
+                                if (pr > 0 && v > 0) {
+                                  setFormDesconto(t === 'porcentagem' ? String(Math.round((v / pr) * 1000) / 10).replace('.', ',') : dinheiroParaCampo(Math.round(pr * v) / 100));
+                                } else setFormDesconto('');
                               }
                               setFormPromoTipo(t);
                             }}>
-                            <Text style={[styles.promoTipoText, formPromoTipo === t && { color: '#FFFFFF' }]}>{t === 'valor' ? 'R$' : '%'}</Text>
+                            <Text style={[styles.profitModeBtnText, formPromoTipo === t && styles.profitModeBtnTextActive]}>{t === 'valor' ? 'R$ Fixo' : '% Desconto'}</Text>
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -1233,7 +1251,7 @@ function ProdutosEstoqueDesktop() {
                         placeholderTextColor="#9A8F87"
                         keyboardType="numeric"
                         value={formDesconto}
-                        onChangeText={setFormDesconto}
+                        onChangeText={(t) => setFormDesconto(formPromoTipo === 'valor' ? mascaraDinheiro(t) : t.replace(/[^\d,]/g, ''))}
                       />
                     </View>
                     {(() => {
@@ -1321,10 +1339,10 @@ function ProdutosEstoqueDesktop() {
                     {/* Rendimento, Unidade e Tempo */}
                     <View style={styles.formRow}>
                       <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={styles.inputLabel}>RENDIMENTO (QTD)</Text>
+                        <Text style={styles.inputLabel}>RENDIMENTO (QTD) *</Text>
                         <TextInput
                           style={styles.inputBox}
-                          placeholder="12"
+                          placeholder="Ex: 12"
                           placeholderTextColor="#9A8F87"
                           keyboardType="numeric"
                           value={formRendimento}
@@ -1349,10 +1367,10 @@ function ProdutosEstoqueDesktop() {
                       </View>
 
                       <View style={[styles.inputGroup, { flex: 1 }]}>
-                        <Text style={styles.inputLabel}>TEMPO (MIN)</Text>
+                        <Text style={styles.inputLabel}>TEMPO (MIN) *</Text>
                         <TextInput
                           style={styles.inputBox}
-                          placeholder="45 min"
+                          placeholder="Ex: 45"
                           placeholderTextColor="#9A8F87"
                           keyboardType="numeric"
                           value={formTempoPreparo}
@@ -1365,6 +1383,9 @@ function ProdutosEstoqueDesktop() {
                     <View style={styles.subSectionBox}>
                       <View style={styles.subSectionHeader}>
                         <Text style={styles.subSectionTitle}>🥣 Ingredientes da Receita</Text>
+                        <TouchableOpacity onPress={() => setCadastroInsumoTipo('ingrediente')}>
+                          <Text style={styles.linkText}>+ Cadastrar ingrediente novo</Text>
+                        </TouchableOpacity>
                         <Text style={styles.subSectionCount}>{ingredientesUsados.length} adicionados</Text>
                       </View>
 
@@ -1425,6 +1446,9 @@ function ProdutosEstoqueDesktop() {
                     <View style={styles.subSectionBox}>
                       <View style={styles.subSectionHeader}>
                         <Text style={styles.subSectionTitle}>📦 Embalagens Utilizadas</Text>
+                        <TouchableOpacity onPress={() => setCadastroInsumoTipo('embalagem')}>
+                          <Text style={styles.linkText}>+ Cadastrar embalagem nova</Text>
+                        </TouchableOpacity>
                         <Text style={styles.subSectionCount}>{embalagensUsadas.length} adicionadas</Text>
                       </View>
 
@@ -1485,25 +1509,42 @@ function ProdutosEstoqueDesktop() {
                         <Text style={styles.subSectionTitle}>⚡ Custos Indiretos (Energia, Gás, Mão de Obra)</Text>
                       </View>
 
+                      {custosIndiretos.length === 0 && (
+                        <Text style={[styles.indirectCostName, { color: '#9A8F87', paddingVertical: 4 }]}>Nenhum custo extra. Opcional: gás, energia, aluguel...</Text>
+                      )}
                       {custosIndiretos.map((ci, idx) => (
                         <View key={ci.id} style={styles.indirectCostRow}>
-                          <Text style={styles.indirectCostName}>{ci.descricao}</Text>
+                          <TextInput
+                            style={[styles.inputBox, { flex: 1, height: 36, marginRight: 8 }]}
+                            placeholder="Descrição (ex: Gás)"
+                            placeholderTextColor="#9A8F87"
+                            value={ci.descricao}
+                            onChangeText={(t) => setCustosIndiretos((prev) => prev.map((item, i) => (i === idx ? { ...item, descricao: t } : item)))}
+                          />
                           <View style={styles.indirectCostInputBox}>
                             <Text style={styles.indirectCostPrefix}>R$</Text>
                             <TextInput
                               style={styles.indirectCostInput}
                               keyboardType="numeric"
-                              value={ci.valor ? ci.valor.toString() : ''}
+                              value={dinheiroParaCampo(ci.valor)}
                               placeholder="0,00"
                               placeholderTextColor="#D9CFC4"
-                              onChangeText={text => {
-                                const valNum = parseFloat(text.replace(',', '.')) || 0;
-                                setCustosIndiretos(prev => prev.map((item, i) => i === idx ? { ...item, valor: valNum, valorCalculado: valNum } : item));
+                              onChangeText={(text) => {
+                                const valNum = lerDinheiro(mascaraDinheiro(text));
+                                setCustosIndiretos((prev) => prev.map((item, i) => (i === idx ? { ...item, valor: valNum, valorCalculado: valNum } : item)));
                               }}
                             />
                           </View>
+                          <TouchableOpacity style={{ marginLeft: 8 }} onPress={() => setCustosIndiretos((prev) => prev.filter((_, i) => i !== idx))}>
+                            <Feather name="trash-2" size={14} color="#9A8F87" />
+                          </TouchableOpacity>
                         </View>
                       ))}
+                      <TouchableOpacity
+                        style={{ paddingVertical: 6 }}
+                        onPress={() => setCustosIndiretos((prev) => [...prev, { id: `ci-${Date.now()}`, tipo: 'outro', descricao: '', modo: 'fixo_reais', valor: 0, valorCalculado: 0 }])}>
+                        <Text style={styles.linkText}>+ Adicionar custo extra</Text>
+                      </TouchableOpacity>
                       <View style={styles.indirectCostRow}>
                         <Text style={styles.indirectCostName}>
                           Mão de obra ({parseFloat(formTempoPreparo) || 0} min × {formatMoney(horaTrabalhada)}/h)
@@ -1574,7 +1615,9 @@ function ProdutosEstoqueDesktop() {
                       </View>
                     </View>
 
-                    {modoLucro === 'porcentagem' ? (
+                    {!modoLucro ? (
+                      <Text style={[styles.profitInputSuffix, { paddingVertical: 8 }]}>Escolha acima: % de margem ou R$ fixo por unidade *</Text>
+                    ) : modoLucro === 'porcentagem' ? (
                       <View style={styles.profitInputRow}>
                         <TextInput
                           style={styles.profitInputField}
@@ -1582,7 +1625,7 @@ function ProdutosEstoqueDesktop() {
                           value={margemLucroDesejada}
                           placeholder="Ex: 200"
                           placeholderTextColor="#9A8F87"
-                          onChangeText={setMargemLucroDesejada}
+                          onChangeText={(t) => setMargemLucroDesejada(t.replace(/[^\d,]/g, ''))}
                         />
                         <Text style={styles.profitInputSuffix}>% de Markup</Text>
                       </View>
@@ -1593,9 +1636,9 @@ function ProdutosEstoqueDesktop() {
                           style={styles.profitInputField}
                           keyboardType="numeric"
                           value={lucroReaisDesejado}
-                          placeholder="Ex: 15,00"
+                          placeholder="0,00"
                           placeholderTextColor="#9A8F87"
-                          onChangeText={setLucroReaisDesejado}
+                          onChangeText={(t) => setLucroReaisDesejado(mascaraDinheiro(t))}
                         />
                         <Text style={styles.profitInputSuffix}>lucro por unidade</Text>
                       </View>
@@ -1618,7 +1661,7 @@ function ProdutosEstoqueDesktop() {
                     <TouchableOpacity
                       style={styles.btnApplySuggested}
                       onPress={() => {
-                        setFormPreco(calculosFinanceiros.precoSugerido.toFixed(2).replace('.', ','));
+                        setFormPreco(dinheiroParaCampo(calculosFinanceiros.precoSugerido));
                       }}>
                       <Feather name="check" size={14} color="#FFFDFA" />
                       <Text style={styles.btnApplySuggestedText}>Aplicar no Produto</Text>
@@ -1646,7 +1689,19 @@ function ProdutosEstoqueDesktop() {
             </View>
           </View>
         </View>
-      </Modal>
+        {/* Cadastro de ingrediente/embalagem sem sair da ficha (abre por cima) */}
+          <InsumoFormMobile
+            visivel={!!cadastroInsumoTipo}
+            insumo={null}
+            tipoInicial={cadastroInsumoTipo ?? 'ingrediente'}
+            aoFechar={() => setCadastroInsumoTipo(null)}
+            aoSalvo={() => setCadastroInsumoTipo(null)}
+            aoCriado={(id) => {
+              if (cadastroInsumoTipo === 'embalagem') setEmbalagemSelecionadaId(id);
+              else setInsumoSelecionadoId(id);
+            }}
+          />
+        </Modal>
 
       {/* =========================================================================
           MODAL DE DOSSIÊ DO PRODUTO (AO CLICAR NO PRODUTO)

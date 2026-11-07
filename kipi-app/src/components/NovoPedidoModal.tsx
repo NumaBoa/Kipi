@@ -32,6 +32,7 @@ import {
 import { useConfigLoja } from '@/lib/configuracoes';
 import { useRevenda, comissaoDaVenda } from '@/lib/revenda';
 import { useEscopoRevendedora } from '@/lib/minhaRevenda';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // IMAGEM REAL DO PRODUTO (COOKIES DO ATELIÊ)
 const cookiePhoto = require('../../assets/images/cookies.jpg');
@@ -177,7 +178,7 @@ export default function NovoPedidoModal({
   }, [selectedProducts, cart, promo]);
 
   // SINAL DA ENCOMENDA: configurável em % ou R$ a cada pedido
-  const sinalNumero = parseFloat(sinalValor.replace(',', '.')) || 0;
+  const sinalNumero = sinalModo === 'valor' ? lerDinheiro(sinalValor) : parseFloat(sinalValor.replace(',', '.')) || 0;
   const sinalCentavos =
     sinalModo === 'porcentagem' ? Math.round((total * sinalNumero) / 100) : Math.round(sinalNumero * 100);
   const sinalInvalido = sinalModo === 'porcentagem' ? sinalNumero > 100 : sinalCentavos > total;
@@ -338,7 +339,7 @@ export default function NovoPedidoModal({
     setPayment(p.status === 'pendente' ? 'Pendente' : formas[p.formaPagamento]);
     setReceived('');
     setSinalModo('valor');
-    setSinalValor(p.tipoPedido === 'sob_encomenda' ? p.valorSinalPago.toFixed(2).replace('.', ',') : '');
+    setSinalValor(p.tipoPedido === 'sob_encomenda' ? dinheiroParaCampo(p.valorSinalPago) : '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, pedidoEditando]);
 
@@ -1083,7 +1084,7 @@ export default function NovoPedidoModal({
                           placeholder={sinalModo === 'porcentagem' ? 'Ex: 50' : '0,00'}
                           placeholderTextColor="#9A8F87"
                           value={sinalValor}
-                          onChangeText={(t) => setSinalValor(t.replace(/[^\d,]/g, ''))}
+                          onChangeText={(t) => setSinalValor(sinalModo === 'valor' ? mascaraDinheiro(t) : t.replace(/[^\d,]/g, ''))}
                         />
                         {sinalModo === 'porcentagem' && <Text style={styles.sinalAffix}>%</Text>}
                       </View>

@@ -26,6 +26,7 @@ import {
   trocarSenha,
   encerrarSessao,
 } from '@/lib/configuracoes';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -143,7 +144,7 @@ export default function ConfiguracoesScreen() {
 
   // REGRA PADRÃO DE REVENDA
   const [comissaoTipo, setComissaoTipo] = useState<TipoComissao>(config.comissaoPadraoTipo);
-  const [comissaoValor, setComissaoValor] = useState(String(config.comissaoPadraoValor).replace('.', ','));
+  const [comissaoValor, setComissaoValor] = useState((config.comissaoPadraoTipo === 'valor_fixo' ? dinheiroParaCampo(config.comissaoPadraoValor) : String(config.comissaoPadraoValor).replace('.', ',')));
   const [avisoRevenda, setAvisoRevenda] = useState<Aviso>(null);
 
   // MINHA CONTA
@@ -163,7 +164,7 @@ export default function ConfiguracoesScreen() {
   useEffect(() => {
     setLoja(config);
     setComissaoTipo(config.comissaoPadraoTipo);
-    setComissaoValor(String(config.comissaoPadraoValor).replace('.', ','));
+    setComissaoValor((config.comissaoPadraoTipo === 'valor_fixo' ? dinheiroParaCampo(config.comissaoPadraoValor) : String(config.comissaoPadraoValor).replace('.', ',')));
   }, [config]);
 
   useEffect(() => {
@@ -227,7 +228,7 @@ export default function ConfiguracoesScreen() {
   };
 
   const handleSalvarRevenda = async () => {
-    const valor = parseFloat(comissaoValor.replace(',', '.'));
+    const valor = comissaoTipo === 'valor_fixo' ? lerDinheiro(comissaoValor) : parseFloat(comissaoValor.replace(',', '.'));
     if (isNaN(valor) || valor <= 0) {
       setAvisoRevenda({ tipo: 'erro', texto: 'Informe o valor da comissão padrão.' });
       return;
@@ -534,7 +535,7 @@ export default function ConfiguracoesScreen() {
                     keyboardType="decimal-pad"
                     value={comissaoValor}
                     onChangeText={(t) => {
-                      setComissaoValor(formatarDecimal(t));
+                      setComissaoValor(comissaoTipo === 'valor_fixo' ? mascaraDinheiro(t) : formatarDecimal(t));
                       setAvisoRevenda(null);
                     }}
                   />

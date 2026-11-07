@@ -30,6 +30,7 @@ import {
   WARNING_AMBER,
 } from './estilos';
 import { confirmarExclusao } from './DossieRevendedoraModal';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 interface Props {
   visible: boolean;
@@ -74,7 +75,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
   // Ao abrir: sugere o saldo em aberto como valor e a data de hoje
   useEffect(() => {
     if (visible && resumo) {
-      setValor(paraCampo(resumo.saldo));
+      setValor(dinheiroParaCampo(resumo.saldo));
       setForma('pix');
       setData(dataHojeBR());
       setObservacoes('');
@@ -85,7 +86,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
 
   if (!revendedora || !resumo) return null;
 
-  const valorNum = parseFloat(valor.replace(',', '.'));
+  const valorNum = lerDinheiro(valor);
   const acimaDoSaldo = !isNaN(valorNum) && valorNum > resumo.saldo + 0.001;
 
   const handleRegistrar = async () => {
@@ -178,7 +179,7 @@ export default function AcertoContasModal({ visible, revendedora, vendas, pagame
                       placeholderTextColor="#9A8F87"
                       keyboardType="decimal-pad"
                       value={valor}
-                      onChangeText={(t) => setValor(mascaraDecimal(t))}
+                      onChangeText={(t) => setValor(mascaraDinheiro(t))}
                     />
                   </View>
                   {acimaDoSaldo && (

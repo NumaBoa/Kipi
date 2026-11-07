@@ -17,6 +17,7 @@ import {
   type Estabelecimento,
   type PlanoKipi,
 } from '@/lib/acesso';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // PAINEL KIPI (ADMINISTRAÇÃO DO SISTEMA) — o negócio Kipi: receita, cobrança, planos e
@@ -94,7 +95,7 @@ export default function PainelKipi() {
   }, [filtro, busca]);
 
   useEffect(() => {
-    if (editando) setEdicao({ plano: editando.plano, mensalidade: String(editando.mensalidade).replace('.', ','), dia: String(editando.diaVencimento) });
+    if (editando) setEdicao({ plano: editando.plano, mensalidade: dinheiroParaCampo(editando.mensalidade), dia: String(editando.diaVencimento) });
   }, [editando]);
 
   // ==========================================================================
@@ -196,7 +197,7 @@ export default function PainelKipi() {
 
   const salvarEdicao = () => {
     if (!editando) return;
-    const mensalidade = parseFloat(edicao.mensalidade.replace(',', '.'));
+    const mensalidade = lerDinheiro(edicao.mensalidade);
     const dia = parseInt(edicao.dia, 10);
     if (!(mensalidade > 0) || !(dia >= 1 && dia <= 28)) return;
     atualizarEstabelecimento(editando.id, { plano: edicao.plano, mensalidade, diaVencimento: dia });
@@ -594,7 +595,7 @@ export default function PainelKipi() {
                   <TouchableOpacity
                     key={p.id}
                     style={[s.chip, edicao.plano === p.id && s.chipAtivo]}
-                    onPress={() => setEdicao({ ...edicao, plano: p.id, mensalidade: String(p.preco).replace('.', ',') })}>
+                    onPress={() => setEdicao({ ...edicao, plano: p.id, mensalidade: dinheiroParaCampo(p.preco) })}>
                     <Text style={[s.chipText, edicao.plano === p.id && s.chipTextAtivo]}>{p.id}</Text>
                   </TouchableOpacity>
                 ))}
@@ -602,7 +603,7 @@ export default function PainelKipi() {
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.label, { marginTop: 0 }]}>MENSALIDADE (R$)</Text>
-                  <TextInput style={s.input} keyboardType="decimal-pad" value={edicao.mensalidade} onChangeText={(t) => setEdicao({ ...edicao, mensalidade: t })} />
+                  <TextInput style={s.input} keyboardType="decimal-pad" value={edicao.mensalidade} onChangeText={(t) => setEdicao({ ...edicao, mensalidade: mascaraDinheiro(t) })} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[s.label, { marginTop: 0 }]}>DIA DE VENCIMENTO</Text>

@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View, type ScrollViewInstance, type TextInputProps } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity, View, useWindowDimensions, type ScrollViewInstance, type TextInputProps } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { ajustarEstoqueInsumo, fatorDaUnidade, salvarInsumo, unidadeFracionadaDe, type Armazenamento, type Insumo } from '@/lib/insumos';
 import { cor, fonte, numeros } from '@/components/mobile/tema';
 import { Botao, Opcao, T } from '@/components/mobile/ui';
+import { dinheiroParaCampo, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // CADASTRO / EDIÇÃO DE INSUMO NO CELULAR — mesmas regras da versão de computador:
 // nome e preço obrigatórios; custo na receita = preço pago ÷ conteúdo da embalagem.
 // ============================================================================
 
-type Tipo = 'ingrediente' | 'embalagem' | 'outro';
+export type TipoInsumo = 'ingrediente' | 'embalagem' | 'outro';
+type Tipo = TipoInsumo;
 const UNIDADES: Record<Tipo, { v: string; comum: boolean }[]> = {
   ingrediente: [
     { v: 'kg', comum: true }, { v: 'g', comum: true }, { v: 'L', comum: true }, { v: 'ml', comum: true }, { v: 'un', comum: true }, { v: 'pct', comum: true },
@@ -52,12 +54,20 @@ export default function InsumoFormMobile({
   insumo,
   aoFechar,
   aoSalvo,
+  tipoInicial,
+  nomeInicial,
+  aoCriado,
 }: {
   visivel: boolean;
   insumo: Insumo | null; // null = cadastro novo
   aoFechar: () => void;
   aoSalvo: (msg: string) => void;
+  tipoInicial?: Tipo; // cadastro aberto de dentro da receita: já vem no tipo certo
+  nomeInicial?: string; // texto que a pessoa buscou na receita
+  aoCriado?: (id: string) => void; // devolve o insumo novo (a receita já inclui)
 }) {
+  const { width, height } = useWindowDimensions();
+  const janela = width >= 900; // computador: abre como janela no centro, não em tela cheia
   const insets = useSafeAreaInsets();
   const rolagem = useRef<ScrollViewInstance>(null);
   const editando = !!insumo;
@@ -78,14 +88,14 @@ export default function InsumoFormMobile({
   useEffect(() => {
     if (!visivel) return;
     const i = insumo;
-    const t: Tipo = i ? i.tipo : 'ingrediente';
+    const t: Tipo = i ? i.tipo : tipoInicial ?? 'ingrediente';
     setTipo(t);
-    setNome(i?.nome ?? '');
+    setNome(i?.nome ?? nomeInicial ?? '');
     setMarca(i?.marcaFornecedor ?? '');
-    setUnidade(i?.unidade ?? 'kg');
+    setUnidade(i?.unidade ?? (t === 'ingrediente' ? 'kg' : t === 'outro' ? 'un' : 'pacote'));
     setTodas(!!i && !UNIDADES[t].some((u) => u.comum && u.v === i.unidade));
-    setPreco(i ? i.precoPago.toFixed(2).replace('.', ',') : '');
-    setConteudo(i ? String(i.conteudoEmbalagem).replace('.', ',') : '1000');
+    setPreco(dinheiroParaCampo(i?.precoPago));
+    setConteudo(i ? String(i.conteudoEmbalagem).replace('.', ',') : t === 'ingrediente' ? '1000' : t === 'outro' ? '1' : '50');
     setArmazenamento(i?.armazenamento ?? 'seco');
     setEstoque(i ? String(i.quantidadeEstoque).replace('.', ',') : '');
     setMinimo(i ? String(i.estoqueMinimo).replace('.', ',') : '');
@@ -137,8 +147,9 @@ export default function InsumoFormMobile({
       aoSalvo('Insumo atualizado!');
       return;
     }
+    const novoId = `ins-${Date.now()}`;
     salvarInsumo({
-      id: `ins-${Date.now()}`,
+      id: novoId,
       ...base,
       quantidadeEstoque: estoqueNum,
       status: 'ativo',
@@ -146,12 +157,15 @@ export default function InsumoFormMobile({
       ultimaCompra: new Date().toLocaleDateString('pt-BR'),
     });
     aoSalvo('Insumo cadastrado!');
+    aoCriado?.(novoId);
   };
 
   const unidades = UNIDADES[tipo].filter((u) => u.comum || todas || u.v === unidade);
 
   return (
-    <Modal visible={visivel} animationType="slide" onRequestClose={aoFechar} statusBarTranslucent>
+    <Modal visible={visivel} animationType={janela ? 'fade' : 'slide'} transparent={janela} onRequestClose={aoFechar} statusBarTranslucent>
+      <View style={janela ? s.fundoJanela : { flex: 1 }}>
+      <View style={janela ? [s.janela, { height: Math.min(880, height - 48) }] : { flex: 1 }}>
       <SafeAreaView style={s.tela} edges={['top']}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={s.topo}>
@@ -212,7 +226,7 @@ export default function InsumoFormMobile({
                 </View>
               </View>
               <View style={s.linha}>
-                <Campo style={{ flex: 1 }} rotulo="Preço pago *" value={preco} onChangeText={setPreco} placeholder="R$ 0,00" keyboardType="decimal-pad" />
+                <Campo style={{ flex: 1 }} rotulo="Preço pago *" value={preco} onChangeText={(t) => setPreco(mascaraDinheiro(t))} placeholder="R$ 0,00" keyboardType="decimal-pad" />
                 <Campo style={{ flex: 1 }} rotulo={tipo === 'ingrediente' ? 'Vem quanto (g ou ml)' : 'Vem quantas (un, m)'} value={conteudo} onChangeText={setConteudo} keyboardType="decimal-pad" />
               </View>
               <View style={s.custo}>
@@ -252,11 +266,15 @@ export default function InsumoFormMobile({
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      </View>
+      </View>
     </Modal>
   );
 }
 
 const s = StyleSheet.create({
+  fundoJanela: { flex: 1, backgroundColor: 'rgba(43,36,33,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  janela: { flexGrow: 0, flexShrink: 0, width: 560, maxWidth: '100%', borderRadius: 24, overflow: 'hidden' },
   tela: { flex: 1, backgroundColor: cor.fundo },
   topo: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 20, paddingRight: 12, paddingTop: 8, paddingBottom: 6 },
   titulo: { fontSize: 22, fontWeight: '700', letterSpacing: -0.4 },

@@ -6,6 +6,7 @@ import { atualizarProduto, cadastrarProduto, type ProdutoVitrine } from '@/lib/e
 import { brl, cor, fonte } from '@/components/mobile/tema';
 import { Botao, Opcao, T } from '@/components/mobile/ui';
 import { ImagemProduto, escolherFotoProduto } from '@/components/ImagemProduto';
+import { dinheiroParaCampo, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // CADASTRO / EDIÇÃO DE PRODUTO NO CELULAR — mesmas regras da versão de computador:
@@ -87,8 +88,8 @@ export default function ProdutoFormMobile({
     setCategoria(p?.categoria ?? '');
     setCriandoCat(!p && categorias.length === 0); // ateliê sem categorias: já abre o campo para criar a primeira
     setNovaCat('');
-    setPreco(p ? p.preco.toFixed(2).replace('.', ',') : '');
-    setDesconto(p?.desconto ? p.desconto.toFixed(2).replace('.', ',') : '');
+    setPreco(dinheiroParaCampo(p?.preco));
+    setDesconto(dinheiroParaCampo(p?.desconto));
     // Cadastro novo começa sem "como vende": a pessoa precisa escolher
     setDisp(p ? p.disponibilidade ?? 'pronta_entrega' : null);
     setMinimo(p ? String(p.estoqueMinimo) : '');
@@ -263,42 +264,45 @@ export default function ProdutoFormMobile({
             {/* PREÇO */}
             <View style={s.bloco}>
               <View style={s.linha}>
-                <Campo style={{ flex: 1 }} rotulo="Preço de venda *" value={preco} onChangeText={setPreco} placeholder="R$ 0,00" keyboardType="decimal-pad" />
+                <Campo style={{ flex: 1 }} rotulo="Preço de venda *" value={preco} onChangeText={(t) => setPreco(mascaraDinheiro(t))} placeholder="R$ 0,00" keyboardType="decimal-pad" />
               </View>
               <View style={{ gap: 6 }}>
-                <View style={s.promoTopo}>
-                  <T style={s.rotulo}>Promoção</T>
-                  <View style={s.promoTipos}>
+                <T style={s.rotulo}>Promoção</T>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={s.segmento}>
                     {(['valor', 'porcentagem'] as const).map((t) => (
                       <TouchableOpacity
                         key={t}
-                        style={[s.promoTipo, promoTipo === t && s.promoTipoOn]}
+                        style={[s.segItem, promoTipo === t && s.segItemOn]}
                         onPress={() => {
                           // Troca o modo convertendo o valor já digitado
                           const pr = lerValor(preco);
                           const v = lerValor(desconto);
                           if (pr > 0 && v > 0 && t !== promoTipo) {
-                            const novo = t === 'porcentagem' ? Math.round((v / pr) * 1000) / 10 : Math.round(pr * v) / 100;
-                            setDesconto(String(novo).replace('.', ','));
+                            if (t === 'porcentagem') setDesconto(String(Math.round((v / pr) * 1000) / 10).replace('.', ','));
+                            else setDesconto(dinheiroParaCampo(Math.round(pr * v) / 100));
+                          } else if (t !== promoTipo) {
+                            setDesconto('');
                           }
                           setPromoTipo(t);
                         }}
-                        accessibilityRole="radio"
+                        accessibilityRole="tab"
                         accessibilityState={{ selected: promoTipo === t }}>
-                        <T style={[s.promoTipoTexto, promoTipo === t && { color: '#FFFFFF' }]}>{t === 'valor' ? 'R$' : '%'}</T>
+                        <T style={[s.segTexto, promoTipo === t && { color: cor.texto }]}>{t === 'valor' ? 'R$' : '%'}</T>
                       </TouchableOpacity>
                     ))}
                   </View>
+                  <TextInput
+                    value={desconto}
+                    onChangeText={(t) => setDesconto(promoTipo === 'valor' ? mascaraDinheiro(t) : t.replace(/[^\d,]/g, ''))}
+                    placeholder={promoTipo === 'valor' ? 'R$ 0,00 por unidade' : 'Ex: 10'}
+                    placeholderTextColor="#9A8F87"
+                    keyboardType="decimal-pad"
+                    style={[s.input, { flex: 1, minWidth: 0 }]}
+                    accessibilityLabel={promoTipo === 'valor' ? 'Desconto em reais' : 'Desconto em porcentagem'}
+                  />
                 </View>
-                <TextInput
-                  value={desconto}
-                  onChangeText={setDesconto}
-                  placeholder={promoTipo === 'valor' ? 'Desconto em R$ por unidade (opcional)' : 'Desconto em % (opcional)'}
-                  placeholderTextColor="#9A8F87"
-                  keyboardType="decimal-pad"
-                  style={s.input}
-                  accessibilityLabel={promoTipo === 'valor' ? 'Desconto em reais' : 'Desconto em porcentagem'}
-                />
+                <T style={s.dica}>{promoTipo === 'valor' ? 'Desconto em R$ em cada unidade (opcional)' : 'Desconto em % no preço de venda (opcional)'}</T>
                 {(() => {
                   const pr = lerValor(preco);
                   const v = lerValor(desconto);
@@ -392,11 +396,11 @@ const s = StyleSheet.create({
   imgBotaoOn: { borderColor: cor.mirtilo, backgroundColor: cor.mirtiloClaro },
   imgBotaoTexto: { fontSize: 14, fontWeight: '700', color: cor.texto },
   removerFoto: { fontSize: 13, fontWeight: '700', color: cor.vermelho, paddingVertical: 4 },
-  promoTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  promoTipos: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 999, backgroundColor: cor.cinzaClaro },
-  promoTipo: { minWidth: 44, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
-  promoTipoOn: { backgroundColor: cor.mirtilo },
-  promoTipoTexto: { fontSize: 13, fontWeight: '800', color: cor.textoMedio },
+  // Mesmo seletor R$ / % do lucro desejado da receita
+  segmento: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#F3EEE7' },
+  segItem: { width: 52, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  segItemOn: { backgroundColor: '#FFFDFA' },
+  segTexto: { fontSize: 14, fontWeight: '800', color: cor.textoSuave },
   gradeEmoji: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   emoji: { width: '15%', flexGrow: 1, height: 46, borderRadius: 14, borderWidth: 1.5, borderColor: cor.borda, alignItems: 'center', justifyContent: 'center' },
   emojiOn: { borderColor: cor.azulBotao, backgroundColor: cor.azulClaro },

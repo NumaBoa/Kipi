@@ -23,6 +23,7 @@ import { useRevenda, comissaoDaVenda } from '@/lib/revenda';
 import { useEscopoRevendedora } from '@/lib/minhaRevenda';
 import { Botao, Etiqueta, Gaveta, Opcao, T } from '@/components/mobile/ui';
 import { brl, cor, numeros, sombra } from '@/components/mobile/tema';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // NOVO PEDIDO (celular) em 2 etapas: 1) produtos  2) cliente, entrega e pagamento.
@@ -88,7 +89,7 @@ export default function NovoPedidoMobile({
       data: d ? `${doisDig(d.getDate())}/${doisDig(d.getMonth() + 1)}/${d.getFullYear()} ${doisDig(d.getHours())}:${doisDig(d.getMinutes())}` : '',
       forma: (p.status === 'pendente' ? 'Pendente' : formas[p.formaPagamento]) as Forma,
       sinalModo: 'valor' as const,
-      sinalValor: p.tipoPedido === 'sob_encomenda' ? p.valorSinalPago.toFixed(2).replace('.', ',') : '',
+      sinalValor: p.tipoPedido === 'sob_encomenda' ? dinheiroParaCampo(p.valorSinalPago) : '',
     };
   }, []);
 
@@ -172,12 +173,12 @@ export default function NovoPedidoMobile({
       : 0;
 
   // PAGAMENTO
-  const sinalNum = parseFloat(sinalValor.replace(',', '.')) || 0;
+  const sinalNum = sinalModo === 'valor' ? lerDinheiro(sinalValor) : parseFloat(sinalValor.replace(',', '.')) || 0;
   const sinalCent = sinalModo === 'porcentagem' ? Math.round((total * sinalNum) / 100) : Math.round(sinalNum * 100);
   const sinalInvalido = sinalModo === 'porcentagem' ? sinalNum > 100 : sinalCent > total;
   const pagoAgora = forma === 'Pendente' ? (editando ? Math.min(Math.round(editando.valorSinalPago * 100), total) : 0) : enc ? Math.min(sinalCent, total) : total;
   const saldo = total - pagoAgora;
-  const recebidoCent = Math.round((parseFloat(recebido.replace(',', '.')) || 0) * 100);
+  const recebidoCent = Math.round(lerDinheiro(recebido) * 100);
 
   const pendencia =
     qtd === 0
@@ -764,7 +765,10 @@ export default function NovoPedidoMobile({
                     <View style={s.linha}>
                       <View style={s.segPequeno}>
                         {(['porcentagem', 'valor'] as const).map((m) => (
-                          <TouchableOpacity key={m} style={[s.segPequenoItem, sinalModo === m && { backgroundColor: '#FFFDFA' }]} onPress={() => setSinalModo(m)} accessibilityRole="radio" accessibilityState={{ selected: sinalModo === m }}>
+                          <TouchableOpacity key={m} style={[s.segPequenoItem, sinalModo === m && { backgroundColor: '#FFFDFA' }]} onPress={() => {
+                            if (m !== sinalModo) setSinalValor('');
+                            setSinalModo(m);
+                          }} accessibilityRole="radio" accessibilityState={{ selected: sinalModo === m }}>
                             <T style={s.forte}>{m === 'porcentagem' ? '%' : 'R$'}</T>
                           </TouchableOpacity>
                         ))}
@@ -772,7 +776,7 @@ export default function NovoPedidoMobile({
                       <View style={[s.campoSinal, sinalInvalido && { borderColor: cor.vermelhoForte }]}>
                         <TextInput
                           value={sinalValor}
-                          onChangeText={(t) => setSinalValor(t.replace(/[^\d,]/g, ''))}
+                          onChangeText={(t) => setSinalValor(sinalModo === 'valor' ? mascaraDinheiro(t) : t.replace(/[^\d,]/g, ''))}
                           placeholder={sinalModo === 'porcentagem' ? 'Ex: 50' : '0,00'}
                           placeholderTextColor={cor.textoSuave}
                           keyboardType="decimal-pad"
@@ -787,7 +791,7 @@ export default function NovoPedidoMobile({
                 {forma === 'Dinheiro' && (
                   <View style={s.caixa}>
                     <T style={s.rotuloCampo}>Valor recebido (R$)</T>
-                    <TextInput value={recebido} onChangeText={setRecebido} placeholder="0,00" placeholderTextColor={cor.textoSuave} keyboardType="decimal-pad" style={[s.campo, { backgroundColor: '#FFFDFA' }]} />
+                    <TextInput value={recebido} onChangeText={(t) => setRecebido(mascaraDinheiro(t))} placeholder="0,00" placeholderTextColor={cor.textoSuave} keyboardType="decimal-pad" style={[s.campo, { backgroundColor: '#FFFDFA' }]} />
                     <T style={[s.forte, numeros, { color: cor.verde }]}>Troco: {reais(Math.max(0, recebidoCent - pagoAgora))}</T>
                   </View>
                 )}

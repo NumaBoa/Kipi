@@ -5,6 +5,7 @@ import { atualizarPedido, cancelarPedido, pedidoBaixouEstoque, type Pedido } fro
 import { Botao, Gaveta, Opcao, T } from '@/components/mobile/ui';
 import { brl, cor, fonte, numeros } from '@/components/mobile/tema';
 import { calcularBaixa, lerValor, valorParaCampo } from './acoes';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // GAVETAS COMPARTILHADAS ENTRE A LISTA E O DETALHE DO PEDIDO
@@ -85,7 +86,7 @@ export function GavetaReceber({ pedido, aoFechar, avisar }: { pedido: Pedido | n
           <T style={s.prefixo}>R$</T>
           <TextInput
             value={valor}
-            onChangeText={(t) => setValor(t.replace(/[^\d,.]/g, ''))}
+            onChangeText={(t) => setValor(mascaraDinheiro(t))}
             keyboardType="decimal-pad"
             style={[s.inputValor, { fontFamily: fonte.titulo }]}
             accessibilityLabel="Valor recebido"

@@ -30,6 +30,7 @@ import TabBar from '@/components/mobile/TabBar';
 import { brl, cor, fonte, numeros, sombra } from '@/components/mobile/tema';
 import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
 import RevendedoraFormMobile from './RevendedoraFormMobile';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // ACESSOS (REVENDEDORAS) NO CELULAR: lista, ficha, entrega e acerto de contas.
@@ -350,7 +351,7 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
     setErroPag(null);
     setGaveta('acerto');
   };
-  const valorNum = parseFloat(valor.replace(',', '.'));
+  const valorNum = lerDinheiro(valor);
   const registrar = () => {
     if (isNaN(valorNum) || valorNum <= 0) return setErroPag('Informe o valor do pagamento.');
     const dataISO = dataBRParaISO(dataPag);
@@ -720,9 +721,9 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
           </View>
           <View style={{ gap: 6 }}>
             <T style={s.rotuloPeq}>Valor a pagar</T>
-            <TextInput value={valor} onChangeText={(t) => setValor(t.replace(/[^\d,]/g, ''))} placeholder="R$ 0,00" placeholderTextColor="#9A8F87" keyboardType="decimal-pad" style={[s.campo, { fontSize: 18, fontWeight: '800' }]} accessibilityLabel="Valor a pagar" />
+            <TextInput value={valor} onChangeText={(t) => setValor(mascaraDinheiro(t))} placeholder="R$ 0,00" placeholderTextColor="#9A8F87" keyboardType="decimal-pad" style={[s.campo, { fontSize: 18, fontWeight: '800' }]} accessibilityLabel="Valor a pagar" />
             {resumo.saldo > 0 && (
-              <TouchableOpacity style={s.usarSaldo} onPress={() => setValor(resumo.saldo.toFixed(2).replace('.', ','))} accessibilityRole="button">
+              <TouchableOpacity style={s.usarSaldo} onPress={() => setValor(dinheiroParaCampo(resumo.saldo))} accessibilityRole="button">
                 <T style={s.usarSaldoTexto}>Usar saldo {brl(resumo.saldo)}</T>
               </TouchableOpacity>
             )}

@@ -2,6 +2,7 @@ import { Linking, Platform } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { linkWhatsAppDoPedido, mensagemWhatsAppDoPedido, type Pedido } from '@/lib/clientesPedidos';
 import type { ConfigLoja } from '@/lib/configuracoes';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // AÇÕES DE PEDIDO USADAS NAS TELAS DO CELULAR (mesmas regras da versão de computador)
@@ -37,4 +38,4 @@ export const lerValor = (t: string) => {
   const s = String(t || '').trim();
   return (s.includes(',') ? parseFloat(s.replace(/\./g, '').replace(',', '.')) : parseFloat(s)) || 0;
 };
-export const valorParaCampo = (v: number) => v.toFixed(2).replace('.', ',');
+export const valorParaCampo = (v: number) => dinheiroParaCampo(v) || '0,00';

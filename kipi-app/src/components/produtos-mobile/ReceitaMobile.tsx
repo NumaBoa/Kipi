@@ -17,11 +17,14 @@ import {
 import { definirPrecoProduto, useEstoqueVitrine } from '@/lib/estoqueVitrine';
 import { brl, cor, fonte, numeros } from '@/components/mobile/tema';
 import { Botao, Gaveta, T } from '@/components/mobile/ui';
+import InsumoFormMobile from '@/components/insumos-mobile/InsumoFormMobile';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // RECEITA (FICHA TÉCNICA) NO CELULAR — mesmas regras do FichaTecnicaModal:
 // custo pelo custo médio dos insumos, mão de obra = tempo × hora trabalhada,
-// o preço só muda em "Salvar e usar o sugerido".
+// o preço só muda em "Salvar e usar o sugerido". Receita nova começa em branco
+// (rende, preparo, custos extras e lucro) e todos os campos são obrigatórios.
 // ============================================================================
 
 const num = (s: string) => parseFloat(s.replace(',', '.')) || 0;
@@ -43,12 +46,13 @@ export default function ReceitaMobile({
   const produto = vitrine.find((p) => p.id === produtoId);
   const existente = !!produtoId && fichas.some((f) => f.produtoId === produtoId);
 
-  const [rendimento, setRendimento] = useState('12');
-  const [tempo, setTempo] = useState('45');
+  const [rendimento, setRendimento] = useState('');
+  const [tempo, setTempo] = useState('');
   const [itens, setItens] = useState<{ insumoId: string; qtd: string }[]>([]);
   const [extras, setExtras] = useState<{ id: string; descricao: string; valor: string }[]>([]);
-  const [modoLucro, setModoLucro] = useState<ModoLucro>('porcentagem');
-  const [lucro, setLucro] = useState('200');
+  const [modoLucro, setModoLucro] = useState<ModoLucro | null>(null);
+  const [lucro, setLucro] = useState('');
+  const [cadastrandoInsumo, setCadastrandoInsumo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [busca, setBusca] = useState('');
@@ -59,12 +63,12 @@ export default function ReceitaMobile({
   useEffect(() => {
     if (!produtoId) return;
     const f = fichaDoProduto(produtoId);
-    setRendimento(String(f?.rendimento ?? 12));
-    setTempo(String(f?.tempoPreparoMinutos ?? 45));
-    setItens(f?.itens.map((it) => ({ insumoId: it.insumoId, qtd: String(it.quantidade) })) ?? []);
-    setExtras(f?.custosExtras.map((c) => ({ id: c.id, descricao: c.descricao, valor: String(c.valor) })) ?? [{ id: `extra-${Date.now()}`, descricao: 'Gás / energia', valor: '3' }]);
-    setModoLucro(f?.modoLucro ?? 'porcentagem');
-    setLucro(String(f?.lucroDesejado ?? 200));
+    setRendimento(f ? String(f.rendimento) : '');
+    setTempo(f ? String(f.tempoPreparoMinutos) : '');
+    setItens(f?.itens.map((it) => ({ insumoId: it.insumoId, qtd: String(it.quantidade).replace('.', ',') })) ?? []);
+    setExtras(f?.custosExtras.map((c) => ({ id: c.id, descricao: c.descricao, valor: dinheiroParaCampo(c.valor) })) ?? []);
+    setModoLucro(f?.modoLucro ?? null);
+    setLucro(!f ? '' : f.modoLucro === 'reais' ? dinheiroParaCampo(f.lucroDesejado) : String(f.lucroDesejado).replace('.', ','));
     setErro(null);
     setResumoAberto(false);
   }, [produtoId]);
@@ -74,9 +78,9 @@ export default function ReceitaMobile({
     rendimento: Math.max(1, num(rendimento)),
     tempoPreparoMinutos: num(tempo),
     itens: itens.map((it) => ({ insumoId: it.insumoId, quantidade: num(it.qtd) })),
-    custosExtras: extras.map((c) => ({ id: c.id, descricao: c.descricao.trim() || 'Custo extra', valor: num(c.valor) })),
-    modoLucro,
-    lucroDesejado: num(lucro),
+    custosExtras: extras.map((c) => ({ id: c.id, descricao: c.descricao.trim() || 'Custo extra', valor: lerDinheiro(c.valor) })),
+    modoLucro: modoLucro ?? 'porcentagem',
+    lucroDesejado: !modoLucro ? 0 : modoLucro === 'reais' ? lerDinheiro(lucro) : num(lucro),
   };
   const calc = calcularFicha(rascunho, insumos, horaTrabalhada);
   const margemAtual = produto ? margemReal(produto.preco, calc.custoUnitario) : 0;
@@ -99,7 +103,13 @@ export default function ReceitaMobile({
 
   const salvar = (aplicarPreco: boolean) => {
     if (!produtoId) return;
-    if (!rascunho.itens.some((it) => it.quantidade > 0)) return setErro('Inclua ao menos um insumo com quantidade.');
+    if (!(num(rendimento) > 0)) return setErro('Informe quanto a receita rende.');
+    if (!(num(tempo) > 0)) return setErro('Informe o tempo de preparo em minutos.');
+    if (itens.length === 0) return setErro('Inclua ao menos um ingrediente ou embalagem.');
+    if (rascunho.itens.some((it) => !(it.quantidade > 0))) return setErro('Informe a quantidade de todos os insumos.');
+    if (extras.some((c) => !c.descricao.trim() || !(lerDinheiro(c.valor) > 0))) return setErro('Preencha descrição e valor de cada custo extra (ou tire o que não usar).');
+    if (!modoLucro) return setErro('Escolha o lucro desejado em % ou em R$.');
+    if (!(rascunho.lucroDesejado > 0)) return setErro('Informe o lucro desejado.');
     salvarFicha({ ...rascunho, itens: rascunho.itens.filter((it) => it.quantidade > 0) });
     if (aplicarPreco) definirPrecoProduto(produtoId, Number(calc.precoSugerido.toFixed(2)));
     aoSalvo?.(aplicarPreco ? `Receita salva e preço agora é ${brl(calc.precoSugerido)}` : 'Receita salva. Custo e margem atualizados.');
@@ -133,12 +143,12 @@ export default function ReceitaMobile({
             {/* RENDIMENTO E TEMPO */}
             <View style={[s.bloco, { flexDirection: 'row', gap: 10 }]}>
               <View style={{ flex: 1, gap: 6 }}>
-                <T style={s.rotulo}>Rende (un)</T>
-                <TextInput value={rendimento} onChangeText={setRendimento} keyboardType="numeric" style={s.input} accessibilityLabel="Rendimento em unidades" />
+                <T style={s.rotulo}>Rende (un) *</T>
+                <TextInput value={rendimento} onChangeText={setRendimento} keyboardType="numeric" placeholder="Ex: 12" placeholderTextColor="#9A8F87" style={s.input} accessibilityLabel="Rendimento em unidades" />
               </View>
               <View style={{ flex: 1, gap: 6 }}>
-                <T style={s.rotulo}>Preparo (min)</T>
-                <TextInput value={tempo} onChangeText={setTempo} keyboardType="numeric" style={s.input} accessibilityLabel="Tempo de preparo em minutos" />
+                <T style={s.rotulo}>Preparo (min) *</T>
+                <TextInput value={tempo} onChangeText={setTempo} keyboardType="numeric" placeholder="Ex: 45" placeholderTextColor="#9A8F87" style={s.input} accessibilityLabel="Tempo de preparo em minutos" />
               </View>
             </View>
 
@@ -188,7 +198,7 @@ export default function ReceitaMobile({
             {/* CUSTOS EXTRAS */}
             <View style={[s.bloco, { gap: 8 }]}>
               <T titulo style={s.blocoTitulo}>Custos extras por receita</T>
-              <T style={s.sub}>Gás, energia… A mão de obra já entra pelo tempo de preparo.</T>
+              <T style={s.sub}>Opcional. Gás, energia… A mão de obra já entra pelo tempo de preparo.</T>
               {extras.map((c, idx) => (
                 <View key={c.id} style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                   <TextInput
@@ -201,11 +211,11 @@ export default function ReceitaMobile({
                   />
                   <TextInput
                     value={c.valor}
-                    onChangeText={(v) => setExtras((prev) => prev.map((x, i) => (i === idx ? { ...x, valor: v } : x)))}
+                    onChangeText={(v) => setExtras((prev) => prev.map((x, i) => (i === idx ? { ...x, valor: mascaraDinheiro(v) } : x)))}
                     placeholder="R$ 0,00"
                     placeholderTextColor="#9A8F87"
                     keyboardType="decimal-pad"
-                    style={[s.input, { width: 84, flexShrink: 0 }]}
+                    style={[s.input, { width: 96, flexShrink: 0 }]}
                     accessibilityLabel="Valor do custo"
                   />
                   <TouchableOpacity style={s.tirar} onPress={() => setExtras((prev) => prev.filter((_, i) => i !== idx))} accessibilityRole="button" accessibilityLabel="Tirar custo">
@@ -220,21 +230,38 @@ export default function ReceitaMobile({
 
             {/* LUCRO */}
             <View style={[s.bloco, { gap: 10 }]}>
-              <T titulo style={s.blocoTitulo}>Lucro desejado</T>
+              <T titulo style={s.blocoTitulo}>Lucro desejado *</T>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 <View style={s.segmento}>
                   {(['porcentagem', 'reais'] as ModoLucro[]).map((m) => {
                     const on = modoLucro === m;
                     return (
-                      <TouchableOpacity key={m} style={[s.segItem, on && s.segItemOn]} onPress={() => setModoLucro(m)} accessibilityRole="tab" accessibilityState={{ selected: on }}>
+                      <TouchableOpacity
+                        key={m}
+                        style={[s.segItem, on && s.segItemOn]}
+                        onPress={() => {
+                          if (m !== modoLucro) setLucro('');
+                          setModoLucro(m);
+                        }}
+                        accessibilityRole="tab"
+                        accessibilityState={{ selected: on }}>
                         <T style={[s.segTexto, on && { color: cor.texto }]}>{m === 'porcentagem' ? '%' : 'R$'}</T>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-                <TextInput value={lucro} onChangeText={setLucro} keyboardType="decimal-pad" style={[s.input, { flex: 1, minWidth: 0 }]} accessibilityLabel="Lucro desejado" />
+                <TextInput
+                  value={lucro}
+                  onChangeText={(t) => setLucro(modoLucro === 'reais' ? mascaraDinheiro(t) : t.replace(/[^\d,]/g, ''))}
+                  editable={!!modoLucro}
+                  placeholder={!modoLucro ? 'Escolha % ou R$' : modoLucro === 'reais' ? 'R$ 0,00' : 'Ex: 200'}
+                  placeholderTextColor="#9A8F87"
+                  keyboardType="decimal-pad"
+                  style={[s.input, { flex: 1, minWidth: 0 }, !modoLucro && { backgroundColor: cor.cinzaClaro }]}
+                  accessibilityLabel="Lucro desejado"
+                />
               </View>
-              <T style={s.sub}>{modoLucro === 'porcentagem' ? '% em cima do custo de cada unidade' : 'R$ de lucro em cada unidade'}</T>
+              <T style={s.sub}>{!modoLucro ? 'Escolha se o lucro é uma % do custo ou um valor fixo por unidade' : modoLucro === 'porcentagem' ? '% em cima do custo de cada unidade' : 'R$ de lucro em cada unidade'}</T>
             </View>
 
             {existente && (
@@ -292,6 +319,16 @@ export default function ReceitaMobile({
             <Feather name="search" size={16} color={cor.textoSuave} />
             <TextInput value={busca} onChangeText={setBusca} placeholder="Buscar ingrediente ou embalagem…" placeholderTextColor="#9A8F87" style={s.buscaInput} accessibilityLabel="Buscar insumo" />
           </View>
+          <TouchableOpacity
+            style={s.cadastrarInsumo}
+            onPress={() => {
+              setBuscando(false);
+              setCadastrandoInsumo(true);
+            }}
+            accessibilityRole="button">
+            <Feather name="plus-circle" size={18} color={cor.mirtilo} />
+            <T style={s.adicionarTexto}>{busca.trim() ? `Cadastrar "${busca.trim()}"` : 'Cadastrar ingrediente ou embalagem novo'}</T>
+          </TouchableOpacity>
           <View>
             {opcoes.length === 0 && <T style={s.sub}>Nenhum insumo encontrado.</T>}
             {opcoes.map((i, idx) => (
@@ -317,6 +354,19 @@ export default function ReceitaMobile({
             ))}
           </View>
         </Gaveta>
+
+        {/* Cadastro de insumo sem sair da receita (abre por cima dela) */}
+        <InsumoFormMobile
+          visivel={cadastrandoInsumo}
+          insumo={null}
+          nomeInicial={busca.trim()}
+          aoFechar={() => setCadastrandoInsumo(false)}
+          aoSalvo={() => setCadastrandoInsumo(false)}
+          aoCriado={(id) => {
+            setItens((prev) => [...prev, { insumoId: id, qtd: '' }]);
+            setErro(null);
+          }}
+        />
 
         <Gaveta aberta={confirmarExcluir} aoFechar={() => setConfirmarExcluir(false)} titulo="Excluir receita?" subtitulo={produto?.nome}>
           <T style={s.explica}>O produto fica sem custo e sem margem, e a produção deixa de descontar os insumos.</T>
@@ -361,6 +411,7 @@ const s = StyleSheet.create({
   qtdInput: { flex: 1, minWidth: 0, fontSize: 15, fontWeight: '700', textAlign: 'right', color: cor.texto, fontFamily: fonte.texto, padding: 0, ...campoWeb },
   tirar: { width: 36, height: 36, borderRadius: 18, backgroundColor: cor.cinzaClaro, alignItems: 'center', justifyContent: 'center' },
   adicionar: { marginTop: 6, height: 46, borderRadius: 23, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#D6D7F3', alignItems: 'center', justifyContent: 'center' },
+  cadastrarInsumo: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: cor.mirtiloClaro },
   adicionarTexto: { fontSize: 14, fontWeight: '800', color: cor.azulTexto },
   link: { fontSize: 13, fontWeight: '800', color: cor.azulTexto },
   segmento: { flexDirection: 'row', padding: 4, gap: 4, borderRadius: 14, backgroundColor: '#F3EEE7' },

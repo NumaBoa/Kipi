@@ -34,6 +34,7 @@ import {
 import { useEstoqueVitrine } from '@/lib/estoqueVitrine';
 import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
 import FichaTecnicaModal from '@/components/FichaTecnicaModal';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 const EMOJI_CATEGORIA: Record<string, string> = {
   Cookies: '🍪',
@@ -125,7 +126,7 @@ function InsumosReceitasDesktop() {
   // Fichas técnicas: as mesmas da Produção, Estoque Central e Produtos
   const { fichas, horaTrabalhada } = useFichas();
   const vitrine = useEstoqueVitrine();
-  const [horaTxt, setHoraTxt] = useState(String(horaTrabalhada));
+  const [horaTxt, setHoraTxt] = useState(dinheiroParaCampo(horaTrabalhada));
   const [fichaAberta, setFichaAberta] = useState<{ produtoId: string | null } | null>(null);
 
   // Filtros de Insumos
@@ -872,9 +873,9 @@ function InsumosReceitasDesktop() {
                     value={horaTxt}
                     keyboardType="numeric"
                     onChangeText={(v) => {
-                      setHoraTxt(v);
-                      const n = parseFloat(v.replace(',', '.'));
-                      if (!isNaN(n)) definirHoraTrabalhada(n);
+                      const m = mascaraDinheiro(v);
+                      setHoraTxt(m);
+                      definirHoraTrabalhada(lerDinheiro(m));
                     }}
                   />
                   <Text style={styles.horaLabel}>/h</Text>
@@ -1091,7 +1092,7 @@ function InsumosReceitasDesktop() {
                       placeholderTextColor="#9A8F87"
                       keyboardType="numeric"
                       value={formPreco}
-                      onChangeText={setFormPreco}
+                      onChangeText={(t) => setFormPreco(mascaraDinheiro(t))}
                     />
                   </View>
                 </View>

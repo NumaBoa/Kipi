@@ -44,6 +44,7 @@ import {
   alertasDeReposicao,
 } from '@/lib/revenda';
 import { useEstoqueVitrine, produtoAtivo } from '@/lib/estoqueVitrine';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // Emoji do produto na entrega (pela categoria da vitrine)
 const EMOJI_CATEGORIA: Record<string, string> = {
@@ -290,7 +291,7 @@ function AcessosDesktop() {
     setFormEmail('');
     setFormCpf('');
     setFormTipoComissao(config.comissaoPadraoTipo);
-    setFormValorComissao(String(config.comissaoPadraoValor).replace('.', ','));
+    setFormValorComissao(''); // nunca vem preenchida: a dona digita a comissão de cada revendedora
     setFormCep('');
     setFormRua('');
     setFormNumero('');
@@ -315,7 +316,7 @@ function AcessosDesktop() {
     setFormEmail(r.email || '');
     setFormCpf(r.cpf || '');
     setFormTipoComissao(r.tipoComissao);
-    setFormValorComissao(String(r.valorComissao).replace('.', ','));
+    setFormValorComissao(r.tipoComissao === 'valor_fixo' ? dinheiroParaCampo(r.valorComissao) : String(r.valorComissao).replace('.', ','));
     setFormCep(r.cep || '');
     setFormRua(r.rua || '');
     setFormNumero(r.numero || '');
@@ -332,7 +333,7 @@ function AcessosDesktop() {
     const nomeLimpo = formNome.trim();
     const emailLimpo = formEmail.trim();
     const cpfLimpo = formCpf.trim();
-    const valorComissao = parseFloat(formValorComissao.replace(',', '.'));
+    const valorComissao = formTipoComissao === 'valor_fixo' ? lerDinheiro(formValorComissao) : parseFloat(formValorComissao.replace(',', '.'));
 
     if (!nomeLimpo) {
       setErroForm('Informe o nome da revendedora.');
@@ -756,7 +757,10 @@ function AcessosDesktop() {
                     <TouchableOpacity
                       key={op.id}
                       style={[styles.segmentedBtn, ativo && styles.segmentedBtnActive]}
-                      onPress={() => setFormTipoComissao(op.id as TipoComissao)}>
+                      onPress={() => {
+                        if (op.id !== formTipoComissao) setFormValorComissao('');
+                        setFormTipoComissao(op.id as TipoComissao);
+                      }}>
                       <Feather name={op.icon} size={14} color={ativo ? KIPI_BLUE_ACCENT : '#6B615A'} />
                       <Text style={[styles.segmentedText, ativo && styles.segmentedTextActive]}>{op.label}</Text>
                     </TouchableOpacity>
@@ -775,7 +779,7 @@ function AcessosDesktop() {
                   placeholderTextColor="#9A8F87"
                   keyboardType="decimal-pad"
                   value={formValorComissao}
-                  onChangeText={(t) => setFormValorComissao(formatarDecimal(t))}
+                  onChangeText={(t) => setFormValorComissao(formTipoComissao === 'valor_fixo' ? mascaraDinheiro(t) : formatarDecimal(t))}
                 />
                 {formTipoComissao === 'porcentagem' && <Text style={styles.affixText}>%</Text>}
               </View>

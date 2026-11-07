@@ -21,6 +21,7 @@ import TabBar from '@/components/mobile/TabBar';
 import { brl, cor, fonte, numeros, sombra } from '@/components/mobile/tema';
 import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
 import InsumoFormMobile from '@/components/insumos-mobile/InsumoFormMobile';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // ESTOQUE CENTRAL NO CELULAR: produtos (vitrine e freezer), materiais e compras.
@@ -587,7 +588,7 @@ export default function EstoqueMobile() {
                 <T style={s.rotulo}>
                   Valor total pago <T style={[s.dica, { fontWeight: '500' }]}>opcional, só na entrada</T>
                 </T>
-                <TextInput value={ajValor} onChangeText={setAjValor} keyboardType="decimal-pad" placeholder="R$ 0,00" placeholderTextColor="#9A8F87" style={s.campo} accessibilityLabel="Valor total pago" />
+                <TextInput value={ajValor} onChangeText={(t) => setAjValor(mascaraDinheiro(t))} keyboardType="decimal-pad" placeholder="R$ 0,00" placeholderTextColor="#9A8F87" style={s.campo} accessibilityLabel="Valor total pago" />
                 {previaCusto !== null && (
                   <View style={s.previa}>
                     <T style={[s.previaTexto, numeros]}>Novo custo médio: {fmtCusto(previaCusto)}/{materialAjuste.unidade}</T>

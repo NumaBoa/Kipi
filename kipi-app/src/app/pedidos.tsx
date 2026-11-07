@@ -35,6 +35,7 @@ import {
   type Pedido,
   type PedidoItem,
 } from '@/lib/clientesPedidos';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // TIPOS E MODELOS
@@ -335,7 +336,7 @@ function PedidosDesktop() {
   // AÇÕES
   const abrirModalBaixa = (pedido: Pedido) => {
     setPedidoParaBaixa(pedido);
-    setBaixaValor((pedido.saldoNaEntrega > 0 ? pedido.saldoNaEntrega : pedido.total).toFixed(2).replace('.', ','));
+    setBaixaValor(dinheiroParaCampo(pedido.saldoNaEntrega > 0 ? pedido.saldoNaEntrega : pedido.total));
     setBaixaFormaPagamento('pix');
     setModalBaixaAberto(true);
   };
@@ -344,7 +345,7 @@ function PedidosDesktop() {
   const confirmarBaixa = () => {
     if (!pedidoParaBaixa) return;
     const atual = pedidos.find((p) => p.id === pedidoParaBaixa.id) || pedidoParaBaixa;
-    const recebido = parseFloat(baixaValor.replace(',', '.')) || 0;
+    const recebido = lerDinheiro(baixaValor);
     if (recebido <= 0) {
       exibirToast('Informe o valor recebido.');
       return;
@@ -1253,7 +1254,7 @@ function PedidosDesktop() {
             </View>
 
             {pedidoParaBaixa && (() => {
-              const recebido = parseFloat(baixaValor.replace(',', '.')) || 0;
+              const recebido = lerDinheiro(baixaValor);
               const restante = Math.max(pedidoParaBaixa.saldoNaEntrega - recebido, 0);
               return (
                 <View style={{ gap: 14 }}>
@@ -1294,7 +1295,7 @@ function PedidosDesktop() {
                   <View>
                     <View style={styles.mdLabelLinha}>
                       <Text style={styles.mdLabel}>VALOR RECEBIDO</Text>
-                      <TouchableOpacity onPress={() => setBaixaValor(pedidoParaBaixa.saldoNaEntrega.toFixed(2).replace('.', ','))}>
+                      <TouchableOpacity onPress={() => setBaixaValor(dinheiroParaCampo(pedidoParaBaixa.saldoNaEntrega))}>
                         <Text style={styles.mdLink}>Valor total</Text>
                       </TouchableOpacity>
                     </View>
@@ -1303,7 +1304,7 @@ function PedidosDesktop() {
                       <TextInput
                         style={[styles.mdInputSemBorda, { fontSize: 18, fontFamily: Fonts.display, fontWeight: '800' }]}
                         value={baixaValor}
-                        onChangeText={(t) => setBaixaValor(t.replace(/[^\d,.]/g, ''))}
+                        onChangeText={(t) => setBaixaValor(mascaraDinheiro(t))}
                         keyboardType="decimal-pad"
                       />
                     </View>

@@ -44,6 +44,7 @@ import { registrarProducao, useHistoricoProducao } from '@/lib/historicoProducao
 import { resumoDePerdas, ultimosDias, custoDoDescarte, EMOJI_MOTIVO } from '@/lib/descarte';
 import DescarteModal from '@/components/DescarteModal';
 import ProducaoRapidaModal, { type ModoProducaoRapida } from '@/components/ProducaoRapidaModal';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -426,7 +427,7 @@ function EstoqueCentralDesktop() {
     setFormUnidade(m.unidade);
     setFormQtd(String(m.quantidadeAtual).replace('.', ','));
     setFormMinimo(String(m.minimoSeguranca).replace('.', ','));
-    setFormCusto(m.custoUnitario.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 3 }));
+    setFormCusto(dinheiroParaCampo(m.custoUnitario));
     setFormDetalhe(detalhe);
     setFormArmazenamento(armazenamento);
     setFormErro(null);
@@ -1282,7 +1283,7 @@ function EstoqueCentralDesktop() {
                   placeholder="0,00"
                   placeholderTextColor="#9A8F87"
                   value={valorPagoInput}
-                  onChangeText={setValorPagoInput}
+                  onChangeText={(t) => setValorPagoInput(mascaraDinheiro(t))}
                 />
                 {previaCustoMedio !== null && (
                   <Text style={[styles.modalHint, { color: SUCCESS_GREEN, fontWeight: '700' }]}>
@@ -1390,7 +1391,7 @@ function EstoqueCentralDesktop() {
                 </View>
                 <View style={{ flex: 1.2 }}>
                   <Text style={styles.inputLabel}>CUSTO / {formUnidade.toUpperCase()} (R$)</Text>
-                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0,00" placeholderTextColor="#9A8F87" value={formCusto} onChangeText={setFormCusto} />
+                  <TextInput style={styles.formInput} keyboardType="decimal-pad" placeholder="0,00" placeholderTextColor="#9A8F87" value={formCusto} onChangeText={(t) => setFormCusto(mascaraDinheiro(t))} />
                 </View>
               </View>
 

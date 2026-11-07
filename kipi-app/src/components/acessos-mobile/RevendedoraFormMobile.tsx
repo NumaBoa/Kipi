@@ -7,6 +7,7 @@ import { SENHA_PADRAO_REVENDEDORA } from '@/lib/acesso';
 import { formatarCep, formatarTelefone } from '@/components/ClienteFormModal';
 import { cor, fonte } from '@/components/mobile/tema';
 import { Botao, T } from '@/components/mobile/ui';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // CADASTRO / EDIÇÃO DE REVENDEDORA NO CELULAR — mesmas validações do computador.
@@ -88,7 +89,7 @@ export default function RevendedoraFormMobile({
     setCpf(r?.cpf ?? '');
     setEmail(r?.email ?? '');
     setTipo(r?.tipoComissao ?? 'porcentagem');
-    setValor(r ? String(r.valorComissao).replace('.', ',') : '');
+    setValor(!r ? '' : r.tipoComissao === 'valor_fixo' ? dinheiroParaCampo(r.valorComissao) : String(r.valorComissao).replace('.', ','));
     setCep(r?.cep ?? '');
     setRua(r?.rua ?? '');
     setNumero(r?.numero ?? '');
@@ -107,7 +108,7 @@ export default function RevendedoraFormMobile({
   };
 
   const salvar = () => {
-    const valorNum = parseFloat(valor.replace(',', '.'));
+    const valorNum = tipo === 'valor_fixo' ? lerDinheiro(valor) : parseFloat(valor.replace(',', '.'));
     if (!nome.trim()) return falhar('Informe o nome da revendedora.');
     if (telefone.replace(/\D/g, '').length < 10) return falhar('Informe um WhatsApp válido com DDD.');
     if (email.trim() && !emailValido(email.trim())) return falhar('O e-mail informado não é válido. Ex: nome@gmail.com');
@@ -188,7 +189,10 @@ export default function RevendedoraFormMobile({
                 ] as const).map(([id, rot, sub]) => {
                   const on = tipo === id;
                   return (
-                    <TouchableOpacity key={id} style={[s.tipo, on && s.tipoOn]} onPress={() => setTipo(id)} accessibilityRole="radio" accessibilityState={{ selected: on }}>
+                    <TouchableOpacity key={id} style={[s.tipo, on && s.tipoOn]} onPress={() => {
+                      if (id !== tipo) setValor('');
+                      setTipo(id);
+                    }} accessibilityRole="radio" accessibilityState={{ selected: on }}>
                       <T style={s.tipoTitulo}>{rot}</T>
                       <T style={s.dica}>{sub}</T>
                     </TouchableOpacity>
@@ -199,7 +203,7 @@ export default function RevendedoraFormMobile({
                 {tipo === 'valor_fixo' && <T style={s.afixo}>R$</T>}
                 <TextInput
                   value={valor}
-                  onChangeText={(t) => setValor(formatarDecimal(t))}
+                  onChangeText={(t) => setValor(tipo === 'valor_fixo' ? mascaraDinheiro(t) : formatarDecimal(t))}
                   placeholder={tipo === 'porcentagem' ? 'Ex: 15' : 'Ex: 3,50'}
                   placeholderTextColor="#9A8F87"
                   keyboardType="decimal-pad"

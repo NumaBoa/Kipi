@@ -23,6 +23,7 @@ import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui
 import ReceitaMobile from '@/components/produtos-mobile/ReceitaMobile';
 import ProdutoFormMobile, { CATEGORIAS_PADRAO, type ProdutoSalvo } from '@/components/produtos-mobile/ProdutoFormMobile';
 import InsumoFormMobile, { ARMAZENAMENTOS } from './InsumoFormMobile';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 
 // ============================================================================
 // INSUMOS E RECEITAS NO CELULAR (mesma lista única de insumos e fichas da versão de computador)
@@ -55,7 +56,7 @@ export default function InsumosMobile() {
   const [status, setStatus] = useState<StatusFiltro>('ativos');
   const [repor, setRepor] = useState(false);
   const [gaveta, setGaveta] = useState<null | 'filtros' | 'novaReceita'>(null);
-  const [horaTxt, setHoraTxt] = useState(String(horaTrabalhada).replace('.', ','));
+  const [horaTxt, setHoraTxt] = useState(dinheiroParaCampo(horaTrabalhada));
   const [fabCompacto, setFabCompacto] = useState(false);
   const ultimoY = useRef(0);
   const [detalheId, setDetalheId] = useState<string | null>(null);
@@ -317,9 +318,9 @@ export default function InsumosMobile() {
                 <TextInput
                   value={horaTxt}
                   onChangeText={(v) => {
-                    setHoraTxt(v);
-                    const n = parseFloat(v.replace(',', '.'));
-                    if (!isNaN(n)) definirHoraTrabalhada(n);
+                    const m = mascaraDinheiro(v);
+                    setHoraTxt(m);
+                    definirHoraTrabalhada(lerDinheiro(m));
                   }}
                   keyboardType="decimal-pad"
                   style={[s.horaInput, numeros]}

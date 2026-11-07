@@ -14,6 +14,8 @@ import {
   type FichaTecnica,
   type ModoLucro,
 } from '@/lib/insumos';
+import InsumoFormMobile from '@/components/insumos-mobile/InsumoFormMobile';
+import { dinheiroParaCampo, lerDinheiro, mascaraDinheiro } from '@/lib/dinheiro';
 import { useEstoqueVitrine, definirPrecoProduto, produtoAtivo, cadastrarProduto, produtoPorNome, type ProdutoVitrine } from '@/lib/estoqueVitrine';
 
 // ============================================================================
@@ -41,12 +43,13 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
   const vitrine = useEstoqueVitrine();
 
   const [produtoEscolhido, setProdutoEscolhido] = useState<string | null>(null);
-  const [rendimento, setRendimento] = useState('12');
-  const [tempo, setTempo] = useState('45');
+  const [rendimento, setRendimento] = useState('');
+  const [tempo, setTempo] = useState('');
   const [itens, setItens] = useState<{ insumoId: string; qtd: string }[]>([]);
   const [extras, setExtras] = useState<{ id: string; descricao: string; valor: string }[]>([]);
-  const [modoLucro, setModoLucro] = useState<ModoLucro>('porcentagem');
-  const [lucro, setLucro] = useState('200');
+  const [modoLucro, setModoLucro] = useState<ModoLucro | null>(null);
+  const [lucro, setLucro] = useState('');
+  const [cadastrandoInsumo, setCadastrandoInsumo] = useState(false);
   const [busca, setBusca] = useState('');
   const [erro, setErro] = useState<string | null>(null);
   const [buscaProduto, setBuscaProduto] = useState('');
@@ -55,7 +58,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
   const [novoNome, setNovoNome] = useState('');
   const [novaCategoria, setNovaCategoria] = useState('');
   const [novaDisp, setNovaDisp] = useState<NonNullable<ProdutoVitrine['disponibilidade']> | null>(null);
-  const [novoMinimo, setNovoMinimo] = useState('5');
+  const [novoMinimo, setNovoMinimo] = useState('');
   const { width } = useWindowDimensions();
   const largo = width >= 900; // resumo fica ao lado do formulário
 
@@ -64,18 +67,19 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
     if (!visible) return;
     const f = produtoId ? fichaDoProduto(produtoId) : undefined;
     setProdutoEscolhido(produtoId);
-    setRendimento(String(f?.rendimento ?? 12));
-    setTempo(String(f?.tempoPreparoMinutos ?? 45));
-    setItens(f?.itens.map((it) => ({ insumoId: it.insumoId, qtd: String(it.quantidade) })) ?? []);
-    setExtras(f?.custosExtras.map((c) => ({ id: c.id, descricao: c.descricao, valor: String(c.valor) })) ?? [{ id: `extra-${Date.now()}`, descricao: 'Gás / energia', valor: '3' }]);
-    setModoLucro(f?.modoLucro ?? 'porcentagem');
-    setLucro(String(f?.lucroDesejado ?? 200));
+    // Receita nova começa em branco: rende, preparo, custos extras e lucro
+    setRendimento(f ? String(f.rendimento) : '');
+    setTempo(f ? String(f.tempoPreparoMinutos) : '');
+    setItens(f?.itens.map((it) => ({ insumoId: it.insumoId, qtd: String(it.quantidade).replace('.', ',') })) ?? []);
+    setExtras(f?.custosExtras.map((c) => ({ id: c.id, descricao: c.descricao, valor: dinheiroParaCampo(c.valor) })) ?? []);
+    setModoLucro(f?.modoLucro ?? null);
+    setLucro(!f ? '' : f.modoLucro === 'reais' ? dinheiroParaCampo(f.lucroDesejado) : String(f.lucroDesejado).replace('.', ','));
     setBusca('');
     setBuscaProduto('');
     setNovoNome('');
     setNovaCategoria('');
     setNovaDisp(null);
-    setNovoMinimo('5');
+    setNovoMinimo('');
     // Sem produto livre para receita: já abre em "criar produto novo"
     setModoProduto(vitrine.some((p) => produtoAtivo(p) && !fichas.some((x) => x.produtoId === p.id)) ? 'existente' : 'novo');
     setErro(null);
@@ -91,9 +95,9 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
     rendimento: Math.max(1, num(rendimento)),
     tempoPreparoMinutos: num(tempo),
     itens: itens.map((it) => ({ insumoId: it.insumoId, quantidade: num(it.qtd) })),
-    custosExtras: extras.map((c) => ({ id: c.id, descricao: c.descricao.trim() || 'Custo extra', valor: num(c.valor) })),
-    modoLucro,
-    lucroDesejado: num(lucro),
+    custosExtras: extras.map((c) => ({ id: c.id, descricao: c.descricao.trim() || 'Custo extra', valor: lerDinheiro(c.valor) })),
+    modoLucro: modoLucro ?? 'porcentagem',
+    lucroDesejado: !modoLucro ? 0 : modoLucro === 'reais' ? lerDinheiro(lucro) : num(lucro),
   };
   const calc = calcularFicha(rascunho, insumos, horaTrabalhada);
   const margemAtual = produto ? margemReal(produto.preco, calc.custoUnitario) : 0;
@@ -109,6 +113,18 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
 
   const criandoProduto = !produtoId && modoProduto === 'novo';
 
+  // Todos os campos da receita são obrigatórios (custos extras só se forem incluídos)
+  const erroReceita = () => {
+    if (!(num(rendimento) > 0)) return 'Informe quanto a receita rende.';
+    if (!(num(tempo) > 0)) return 'Informe o tempo de preparo em minutos.';
+    if (itens.length === 0) return 'Inclua ao menos um ingrediente ou embalagem.';
+    if (rascunho.itens.some((it) => !(it.quantidade > 0))) return 'Informe a quantidade de todos os insumos.';
+    if (extras.some((c) => !c.descricao.trim() || !(lerDinheiro(c.valor) > 0))) return 'Preencha descrição e valor de cada custo extra (ou tire o que não usar).';
+    if (!modoLucro) return 'Escolha o lucro desejado: % sobre o custo ou R$ por unidade.';
+    if (!(rascunho.lucroDesejado > 0)) return 'Informe o lucro desejado.';
+    return null;
+  };
+
   const salvar = (aplicarPreco: boolean) => {
     if (criandoProduto) {
       // Atalho: cria o produto e a receita juntos (preço = sugerido; estoque começa em 0)
@@ -117,7 +133,8 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
       if (produtoPorNome(nome)) return setErro('Já existe um produto com esse nome.');
       if (!novaCategoria.trim()) return setErro('Escolha a categoria do produto.');
       if (!novaDisp) return setErro('Escolha como o produto é vendido.');
-      if (!rascunho.itens.some((it) => it.quantidade > 0)) return setErro('Inclua ao menos um insumo com quantidade.');
+      const falta = erroReceita();
+      if (falta) return setErro(falta);
       const id = `prod-${Date.now()}`;
       cadastrarProduto({
         id,
@@ -135,7 +152,8 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
       return;
     }
     if (!produtoEscolhido) return setErro('Escolha o produto desta ficha.');
-    if (!rascunho.itens.some((it) => it.quantidade > 0)) return setErro('Inclua ao menos um insumo com quantidade.');
+    const falta = erroReceita();
+    if (falta) return setErro(falta);
     salvarFicha({ ...rascunho, itens: rascunho.itens.filter((it) => it.quantidade > 0) });
     if (aplicarPreco) definirPrecoProduto(produtoEscolhido, Number(calc.precoSugerido.toFixed(2)));
     onClose();
@@ -374,16 +392,16 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                 </View>
                 <View style={s.linha}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.label}>RENDE</Text>
+                    <Text style={s.label}>RENDE *</Text>
                     <View style={s.campoSufixo}>
-                      <TextInput style={s.campoInput} value={rendimento} onChangeText={setRendimento} keyboardType="numeric" />
+                      <TextInput style={s.campoInput} value={rendimento} onChangeText={setRendimento} keyboardType="numeric" placeholder="Ex: 12" placeholderTextColor="#D9CFC4" />
                       <Text style={s.sufixo}>un por receita</Text>
                     </View>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.label}>PREPARO</Text>
+                    <Text style={s.label}>PREPARO *</Text>
                     <View style={s.campoSufixo}>
-                      <TextInput style={s.campoInput} value={tempo} onChangeText={setTempo} keyboardType="numeric" />
+                      <TextInput style={s.campoInput} value={tempo} onChangeText={setTempo} keyboardType="numeric" placeholder="Ex: 45" placeholderTextColor="#D9CFC4" />
                       <Text style={s.sufixo}>min</Text>
                     </View>
                   </View>
@@ -447,6 +465,10 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                       <Text style={s.chipAddText}>{i.emoji} {i.nome}</Text>
                     </TouchableOpacity>
                   ))}
+                  <TouchableOpacity style={[s.chipAdd, { borderStyle: 'dashed' }]} onPress={() => setCadastrandoInsumo(true)}>
+                    <Feather name="plus-circle" size={12} color={KIPI_BLUE_ACCENT} />
+                    <Text style={[s.chipAddText, { fontWeight: '800' }]}>{busca.trim() ? `Cadastrar "${busca.trim()}"` : 'Cadastrar ingrediente ou embalagem novo'}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -455,7 +477,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                 <View style={s.secaoTopo}>
                   <Text style={s.secaoNumero}>{produtoId ? 3 : 4}</Text>
                   <Text style={s.secaoTitulo}>Custos extras por receita</Text>
-                  <Text style={s.secaoExtra}>gás, energia...</Text>
+                  <Text style={s.secaoExtra}>opcional · gás, energia...</Text>
                 </View>
                 <View style={{ gap: 6 }}>
                   {extras.map((c, idx) => (
@@ -470,12 +492,12 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
                       <View style={s.campoSufixo}>
                         <Text style={s.sufixo}>R$</Text>
                         <TextInput
-                          style={[s.campoInput, { width: 60, textAlign: 'right' }]}
+                          style={[s.campoInput, { width: 76, textAlign: 'right' }]}
                           value={c.valor}
                           keyboardType="numeric"
-                          placeholder="0"
+                          placeholder="0,00"
                           placeholderTextColor="#D9CFC4"
-                          onChangeText={(v) => setExtras((prev) => prev.map((p, i) => (i === idx ? { ...p, valor: v } : p)))}
+                          onChangeText={(v) => setExtras((prev) => prev.map((p, i) => (i === idx ? { ...p, valor: mascaraDinheiro(v) } : p)))}
                         />
                       </View>
                       <TouchableOpacity style={s.iconeBtn} onPress={() => setExtras((prev) => prev.filter((_, i) => i !== idx))}>
@@ -493,19 +515,33 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
               <View style={s.secao}>
                 <View style={s.secaoTopo}>
                   <Text style={s.secaoNumero}>{produtoId ? 4 : 5}</Text>
-                  <Text style={s.secaoTitulo}>Lucro desejado</Text>
+                  <Text style={s.secaoTitulo}>Lucro desejado *</Text>
                 </View>
                 <View style={s.linha}>
                   <View style={s.toggle}>
                     {(['porcentagem', 'reais'] as const).map((m) => (
-                      <TouchableOpacity key={m} style={[s.toggleBtn, modoLucro === m && s.toggleBtnAtivo]} onPress={() => setModoLucro(m)}>
+                      <TouchableOpacity
+                        key={m}
+                        style={[s.toggleBtn, modoLucro === m && s.toggleBtnAtivo]}
+                        onPress={() => {
+                          if (m !== modoLucro) setLucro('');
+                          setModoLucro(m);
+                        }}>
                         <Text style={[s.toggleText, modoLucro === m && s.toggleTextAtivo]}>{m === 'porcentagem' ? '% sobre o custo' : 'R$ por unidade'}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
                   <View style={[s.campoSufixo, { flex: 1 }]}>
                     {modoLucro === 'reais' && <Text style={s.sufixo}>R$</Text>}
-                    <TextInput style={[s.campoInput, { flex: 1 }]} value={lucro} onChangeText={setLucro} keyboardType="numeric" />
+                    <TextInput
+                      style={[s.campoInput, { flex: 1 }]}
+                      value={lucro}
+                      editable={!!modoLucro}
+                      placeholder={!modoLucro ? 'Escolha % ou R$' : modoLucro === 'reais' ? '0,00' : 'Ex: 200'}
+                      placeholderTextColor="#D9CFC4"
+                      onChangeText={(t) => setLucro(modoLucro === 'reais' ? mascaraDinheiro(t) : t.replace(/[^\d,]/g, ''))}
+                      keyboardType="numeric"
+                    />
                     {modoLucro === 'porcentagem' && <Text style={s.sufixo}>%</Text>}
                   </View>
                 </View>
@@ -547,6 +583,19 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
           </View>
         </View>
       </View>
+      {/* Cadastro de insumo sem sair da receita (abre por cima dela) */}
+      <InsumoFormMobile
+        visivel={cadastrandoInsumo}
+        insumo={null}
+        nomeInicial={busca.trim()}
+        aoFechar={() => setCadastrandoInsumo(false)}
+        aoSalvo={() => setCadastrandoInsumo(false)}
+        aoCriado={(id) => {
+          setItens((prev) => [...prev, { insumoId: id, qtd: '' }]);
+          setBusca('');
+          setErro(null);
+        }}
+      />
     </Modal>
   );
 }
