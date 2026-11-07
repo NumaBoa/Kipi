@@ -303,6 +303,9 @@ export default function ClientesMobile() {
                       )}
                       <T style={[s.linhaSub, numeros, { flex: 1 }]} numberOfLines={1}>{partes.filter(Boolean).join(' · ')}</T>
                     </View>
+                    {!!c.produtoMaisComprado && (
+                      <T style={[s.linhaSub, { color: cor.pistacheTexto }]} numberOfLines={1}>🏆 {c.produtoMaisComprado}</T>
+                    )}
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 2 }}>
                     <T style={[s.total, numeros]}>{c.quantidadePedidos ? brl(c.totalGasto) : '—'}</T>
@@ -391,23 +394,23 @@ function FichaCliente({
     const texto = encodeURIComponent(`Oi, ${primeiroNome}! 🎂 Feliz aniversário! Que seu dia seja doce. Um carinho do nosso ateliê pra você 💛`);
     abrirUrl(tel ? `https://wa.me/55${tel}?text=${texto}` : `https://wa.me/?text=${texto}`);
   };
-  const copiarEndereco = async () => {
-    setGaveta(null);
-    if (!endereco) return avisar('Este cliente não tem endereço cadastrado.');
-    await Clipboard.setStringAsync(`${c.nome}\n${endereco}`);
-    avisar('Endereço copiado!');
+  const copiar = async (texto: string, aviso: string) => {
+    await Clipboard.setStringAsync(texto);
+    avisar(aviso);
   };
+  const copiarEndereco = () => copiar(`${c.nome}\n${endereco}`, 'Endereço copiado!');
+  const favorito = c.produtosComprados.find((p) => p.nome === c.produtoMaisComprado);
   const alternar = () => {
     alternarStatusCliente(c.id);
     setGaveta(null);
     avisar(ativo ? `Cliente ${c.nome} inativado.` : `Cliente ${c.nome} reativado!`);
   };
 
-  const dados: [string, string][] = [
-    ['WhatsApp', c.telefone || 'Não informado'],
-    ['E-mail', c.email || 'Não informado'],
+  const dados: [string, string, string][] = [
+    ['WhatsApp', c.telefone || 'Não informado', 'WhatsApp copiado!'],
+    ['E-mail', c.email || 'Não informado', 'E-mail copiado!'],
   ];
-  if (docRotulo) dados.push([docRotulo, c.cpf_cnpj as string]);
+  if (docRotulo) dados.push([docRotulo, c.cpf_cnpj as string, `${docRotulo} copiado!`]);
 
   return (
     <Modal visible animationType="slide" onRequestClose={aoFechar} statusBarTranslucent>
@@ -425,9 +428,6 @@ function FichaCliente({
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
           {/* IDENTIDADE */}
           <View style={s.identidade}>
-            <View style={[s.avatarGrande, { backgroundColor: ativo ? cor.azulClaro : cor.cinzaClaro }]}>
-              <T titulo style={[s.avatarGrandeTexto, { color: ativo ? cor.azulTexto : '#9A8F87' }]}>{iniciais(c.nome)}</T>
-            </View>
             <T titulo style={s.fichaNome}>{c.nome}</T>
             <View style={s.etiquetas}>
               {!!c.tag && (
@@ -466,18 +466,24 @@ function FichaCliente({
             </TouchableOpacity>
           </View>
 
-          {/* PREFERÊNCIAS E RESTRIÇÕES */}
-          <View style={[s.pref, { backgroundColor: c.observacoes ? cor.ambarFundo : '#FFFDFA' }]}>
-            <View style={[s.prefIcone, { backgroundColor: c.observacoes ? cor.ambarClaro : cor.cinzaClaro }]}>
-              <Feather name="heart" size={16} color={c.observacoes ? cor.ambar : '#9A8F87'} />
+          {/* PREFERÊNCIAS E RESTRIÇÕES (sem anotação: uma linha só) */}
+          {c.observacoes ? (
+            <View style={[s.pref, { backgroundColor: cor.ambarFundo }]}>
+              <View style={[s.prefIcone, { backgroundColor: cor.ambarClaro }]}>
+                <Feather name="heart" size={16} color={cor.ambar} />
+              </View>
+              <View style={{ flex: 1, gap: 3 }}>
+                <T style={[s.prefTitulo, { color: cor.ambarTexto }]}>Preferências e restrições</T>
+                <T style={s.prefTexto}>{c.observacoes}</T>
+              </View>
             </View>
-            <View style={{ flex: 1, gap: 3 }}>
-              <T style={[s.prefTitulo, { color: c.observacoes ? cor.ambarTexto : cor.textoSuave }]}>Preferências e restrições</T>
-              <T style={[s.prefTexto, !c.observacoes && { color: cor.textoSuave }]}>
-                {c.observacoes || 'Nada anotado. Toque em Editar dados para registrar alergias, sabores preferidos ou cuidados.'}
-              </T>
+          ) : (
+            <View style={s.prefVazia}>
+              <Feather name="heart" size={14} color="#9A8F87" />
+              <T style={s.prefVaziaTexto}>Preferências e restrições</T>
+              <T style={s.prefVaziaValor}>Nenhuma</T>
             </View>
-          </View>
+          )}
 
           {/* FALTA RECEBER */}
           {deve > 0 && (
@@ -514,9 +520,11 @@ function FichaCliente({
             {!!c.produtoMaisComprado && (
               <View style={s.favorito}>
                 <T style={{ fontSize: 15 }}>🏆</T>
-                <T style={s.favoritoTexto} numberOfLines={1}>
-                  Mais pede <T style={[s.favoritoTexto, { fontWeight: '800' }]}>{c.produtoMaisComprado}</T>
-                </T>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <T style={[s.favoritoTexto, { fontSize: 11 }]}>Produto mais comprado</T>
+                  <T style={[s.favoritoTexto, { fontWeight: '800' }]} numberOfLines={1}>{c.produtoMaisComprado}</T>
+                </View>
+                {!!favorito && <T style={[numeros, { fontSize: 13, fontWeight: '800', color: cor.pistacheTexto, flexShrink: 0 }]}>{favorito.quantidade} un</T>}
               </View>
             )}
           </View>
@@ -571,8 +579,8 @@ function FichaCliente({
                 )}
               </View>
               {!!endereco && (
-                <TouchableOpacity style={s.miniBotao} onPress={copiarEndereco} accessibilityRole="button" accessibilityLabel="Copiar endereço">
-                  <T style={s.miniBotaoTexto}>Copiar</T>
+                <TouchableOpacity style={s.copiar} onPress={copiarEndereco} accessibilityRole="button" accessibilityLabel="Copiar endereço" hitSlop={6}>
+                  <Feather name="copy" size={16} color={cor.mirtilo} />
                 </TouchableOpacity>
               )}
             </View>
@@ -588,10 +596,15 @@ function FichaCliente({
                 </TouchableOpacity>
               )}
             </View>
-            {dados.map(([r, v]) => (
-              <View key={r} style={[s.dadoLinha, s.linhaBorda, { alignItems: 'center', paddingVertical: 12 }]}>
+            {dados.map(([r, v, aviso]) => (
+              <View key={r} style={[s.dadoLinha, s.linhaBorda, { alignItems: 'center', paddingVertical: 10 }]}>
                 <T style={s.dadoRotulo}>{r}</T>
-                <T style={[s.dadoValor, numeros, v === 'Não informado' && { color: '#9A8F87' }]} selectable>{v}</T>
+                <T style={[s.dadoValor, numeros, v === 'Não informado' && { color: '#9A8F87' }]} selectable numberOfLines={1}>{v}</T>
+                {v !== 'Não informado' && (
+                  <TouchableOpacity style={s.copiar} onPress={() => copiar(v, aviso)} accessibilityRole="button" accessibilityLabel={`Copiar ${r}`} hitSlop={6}>
+                    <Feather name="copy" size={16} color={cor.mirtilo} />
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -609,7 +622,6 @@ function FichaCliente({
           <View>
             {[
               { rotulo: 'Editar dados', icone: 'edit-2' as const, cor: cor.texto, acao: () => { setGaveta(null); aoEditar(); } },
-              { rotulo: 'Copiar endereço', icone: 'copy' as const, cor: cor.texto, acao: copiarEndereco },
               ativo
                 ? { rotulo: 'Inativar cliente', icone: 'user-x' as const, cor: cor.vermelho, acao: () => setGaveta('inativar') }
                 : { rotulo: 'Reativar cliente', icone: 'rotate-ccw' as const, cor: cor.verde, acao: alternar },
@@ -760,6 +772,10 @@ const s = StyleSheet.create({
   prefIcone: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   prefTitulo: { fontSize: 12, fontWeight: '800' },
   prefTexto: { fontSize: 14, lineHeight: 20 },
+  prefVazia: { marginHorizontal: 16, marginTop: 12, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 8 },
+  prefVaziaTexto: { flex: 1, fontSize: 13, fontWeight: '700', color: cor.textoSuave },
+  prefVaziaValor: { fontSize: 13, color: '#9A8F87' },
+  copiar: { width: 36, height: 36, borderRadius: 18, backgroundColor: cor.mirtiloClaro, alignItems: 'center', justifyContent: 'center' },
   deve: { marginHorizontal: 16, marginTop: 8, minHeight: 56, paddingHorizontal: 16, borderRadius: 20, backgroundColor: cor.vermelhoClaro, flexDirection: 'row', alignItems: 'center', gap: 10 },
   deveTitulo: { fontSize: 12, fontWeight: '800', color: cor.vermelho },
   deveSub: { fontSize: 12, color: '#8A1C12' },

@@ -196,6 +196,13 @@ function ClientesDesktop() {
       .filter(Boolean)
       .join(', ');
 
+  const copiarTexto = (texto: string, aviso: string) => {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(texto);
+    }
+    exibirToast(aviso);
+  };
+
   const copiarEndereco = (c: ClienteCompleto) => {
     const texto = enderecoCompleto(c);
     if (!texto) {
@@ -627,12 +634,6 @@ function ClientesDesktop() {
 
               {/* CABEÇALHO DO DOSSIÊ DO CLIENTE */}
               <View style={styles.dossierModalHeader}>
-                <View style={styles.dossierModalAvatar}>
-                  <Text style={styles.dossierModalAvatarText}>
-                    {clienteDetalhe.nome.substring(0, 2).toUpperCase()}
-                  </Text>
-                </View>
-
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                     <Text style={styles.dossierModalName}>{clienteDetalhe.nome}</Text>
@@ -642,9 +643,22 @@ function ClientesDesktop() {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.dossierModalSub}>
-                    {clienteDetalhe.telefone} • {clienteDetalhe.email || 'Sem e-mail'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                    {[
+                      { valor: clienteDetalhe.telefone, vazio: 'Sem WhatsApp', icone: 'message-circle' as const, aviso: '📋 WhatsApp copiado!' },
+                      { valor: clienteDetalhe.email, vazio: 'Sem e-mail', icone: 'mail' as const, aviso: '📋 E-mail copiado!' },
+                    ].map((d) =>
+                      d.valor ? (
+                        <TouchableOpacity key={d.icone} style={styles.copiarChip} onPress={() => copiarTexto(d.valor as string, d.aviso)} accessibilityLabel={`Copiar ${d.valor}`}>
+                          <Feather name={d.icone} size={12} color="#6B615A" />
+                          <Text style={styles.copiarChipTexto}>{d.valor}</Text>
+                          <Feather name="copy" size={12} color="#4B4FC4" />
+                        </TouchableOpacity>
+                      ) : (
+                        <Text key={d.icone} style={styles.dossierModalSub}>{d.vazio}</Text>
+                      )
+                    )}
+                  </View>
                   <View style={styles.dossierOrigemRow}>
                     <View style={[styles.origemPill, clienteDetalhe.revendedoraId ? styles.origemPillRevenda : styles.origemPillDireto]}>
                       <Feather
@@ -754,9 +768,14 @@ function ClientesDesktop() {
                   <View style={styles.dossierKpiBox}>
                     <Text style={styles.dossierKpiLabel}>PRODUTO FAVORITO</Text>
                     <Text style={[styles.dossierKpiValue, { fontSize: 13, color: ATELIE_GREEN }]} numberOfLines={1}>
-                      🏆 {clienteDetalhe.produtoMaisComprado || 'Cookies Gourmet'}
+                      {clienteDetalhe.produtoMaisComprado ? `🏆 ${clienteDetalhe.produtoMaisComprado}` : '—'}
                     </Text>
-                    <Text style={styles.dossierKpiHint}>Item mais comprado</Text>
+                    <Text style={styles.dossierKpiHint}>
+                      {(() => {
+                        const fav = clienteDetalhe.produtosComprados.find((p) => p.nome === clienteDetalhe.produtoMaisComprado);
+                        return fav ? `${fav.quantidade} un compradas` : 'Ainda sem pedidos';
+                      })()}
+                    </Text>
                   </View>
                 </View>
 
@@ -777,10 +796,12 @@ function ClientesDesktop() {
                         .join(', ') || 'Bairro e cidade não informados'}
                     </Text>
                     <Text style={styles.infoCardCep}>CEP: {clienteDetalhe.cep || 'Não cadastrado'}</Text>
-                    <TouchableOpacity style={styles.copyAddressBtn} onPress={() => copiarEndereco(clienteDetalhe)}>
-                      <Feather name="copy" size={12} color={ATELIE_GREEN} />
-                      <Text style={styles.copyAddressBtnText}>Copiar endereço</Text>
-                    </TouchableOpacity>
+                    {!!enderecoCompleto(clienteDetalhe) && (
+                      <TouchableOpacity style={styles.copyAddressBtn} onPress={() => copiarEndereco(clienteDetalhe)}>
+                        <Feather name="copy" size={12} color="#4B4FC4" />
+                        <Text style={[styles.copyAddressBtnText, { color: '#4B4FC4' }]}>Copiar endereço</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
 
                   <View style={styles.infoCardBox}>
@@ -800,16 +821,22 @@ function ClientesDesktop() {
                   </View>
                 </View>
 
-                {/* PREFERÊNCIAS E RESTRIÇÕES */}
-                <View style={styles.preferencesFullCard}>
-                  <View style={styles.preferencesHeader}>
-                    <Feather name="heart" size={15} color={ATELIE_GREEN} />
-                    <Text style={styles.preferencesTitle}>Preferências & Restrições Gastronômicas</Text>
+                {/* PREFERÊNCIAS E RESTRIÇÕES (sem anotação: uma linha só) */}
+                {clienteDetalhe.observacoes ? (
+                  <View style={styles.preferencesFullCard}>
+                    <View style={styles.preferencesHeader}>
+                      <Feather name="heart" size={15} color={ATELIE_GREEN} />
+                      <Text style={styles.preferencesTitle}>Preferências & Restrições Gastronômicas</Text>
+                    </View>
+                    <Text style={styles.preferencesText}>{clienteDetalhe.observacoes}</Text>
                   </View>
-                  <Text style={styles.preferencesText}>
-                    {clienteDetalhe.observacoes || 'Nenhuma restrição ou preferência especial registrada para este cliente.'}
-                  </Text>
-                </View>
+                ) : (
+                  <View style={[styles.preferencesHeader, { paddingHorizontal: 4, marginBottom: 14 }]}>
+                    <Feather name="heart" size={14} color="#9A8F87" />
+                    <Text style={[styles.preferencesTitle, { color: '#6B615A', flex: 1 }]}>Preferências & Restrições</Text>
+                    <Text style={{ fontSize: 13, color: '#9A8F87' }}>Nenhuma</Text>
+                  </View>
+                )}
 
                 {/* PRODUTOS COMPRADOS POR ELE (HISTÓRICO DE CONSUMO) */}
                 <View style={styles.purchasedProductsSection}>
@@ -1295,6 +1322,8 @@ const styles = paraCelular(StyleSheet.create({
   // CARD DE CLIENTE COMPACTO
   dossierCardLargo: { width: 'calc(33.333% - 11px)' as any },
   ccHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  copiarChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999, backgroundColor: '#F8F6F2', borderWidth: 1, borderColor: '#E8E0D6' },
+  copiarChipTexto: { fontSize: 13, color: '#3D312A', fontWeight: '600' },
   ccAvatar: { width: 38, height: 38, borderRadius: 11, backgroundColor: ATELIE_TINT, alignItems: 'center', justifyContent: 'center' },
   ccAvatarText: { fontFamily: FONT_DISPLAY, fontSize: 13, fontWeight: '800', color: ATELIE_GREEN },
   ccNome: { fontFamily: FONT_DISPLAY, fontSize: 14, fontWeight: '700', color: '#2E211A', flexShrink: 1 },
