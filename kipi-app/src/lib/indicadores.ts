@@ -3,6 +3,7 @@ import { encomendasEmAberto, type ClienteCompleto, type Pedido } from '@/lib/cli
 import { comissaoDaVenda, resumoFinanceiro, type PagamentoRevenda, type Revendedora, type VendaRevenda } from '@/lib/revenda';
 import { custoDoDescarte } from '@/lib/descarte';
 import type { RegistroProducao } from '@/lib/historicoProducao';
+import { bancoLigado } from '@/lib/supabase';
 
 // ============================================================================
 // INDICADORES DA VISÃO GERAL — tudo calculado a partir dos pedidos, das vendas
@@ -27,16 +28,19 @@ export const intervaloPersonalizado = (periodo: PeriodoPainel) => {
 // Meta de faturamento do mês (exemplo; ainda não existe tela para configurar)
 export const META_MENSAL = 6000;
 
-// Contas de fornecedores a pagar (exemplo; ainda não existe tela de contas a pagar)
+// Contas de fornecedores a pagar (exemplo; ainda não existe tela de contas a pagar).
+// Só aparecem nos dados de exemplo: com o banco ligado não existe cadastro de contas,
+// então nenhum ateliê real recebe estas contas inventadas.
 const diaRelativo = (dias: number) => {
   const d = new Date();
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + dias, 12, 0).toISOString();
 };
-export const CONTAS_A_PAGAR = [
+const CONTAS_EXEMPLO = [
   { id: 'cp-1', descricao: 'Fornecedor Embalagens Kraft & Fitas', detalhe: 'Pagamento via Boleto', valor: 480, vencimento: diaRelativo(1) },
   { id: 'cp-2', descricao: 'Morangos e Frutas Vermelhas Orgânicas', detalhe: 'Fornecedor Sítio da Serra', valor: 180, vencimento: diaRelativo(4) },
   { id: 'cp-3', descricao: 'Aluguel do Ateliê', detalhe: 'Transferência', valor: 1290, vencimento: diaRelativo(12) },
 ];
+export const CONTAS_A_PAGAR = bancoLigado ? [] : CONTAS_EXEMPLO;
 
 const inicioDoDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const somarDias = (d: Date, dias: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + dias);
