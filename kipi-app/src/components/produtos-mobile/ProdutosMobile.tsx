@@ -9,6 +9,7 @@ import { custoMaterialUnitario, MOTIVOS_DESCARTE, registrarDescarte, type Motivo
 import TabBar from '@/components/mobile/TabBar';
 import { brl, cor, fonte, numeros, sombra } from '@/components/mobile/tema';
 import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
+import { ImagemProduto } from '@/components/ImagemProduto';
 import ProdutoFormMobile, { CATEGORIAS_PADRAO, type ProdutoSalvo } from './ProdutoFormMobile';
 import ReceitaMobile from './ReceitaMobile';
 
@@ -21,11 +22,6 @@ const LARANJA = '#9A6516';
 const LARANJA_ESCURO = '#9A6516';
 const LARANJA_CLARO = '#FBF0DC';
 
-// Ícone de cada produto (o mesmo da versão de computador); escolhas novas ficam guardadas aqui
-export const FOTOS: Record<string, string> = {
-  'prod-1': '🍪', 'prod-2': '🍪', 'prod-3': '🍪', 'prod-4': '🎂', 'prod-5': '🎂', 'prod-6': '✨', 'prod-7': '✨',
-  'prod-8': '🍰', 'prod-9': '🍬', 'prod-10': '🎁', 'prod-11': '🥐', 'prod-12': '🍯', 'prod-13': '🥧', 'prod-14': '☕',
-};
 const ROTULO_DISP = { pronta_entrega: 'Pronta-entrega', sob_encomenda: 'Sob encomenda', hibrido: 'Pronta-entrega e encomenda' } as const;
 
 type Situacao = 'todos' | 'baixo' | 'com_ficha' | 'sem_ficha' | 'encomenda' | 'inativos';
@@ -44,6 +40,7 @@ type Produto = {
   nome: string;
   categoria: string;
   emoji: string;
+  foto: string | null;
   ativo: boolean;
   disp: NonNullable<ProdutoVitrine['disponibilidade']>;
   freezer: number;
@@ -64,7 +61,6 @@ export default function ProdutosMobile() {
   const freezer = useEstoqueFreezer();
   const insumos = useInsumos();
   const { fichas, horaTrabalhada } = useFichas();
-  const [fotos, setFotos] = useState<Record<string, string>>(FOTOS);
 
   const produtos: Produto[] = useMemo(
     () =>
@@ -76,7 +72,8 @@ export default function ProdutosMobile() {
           id: v.id,
           nome: v.nome,
           categoria: v.categoria,
-          emoji: fotos[v.id] ?? '🧁',
+          emoji: v.emoji ?? '🧁',
+          foto: v.foto ?? null,
           ativo,
           disp,
           freezer: freezer[v.id] ?? 0,
@@ -99,7 +96,7 @@ export default function ProdutosMobile() {
           insumos: c.linhas.map((l) => ({ id: l.insumoId, nome: l.item.nome, qtd: `${l.quantidade} ${l.item.unidadeFracionada}`, custo: l.custo })),
         };
       }),
-    [vitrine, freezer, fichas, insumos, horaTrabalhada, fotos]
+    [vitrine, freezer, fichas, insumos, horaTrabalhada]
   );
 
   const [busca, setBusca] = useState('');
@@ -162,9 +159,7 @@ export default function ProdutosMobile() {
   const detalhe = produtos.find((p) => p.id === detalheId) ?? null;
   const emEdicao = form.id ? produtos.find((p) => p.id === form.id) ?? null : null;
 
-  const salvo = (r: ProdutoSalvo, emoji: string) => {
-    setFotos((prev) => ({ ...prev, [r.id]: emoji }));
-    FOTOS[r.id] = emoji;
+  const salvo = (r: ProdutoSalvo) => {
     setForm({ aberto: false, id: null });
     if (!r.novo) return avisar('Produto atualizado!');
     if (r.montarReceita) {
@@ -311,9 +306,7 @@ export default function ProdutosMobile() {
                   accessibilityRole="button"
                   accessibilityLabel={`Abrir ${p.nome}`}
                   activeOpacity={0.7}>
-                  <View style={s.icone}>
-                    <T style={{ fontSize: 24 }}>{p.emoji}</T>
-                  </View>
+                  <ImagemProduto foto={p.foto} emoji={p.emoji} tamanho={46} raio={14} fundo={cor.fundo} />
                   <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                     <T style={s.nome} numberOfLines={1}>{p.nome}</T>
                     <View style={s.seloLinha}>
@@ -491,9 +484,7 @@ function DetalheProduto({
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
           {/* IDENTIDADE */}
           <View style={s.identidade}>
-            <View style={[s.iconeGrande, sombra]}>
-              <T style={{ fontSize: 34 }}>{p.emoji}</T>
-            </View>
+            <ImagemProduto foto={p.foto} emoji={p.emoji} tamanho={64} raio={20} fundo="#FFFDFA" style={sombra} />
             <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
               <T titulo style={s.detNome}>{p.nome}</T>
               <View style={s.etiquetas}>

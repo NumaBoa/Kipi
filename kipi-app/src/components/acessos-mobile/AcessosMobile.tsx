@@ -29,7 +29,6 @@ import { produtoAtivo, useEstoqueVitrine } from '@/lib/estoqueVitrine';
 import TabBar from '@/components/mobile/TabBar';
 import { brl, cor, fonte, numeros, sombra } from '@/components/mobile/tema';
 import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
-import { FOTOS } from '@/components/produtos-mobile/ProdutosMobile';
 import RevendedoraFormMobile from './RevendedoraFormMobile';
 
 // ============================================================================
@@ -298,7 +297,7 @@ function FichaRevendedora({ r, inicial, aoFechar }: { r: Revendedora; inicial: I
   const endereco = [r.rua && `${r.rua}${r.numero ? `, ${r.numero}` : ''}`, r.complemento, r.bairro, r.cidade && `${r.cidade}${r.estado ? `/${r.estado}` : ''}`, r.cep && `CEP ${r.cep}`].filter(Boolean).join(' · ');
 
   // ENTREGA
-  const produtos = vitrine.filter(produtoAtivo).map((p) => ({ id: p.id, nome: p.nome, emoji: FOTOS[p.id] ?? EMOJI_CATEGORIA[p.categoria] ?? '🧁', preco: p.preco, estoque: p.estoque }));
+  const produtos = vitrine.filter(produtoAtivo).map((p) => ({ id: p.id, nome: p.nome, emoji: p.emoji ?? EMOJI_CATEGORIA[p.categoria] ?? '🧁', preco: p.preco, estoque: p.estoque }));
   const sugestaoDe: Record<string, number> = {};
   sabores.forEach((x) => {
     if (x.sugestao > 0 && x.produtoId) sugestaoDe[x.produtoId] = x.sugestao;

@@ -20,7 +20,6 @@ import { custoDoDescarte, EMOJI_MOTIVO, resumoDePerdas, ultimosDias } from '@/li
 import TabBar from '@/components/mobile/TabBar';
 import { brl, cor, fonte, numeros, sombra } from '@/components/mobile/tema';
 import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
-import { FOTOS } from '@/components/produtos-mobile/ProdutosMobile';
 import InsumoFormMobile from '@/components/insumos-mobile/InsumoFormMobile';
 
 // ============================================================================
@@ -35,8 +34,6 @@ type Aba = 'produtos' | 'materiais' | 'compras';
 type Ajuste = { tipo: 'vitrine' | 'freezer' | 'material'; id: string; nome: string };
 type Linha = { nome: string; valor: string; alerta?: boolean };
 
-// Mínimo do freezer por produto (o mesmo da versão de computador)
-const MINIMO_FREEZER: Record<string, number> = { 'prod-1': 12, 'prod-2': 12, 'prod-4': 6, 'prod-11': 10, 'prod-12': 10 };
 const EMOJI_CATEGORIA: Record<string, string> = {
   Cookies: '🍪', 'Bolos & Bentos': '🎂', Macarons: '✨', Sobremesas: '🥧', 'Doces Finos': '🍬', Presentes: '🎁', Folhados: '🥐', Bebidas: '☕',
 };
@@ -77,13 +74,13 @@ export default function EstoqueMobile() {
         id: v.id,
         nome: v.nome,
         categoria: v.categoria,
-        emoji: FOTOS[v.id] ?? EMOJI_CATEGORIA[v.categoria] ?? '🧁',
+        emoji: v.emoji ?? EMOJI_CATEGORIA[v.categoria] ?? '🧁',
         preco: v.preco,
         custo: v.custo,
         prontas: v.estoque,
         congelados: freezer[v.id] ?? 0,
         minProntas: v.estoqueMinimo,
-        minFreezer: MINIMO_FREEZER[v.id] ?? 0,
+        minFreezer: v.minimoFreezer ?? 0,
       })),
     [vitrine, freezer]
   );

@@ -116,17 +116,7 @@ export interface EstoqueEmbalagem {
   usadoEm: string;
 }
 
-// Nome, preço, custo, categoria, assados e congelados vêm dos estoques compartilhados
-// (lib/estoqueVitrine). Aqui ficam só o emoji e o mínimo do freezer de cada produto.
-const MINIMO_FREEZER: Record<string, number> = {
-  'prod-1': 12,
-  'prod-2': 12,
-  'prod-4': 6,
-  'prod-11': 10,
-  'prod-12': 10,
-};
 
-const EMOJI_PRODUTO: Record<string, string> = { 'prod-11': '🥐', 'prod-12': '🍯' };
 const EMOJI_CATEGORIA: Record<string, string> = {
   Cookies: '🍪',
   'Bolos & Bentos': '🎂',
@@ -222,13 +212,13 @@ function EstoqueCentralDesktop() {
         id: v.id,
         nome: v.nome,
         categoria: v.categoria,
-        fotoEmoji: EMOJI_PRODUTO[v.id] ?? EMOJI_CATEGORIA[v.categoria] ?? '🧁',
+        fotoEmoji: v.emoji ?? EMOJI_CATEGORIA[v.categoria] ?? '🧁',
         precoVenda: v.preco,
         custo: v.custo,
         estoqueAssado: v.estoque,
         estoqueCongelado: freezer[v.id] ?? 0,
         minimoAssado: v.estoqueMinimo,
-        minimoCongelado: MINIMO_FREEZER[v.id] ?? 0,
+        minimoCongelado: v.minimoFreezer ?? 0,
       })),
     [vitrine, freezer]
   );

@@ -188,6 +188,16 @@ const clienteDoBanco = (c: Linha, revs: Revendedora[]): ClienteCadastro => ({
   created_at: c.created_at ?? undefined,
 });
 
+// Colunas novas de produtos: só grava quando o banco já tem a coluna
+// (supabase/area_hml/07_produtos_imagem_minimos_hml.sql). Sem ela, o app segue funcionando
+// e só esses campos deixam de ser salvos.
+let colunasProdutos = { emoji: false, foto: false, estoque_minimo_congelado: false };
+const verificarColunasProdutos = async () => {
+  const testar = async (c: string) => !(await supabase!.from('produtos').select(c).limit(1)).error;
+  const [emoji, foto, estoque_minimo_congelado] = await Promise.all([testar('emoji'), testar('foto'), testar('estoque_minimo_congelado')]);
+  colunasProdutos = { emoji, foto, estoque_minimo_congelado };
+};
+
 const produtoDoBanco = (p: Linha): ProdutoVitrine => ({
   id: p.id,
   nome: p.nome,
@@ -200,6 +210,9 @@ const produtoDoBanco = (p: Linha): ProdutoVitrine => ({
   desconto: num(p.desconto_promocional) > 0 ? r2(num(p.desconto_promocional)) : undefined,
   ativo: p.ativo !== false,
   disponibilidade: ['pronta_entrega', 'sob_encomenda', 'hibrido'].includes(p.disponibilidade) ? p.disponibilidade : undefined,
+  emoji: p.emoji || undefined,
+  foto: p.foto || null,
+  minimoFreezer: num(p.estoque_minimo_congelado),
 });
 
 const pedidoDoBanco = (
@@ -331,6 +344,9 @@ const TABELAS: Tabela[] = [
         desconto_promocional: r2(p.desconto ?? 0),
         preco_promocional: p.desconto ? r2(p.preco - p.desconto) : null,
         tem_promocao: !!p.desconto,
+        ...(colunasProdutos.emoji ? { emoji: p.emoji ?? null } : {}),
+        ...(colunasProdutos.foto ? { foto: p.foto ?? null } : {}),
+        ...(colunasProdutos.estoque_minimo_congelado ? { estoque_minimo_congelado: p.minimoFreezer ?? 0 } : {}),
       }));
     },
   },
@@ -732,6 +748,7 @@ const carregarEmpresa = async (empresa: string) => {
         lerTudo('fichas_tecnicas', filtro),
         lerTudo('fichas_custos_extras', filtro),
         lerTudo('compras_insumos', filtro),
+        verificarColunasProdutos(),
       ]);
     if (meu !== carregamento || estabelecimentoAtualId() !== empresa) return; // trocou de ateliê no meio
 

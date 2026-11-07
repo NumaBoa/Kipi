@@ -104,7 +104,6 @@ const EMOJI_CATEGORIA: Record<string, string> = {
   Bebidas: '☕',
   Presentes: '🎁',
 };
-const EMOJI_PRODUTO: Record<string, string> = { 'prod-12': '🍯' };
 const TEMPO_FORNO: Record<string, number> = { 'prod-1': 14, 'prod-2': 14, 'prod-4': 35, 'prod-6': 16, 'prod-9': 10, 'prod-11': 20, 'prod-12': 18 };
 const TEMPO_FORNO_PADRAO = 15;
 // Próximo passo da encomenda na cozinha (Entregue é marcado em Pedidos)
@@ -127,7 +126,7 @@ function ProducaoDesktop() {
   // Histórico compartilhado: entradas de freezer do Estoque Central e de Produtos também aparecem aqui
   const vitrineProdutos = useEstoqueVitrine();
   const emojiDe = (produtoId: string) =>
-    EMOJI_PRODUTO[produtoId] ?? EMOJI_CATEGORIA[vitrineProdutos.find((v) => v.id === produtoId)?.categoria ?? ''] ?? '🧁';
+    vitrineProdutos.find((v) => v.id === produtoId)?.emoji ?? EMOJI_CATEGORIA[vitrineProdutos.find((v) => v.id === produtoId)?.categoria ?? ''] ?? '🧁';
   const fornadas: RegistroFornada[] = useHistoricoProducao().map((r) => ({ ...r, fotoEmoji: emojiDe(r.produtoId) }));
   // Produtos produzidos aqui: ativos da vitrine com ficha técnica ou com massa no freezer
   const { fichas } = useFichas();

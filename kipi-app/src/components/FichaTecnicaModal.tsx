@@ -54,7 +54,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
   const [modoProduto, setModoProduto] = useState<'existente' | 'novo'>('existente');
   const [novoNome, setNovoNome] = useState('');
   const [novaCategoria, setNovaCategoria] = useState('');
-  const [novaDisp, setNovaDisp] = useState<NonNullable<ProdutoVitrine['disponibilidade']>>('pronta_entrega');
+  const [novaDisp, setNovaDisp] = useState<NonNullable<ProdutoVitrine['disponibilidade']> | null>(null);
   const [novoMinimo, setNovoMinimo] = useState('5');
   const { width } = useWindowDimensions();
   const largo = width >= 900; // resumo fica ao lado do formulário
@@ -74,7 +74,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
     setBuscaProduto('');
     setNovoNome('');
     setNovaCategoria('');
-    setNovaDisp('pronta_entrega');
+    setNovaDisp(null);
     setNovoMinimo('5');
     // Sem produto livre para receita: já abre em "criar produto novo"
     setModoProduto(vitrine.some((p) => produtoAtivo(p) && !fichas.some((x) => x.produtoId === p.id)) ? 'existente' : 'novo');
@@ -116,6 +116,7 @@ export default function FichaTecnicaModal({ visible, produtoId, onClose }: Props
       if (!nome) return setErro('Dê um nome para o produto novo.');
       if (produtoPorNome(nome)) return setErro('Já existe um produto com esse nome.');
       if (!novaCategoria.trim()) return setErro('Escolha a categoria do produto.');
+      if (!novaDisp) return setErro('Escolha como o produto é vendido.');
       if (!rascunho.itens.some((it) => it.quantidade > 0)) return setErro('Inclua ao menos um insumo com quantidade.');
       const id = `prod-${Date.now()}`;
       cadastrarProduto({

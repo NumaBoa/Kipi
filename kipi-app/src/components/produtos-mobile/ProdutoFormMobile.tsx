@@ -5,11 +5,13 @@ import { Feather } from '@expo/vector-icons';
 import { atualizarProduto, cadastrarProduto, type ProdutoVitrine } from '@/lib/estoqueVitrine';
 import { brl, cor, fonte } from '@/components/mobile/tema';
 import { Botao, Opcao, T } from '@/components/mobile/ui';
+import { ImagemProduto, escolherFotoProduto } from '@/components/ImagemProduto';
 
 // ============================================================================
 // CADASTRO / EDIÇÃO DE PRODUTO NO CELULAR — mesmas regras da versão de computador:
-// nome, categoria e preço obrigatórios; promoção menor que o preço; na edição o
-// estoque não muda (vem de vendas, produção e ajustes do Estoque Central).
+// nome, categoria, preço e "como vende" obrigatórios; promoção em R$ ou %, menor que o
+// preço; imagem pode ser ícone ou foto. Estoque não se informa aqui: ele vem de vendas,
+// produção e ajustes do Estoque Central. Aqui ficam só os mínimos (vitrine e freezer).
 // ============================================================================
 
 export type Disponibilidade = NonNullable<ProdutoVitrine['disponibilidade']>;
@@ -58,6 +60,9 @@ export default function ProdutoFormMobile({
   const editando = !!produto;
 
   const [emoji, setEmoji] = useState('🍪');
+  const [foto, setFoto] = useState<string | null>(null);
+  const [escolhendoIcone, setEscolhendoIcone] = useState(false);
+  const [promoTipo, setPromoTipo] = useState<'valor' | 'porcentagem'>('valor');
   const [nome, setNome] = useState('');
   const [categoria, setCategoria] = useState('');
   const [criandoCat, setCriandoCat] = useState(false);
@@ -65,27 +70,29 @@ export default function ProdutoFormMobile({
   const [catsExtras, setCatsExtras] = useState<string[]>([]);
   const [preco, setPreco] = useState('');
   const [desconto, setDesconto] = useState('');
-  const [disp, setDisp] = useState<Disponibilidade>('pronta_entrega');
-  const [estoque, setEstoque] = useState('');
-  const [congelados, setCongelados] = useState('');
+  const [disp, setDisp] = useState<Disponibilidade | null>(null);
   const [minimo, setMinimo] = useState('');
+  const [minimoFreezer, setMinimoFreezer] = useState('');
   const [montarReceita, setMontarReceita] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!visivel) return;
     const p = produto;
-    setEmoji(emojiAtual ?? '🍪');
+    setEmoji(p?.emoji ?? emojiAtual ?? '🍪');
+    setFoto(p?.foto ?? null);
+    setEscolhendoIcone(false);
+    setPromoTipo('valor');
     setNome(p?.nome ?? '');
     setCategoria(p?.categoria ?? '');
     setCriandoCat(!p && categorias.length === 0); // ateliê sem categorias: já abre o campo para criar a primeira
     setNovaCat('');
     setPreco(p ? p.preco.toFixed(2).replace('.', ',') : '');
     setDesconto(p?.desconto ? p.desconto.toFixed(2).replace('.', ',') : '');
-    setDisp(p?.disponibilidade ?? 'pronta_entrega');
-    setEstoque('');
-    setCongelados('');
+    // Cadastro novo começa sem "como vende": a pessoa precisa escolher
+    setDisp(p ? p.disponibilidade ?? 'pronta_entrega' : null);
     setMinimo(p ? String(p.estoqueMinimo) : '');
+    setMinimoFreezer(p?.minimoFreezer ? String(p.minimoFreezer) : '');
     setMontarReceita(true);
     setErro(null);
   }, [visivel, produto, emojiAtual]);
@@ -102,9 +109,13 @@ export default function ProdutoFormMobile({
     if (!categoria.trim()) return falhar('Escolha a categoria do produto.');
     const precoNum = lerValor(preco);
     if (isNaN(precoNum) || precoNum <= 0) return falhar('Informe o preço de venda do produto.');
-    const descontoNum = lerValor(desconto) || 0;
+    const promoNum = lerValor(desconto) || 0;
+    if (promoTipo === 'porcentagem' && promoNum >= 100) return falhar('A promoção em % precisa ser menor que 100%.');
+    const descontoNum = promoTipo === 'porcentagem' ? Math.round(precoNum * promoNum) / 100 : promoNum;
     if (descontoNum >= precoNum) return falhar('O desconto da promoção precisa ser menor que o preço de venda.');
+    if (!disp) return falhar('Escolha como o produto é vendido.');
     const minNum = parseFloat(minimo) || 0;
+    const minFreezerNum = parseFloat(minimoFreezer) || 0;
 
     if (produto) {
       atualizarProduto(produto.id, {
@@ -112,8 +123,11 @@ export default function ProdutoFormMobile({
         categoria,
         preco: precoNum,
         estoqueMinimo: minNum,
+        minimoFreezer: minFreezerNum,
         disponibilidade: disp,
         desconto: descontoNum || undefined,
+        emoji,
+        foto,
       });
       aoSalvo({ id: produto.id, novo: false, montarReceita: false, congelados: 0 }, emoji);
       return;
@@ -126,12 +140,15 @@ export default function ProdutoFormMobile({
       categoria,
       preco: precoNum,
       custo: 0,
-      estoque: parseFloat(estoque) || 0,
+      estoque: 0,
       estoqueMinimo: minNum,
+      minimoFreezer: minFreezerNum,
       disponibilidade: disp,
       desconto: descontoNum || undefined,
+      emoji,
+      foto,
     });
-    aoSalvo({ id, novo: true, montarReceita, congelados: parseInt(congelados, 10) || 0 }, emoji);
+    aoSalvo({ id, novo: true, montarReceita, congelados: 0 }, emoji);
   };
 
   return (
@@ -141,7 +158,7 @@ export default function ProdutoFormMobile({
           <View style={s.topo}>
             <View style={{ flex: 1, gap: 1 }}>
               <T titulo style={s.titulo}>{editando ? 'Editar produto' : 'Novo produto'}</T>
-              <T style={s.sub}>Nome, categoria e preço são obrigatórios</T>
+              <T style={s.sub}>Nome, categoria, preço e como vende são obrigatórios</T>
             </View>
             <TouchableOpacity onPress={aoFechar} style={s.fechar} accessibilityRole="button" accessibilityLabel="Fechar">
               <Feather name="x" size={18} color={cor.textoMedio} />
@@ -158,24 +175,57 @@ export default function ProdutoFormMobile({
 
             {/* IDENTIDADE */}
             <View style={s.bloco}>
-              <View style={{ gap: 8 }}>
-                <T style={s.rotulo}>Ícone</T>
-                <View style={s.gradeEmoji}>
-                  {EMOJIS_SUGESTOES.map((e) => {
-                    const on = e === emoji;
-                    return (
-                      <TouchableOpacity
-                        key={e}
-                        style={[s.emoji, on && s.emojiOn]}
-                        onPress={() => setEmoji(e)}
-                        accessibilityRole="radio"
-                        accessibilityState={{ selected: on }}
-                        accessibilityLabel={`Ícone ${e}`}>
-                        <T style={{ fontSize: 22 }}>{e}</T>
-                      </TouchableOpacity>
-                    );
-                  })}
+              <View style={{ gap: 10 }}>
+                <T style={s.rotulo}>Imagem do produto</T>
+                <View style={s.imagemLinha}>
+                  <ImagemProduto foto={foto} emoji={emoji} tamanho={76} raio={20} fundo={cor.carameloClaro} />
+                  <View style={{ flex: 1, gap: 8 }}>
+                    <TouchableOpacity style={[s.imgBotao, escolhendoIcone && s.imgBotaoOn]} onPress={() => setEscolhendoIcone(!escolhendoIcone)} accessibilityRole="button">
+                      <T style={{ fontSize: 16 }}>{emoji}</T>
+                      <T style={s.imgBotaoTexto}>Escolher ícone</T>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={s.imgBotao}
+                      accessibilityRole="button"
+                      onPress={async () => {
+                        const r = await escolherFotoProduto();
+                        if (!r) return;
+                        if (r.erro) return falhar(r.erro);
+                        setFoto(r.foto ?? null);
+                        setEscolhendoIcone(false);
+                      }}>
+                      <Feather name="camera" size={16} color={cor.carameloEscuro} />
+                      <T style={s.imgBotaoTexto}>{foto ? 'Trocar foto' : 'Anexar foto'}</T>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+                {!!foto && (
+                  <TouchableOpacity onPress={() => setFoto(null)} accessibilityRole="button" style={{ alignSelf: 'flex-start' }}>
+                    <T style={s.removerFoto}>Remover foto e usar o ícone</T>
+                  </TouchableOpacity>
+                )}
+                {escolhendoIcone && (
+                  <View style={s.gradeEmoji}>
+                    {EMOJIS_SUGESTOES.map((e) => {
+                      const on = e === emoji && !foto;
+                      return (
+                        <TouchableOpacity
+                          key={e}
+                          style={[s.emoji, on && s.emojiOn]}
+                          onPress={() => {
+                            setEmoji(e);
+                            setFoto(null);
+                            setEscolhendoIcone(false);
+                          }}
+                          accessibilityRole="radio"
+                          accessibilityState={{ selected: on }}
+                          accessibilityLabel={`Ícone ${e}`}>
+                          <T style={{ fontSize: 22 }}>{e}</T>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
               </View>
               <Campo rotulo="Nome do produto *" value={nome} onChangeText={setNome} placeholder="Ex: Cookie Black Nutella & Avelã" />
               <View style={{ gap: 8 }}>
@@ -214,7 +264,53 @@ export default function ProdutoFormMobile({
             <View style={s.bloco}>
               <View style={s.linha}>
                 <Campo style={{ flex: 1 }} rotulo="Preço de venda *" value={preco} onChangeText={setPreco} placeholder="R$ 0,00" keyboardType="decimal-pad" />
-                <Campo style={{ flex: 1 }} rotulo="Promoção (−R$/un)" value={desconto} onChangeText={setDesconto} placeholder="Sem promoção" keyboardType="decimal-pad" />
+              </View>
+              <View style={{ gap: 6 }}>
+                <View style={s.promoTopo}>
+                  <T style={s.rotulo}>Promoção</T>
+                  <View style={s.promoTipos}>
+                    {(['valor', 'porcentagem'] as const).map((t) => (
+                      <TouchableOpacity
+                        key={t}
+                        style={[s.promoTipo, promoTipo === t && s.promoTipoOn]}
+                        onPress={() => {
+                          // Troca o modo convertendo o valor já digitado
+                          const pr = lerValor(preco);
+                          const v = lerValor(desconto);
+                          if (pr > 0 && v > 0 && t !== promoTipo) {
+                            const novo = t === 'porcentagem' ? Math.round((v / pr) * 1000) / 10 : Math.round(pr * v) / 100;
+                            setDesconto(String(novo).replace('.', ','));
+                          }
+                          setPromoTipo(t);
+                        }}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: promoTipo === t }}>
+                        <T style={[s.promoTipoTexto, promoTipo === t && { color: '#FFFFFF' }]}>{t === 'valor' ? 'R$' : '%'}</T>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                <TextInput
+                  value={desconto}
+                  onChangeText={setDesconto}
+                  placeholder={promoTipo === 'valor' ? 'Desconto em R$ por unidade (opcional)' : 'Desconto em % (opcional)'}
+                  placeholderTextColor="#9A8F87"
+                  keyboardType="decimal-pad"
+                  style={s.input}
+                  accessibilityLabel={promoTipo === 'valor' ? 'Desconto em reais' : 'Desconto em porcentagem'}
+                />
+                {(() => {
+                  const pr = lerValor(preco);
+                  const v = lerValor(desconto);
+                  if (!(pr > 0 && v > 0)) return null;
+                  const d = promoTipo === 'porcentagem' ? (pr * v) / 100 : v;
+                  if (d >= pr) return <T style={[s.dica, { color: cor.vermelho }]}>O desconto passa do preço de venda.</T>;
+                  return (
+                    <T style={s.dica}>
+                      Sai por <T style={s.dicaForte}>{brl(pr - d)}</T> ({promoTipo === 'porcentagem' ? `−${brl(d)}` : `−${Math.round((d / pr) * 100)}%`})
+                    </T>
+                  );
+                })()}
               </View>
               {editando && resumoCusto && (
                 <T style={s.dica}>
@@ -223,7 +319,7 @@ export default function ProdutoFormMobile({
                 </T>
               )}
               <View style={{ gap: 8 }}>
-                <T style={s.rotulo}>Como vende</T>
+                <T style={s.rotulo}>Como vende *</T>
                 {DISPONIBILIDADES.map((d) => {
                   const on = disp === d.id;
                   return (
@@ -236,20 +332,16 @@ export default function ProdutoFormMobile({
               </View>
             </View>
 
-            {/* ESTOQUE */}
+            {/* ESTOQUE MÍNIMO (o estoque em si vem da produção, das vendas e do Estoque Central) */}
             <View style={s.bloco}>
-              {!editando ? (
-                <>
-                  <View style={s.linha}>
-                    <Campo style={{ flex: 1 }} rotulo="✓ Prontos na vitrine" value={estoque} onChangeText={setEstoque} placeholder="0" keyboardType="numeric" />
-                    <Campo style={{ flex: 1 }} rotulo="❄ Massas no freezer" value={congelados} onChangeText={setCongelados} placeholder="0" keyboardType="numeric" />
-                  </View>
-                  <T style={[s.dica, { marginTop: -6 }]}>Massas no freezer descontam os insumos da receita.</T>
-                </>
-              ) : (
-                <T style={s.dica}>O estoque muda com vendas, produção e ajustes do Estoque Central.</T>
-              )}
-              <Campo rotulo="Estoque mínimo" value={minimo} onChangeText={setMinimo} placeholder="Avisa quando ficar abaixo" keyboardType="numeric" />
+              <View style={{ gap: 2 }}>
+                <T style={s.rotulo}>Estoque mínimo</T>
+                <T style={s.dica}>Avisa quando for hora de fazer mais. Deixe em branco se não quiser aviso.</T>
+              </View>
+              <View style={s.linha}>
+                <Campo style={{ flex: 1 }} rotulo="✓ Na vitrine" value={minimo} onChangeText={setMinimo} placeholder="Ex: 10" keyboardType="numeric" />
+                <Campo style={{ flex: 1 }} rotulo="❄ No freezer" value={minimoFreezer} onChangeText={setMinimoFreezer} placeholder="Ex: 12" keyboardType="numeric" />
+              </View>
             </View>
 
             {/* RECEITA */}
@@ -295,6 +387,16 @@ const s = StyleSheet.create({
   input: { height: 50, borderRadius: 14, borderWidth: 1, borderColor: cor.borda, backgroundColor: '#FFFDFA', paddingHorizontal: 14, fontSize: 15, color: cor.texto, fontFamily: fonte.texto, ...campoWeb },
   dica: { fontSize: 12, color: cor.textoSuave },
   dicaForte: { fontSize: 12, fontWeight: '800', color: cor.texto },
+  imagemLinha: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  imgBotao: { height: 40, borderRadius: 20, borderWidth: 1.5, borderColor: cor.borda, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 14 },
+  imgBotaoOn: { borderColor: cor.mirtilo, backgroundColor: cor.mirtiloClaro },
+  imgBotaoTexto: { fontSize: 14, fontWeight: '700', color: cor.texto },
+  removerFoto: { fontSize: 13, fontWeight: '700', color: cor.vermelho, paddingVertical: 4 },
+  promoTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  promoTipos: { flexDirection: 'row', padding: 3, gap: 2, borderRadius: 999, backgroundColor: cor.cinzaClaro },
+  promoTipo: { minWidth: 44, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10 },
+  promoTipoOn: { backgroundColor: cor.mirtilo },
+  promoTipoTexto: { fontSize: 13, fontWeight: '800', color: cor.textoMedio },
   gradeEmoji: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   emoji: { width: '15%', flexGrow: 1, height: 46, borderRadius: 14, borderWidth: 1.5, borderColor: cor.borda, alignItems: 'center', justifyContent: 'center' },
   emojiOn: { borderColor: cor.azulBotao, backgroundColor: cor.azulClaro },

@@ -22,7 +22,6 @@ import { brl, cor, fonte, numeros, sombra } from '@/components/mobile/tema';
 import { Aviso, Botao, Gaveta, Opcao, T, useAviso } from '@/components/mobile/ui';
 import ReceitaMobile from '@/components/produtos-mobile/ReceitaMobile';
 import ProdutoFormMobile, { CATEGORIAS_PADRAO, type ProdutoSalvo } from '@/components/produtos-mobile/ProdutoFormMobile';
-import { FOTOS } from '@/components/produtos-mobile/ProdutosMobile';
 import InsumoFormMobile, { ARMAZENAMENTOS } from './InsumoFormMobile';
 
 // ============================================================================
@@ -73,7 +72,7 @@ export default function InsumosMobile() {
       f.itens.forEach((it) => {
         const ins = insumos.find((i) => i.id === it.insumoId);
         const lista = m.get(it.insumoId) ?? [];
-        lista.push({ produtoId: prod.id, nome: prod.nome, emoji: FOTOS[prod.id] ?? EMOJI_CATEGORIA[prod.categoria] ?? '🧁', qtd: `${fmtQtd(it.quantidade)} ${ins?.unidadeFracionada ?? ''}` });
+        lista.push({ produtoId: prod.id, nome: prod.nome, emoji: prod.emoji ?? EMOJI_CATEGORIA[prod.categoria] ?? '🧁', qtd: `${fmtQtd(it.quantidade)} ${ins?.unidadeFracionada ?? ''}` });
         m.set(it.insumoId, lista);
       });
     });
@@ -138,8 +137,7 @@ export default function InsumosMobile() {
   const detalhe = insumos.find((i) => i.id === detalheId) ?? null;
   const emEdicao = form.id ? insumos.find((i) => i.id === form.id) ?? null : null;
 
-  const produtoSalvo = (r: ProdutoSalvo, emoji: string) => {
-    FOTOS[r.id] = emoji;
+  const produtoSalvo = (r: ProdutoSalvo) => {
     setProdutoNovo(false);
     setReceita({ id: r.id, congelarDepois: r.congelados });
   };
@@ -351,7 +349,7 @@ export default function InsumosMobile() {
                       activeOpacity={0.7}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                         <View style={s.icone}>
-                          <T style={{ fontSize: 22 }}>{FOTOS[prod.id] ?? EMOJI_CATEGORIA[prod.categoria] ?? '🧁'}</T>
+                          <T style={{ fontSize: 22 }}>{prod.emoji ?? EMOJI_CATEGORIA[prod.categoria] ?? '🧁'}</T>
                         </View>
                         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                           <T style={s.nome} numberOfLines={1}>{prod.nome}</T>
@@ -438,7 +436,7 @@ export default function InsumosMobile() {
                     setReceita({ id: p.id, congelarDepois: 0 });
                   }}
                   accessibilityRole="button">
-                  <T style={{ fontSize: 20 }}>{FOTOS[p.id] ?? EMOJI_CATEGORIA[p.categoria] ?? '🧁'}</T>
+                  <T style={{ fontSize: 20 }}>{p.emoji ?? EMOJI_CATEGORIA[p.categoria] ?? '🧁'}</T>
                   <View style={{ flex: 1 }}>
                     <T style={s.nome}>{p.nome}</T>
                     <T style={s.dica}>{p.categoria}</T>

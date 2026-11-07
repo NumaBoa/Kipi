@@ -31,6 +31,7 @@ import Sidebar from '@/components/Sidebar';
 import { useEhCelular } from '@/lib/layout';
 import ProdutosMobile from '@/components/produtos-mobile/ProdutosMobile';
 import { PageHeaderTitulo, TOPO_COMPACTO } from '@/components/PageHeader';
+import { ImagemProduto, escolherFotoProduto } from '@/components/ImagemProduto';
 
 // ============================================================================
 // TIPOGRAFIA & CONSTANTES DE TEMA (KIPI ATELIÊ / UX SÊNIOR)
@@ -98,6 +99,8 @@ export interface ProdutoCompleto {
   categoria: string;
   preco: number;
   fotoEmoji: string;
+  foto: string | null;
+  minimoFreezer: number;
   estoque: number;
   estoqueMinimo: number;
   ativo: boolean;
@@ -142,23 +145,6 @@ const paraInsumoRef = (i: Insumo): InsumoRef => ({
   emoji: i.emoji,
 });
 
-// Foto (emoji) de cada produto da vitrine; a ficha técnica vem da lista única em lib/insumos
-const FOTOS_INICIAIS: Record<string, string> = {
-  'prod-1': '🍪',
-  'prod-2': '🍪',
-  'prod-3': '🍪',
-  'prod-4': '🎂',
-  'prod-5': '🎂',
-  'prod-6': '✨',
-  'prod-7': '✨',
-  'prod-8': '🍰',
-  'prod-9': '🍬',
-  'prod-10': '🎁',
-  'prod-11': '🥐',
-  'prod-12': '🍯',
-  'prod-13': '🥧',
-  'prod-14': '☕',
-};
 
 // Só o filtro "Todas": as categorias vêm dos produtos do ateliê ou são criadas por ela
 const CATEGORIAS_PADRAO = ['Todas'];
@@ -184,7 +170,6 @@ function ProdutosEstoqueDesktop() {
   const insumosDisponiveis = insumosLista.filter((i) => i.status === 'ativo').map(paraInsumoRef);
   // Ficha técnica única (a mesma de Insumos & Receitas, Produção e Estoque Central)
   const { fichas: fichasTecnicas, horaTrabalhada } = useFichas();
-  const [fotos, setFotos] = useState<Record<string, string>>(FOTOS_INICIAIS);
   const [fichaEditandoId, setFichaEditandoId] = useState<string | null>(null);
   const freezer = useEstoqueFreezer();
   const router = useRouter();
@@ -199,7 +184,9 @@ function ProdutosEstoqueDesktop() {
           nome: v.nome,
           categoria: v.categoria,
           preco: v.preco,
-          fotoEmoji: fotos[v.id] ?? '🧁',
+          fotoEmoji: v.emoji ?? '🧁',
+          foto: v.foto ?? null,
+          minimoFreezer: v.minimoFreezer ?? 0,
           estoque: v.estoque,
           estoqueMinimo: v.estoqueMinimo,
           ativo: produtoAtivo(v),
@@ -246,7 +233,7 @@ function ProdutosEstoqueDesktop() {
           lucroLiquidoUnitario: v.preco - c.custoUnitario,
         };
       }),
-    [vitrine, freezer, fotos, fichasTecnicas, insumosLista, horaTrabalhada]
+    [vitrine, freezer, fichasTecnicas, insumosLista, horaTrabalhada]
   );
   const [categoriasCriadas, setCategorias] = useState<string[]>(CATEGORIAS_PADRAO);
   const categorias = useMemo(
@@ -284,11 +271,14 @@ function ProdutosEstoqueDesktop() {
   const [formFotoEmoji, setFormFotoEmoji] = useState('🍪');
   const [formCategoria, setFormCategoria] = useState('');
   const [formPreco, setFormPreco] = useState('');
-  const [formEstoque, setFormEstoque] = useState('');
+  const [formFoto, setFormFoto] = useState<string | null>(null);
+  const [formEscolhendoIcone, setFormEscolhendoIcone] = useState(false);
   const [formEstoqueMinimo, setFormEstoqueMinimo] = useState('');
-  const [formCongelados, setFormCongelados] = useState('');
-  const [formDisponibilidade, setFormDisponibilidade] = useState<Disponibilidade>('pronta_entrega');
+  const [formMinimoFreezer, setFormMinimoFreezer] = useState('');
+  // Cadastro novo começa sem "como vende": a pessoa precisa escolher
+  const [formDisponibilidade, setFormDisponibilidade] = useState<Disponibilidade | null>(null);
   const [formDesconto, setFormDesconto] = useState('');
+  const [formPromoTipo, setFormPromoTipo] = useState<'valor' | 'porcentagem'>('valor');
   // null = cadastro novo; id = edição do produto (a ficha é editada no editor próprio)
   const [editandoId, setEditandoId] = useState<string | null>(null);
 
@@ -503,16 +493,18 @@ function ProdutosEstoqueDesktop() {
     setFormFotoEmoji('🍪');
     setFormCategoria('');
     setFormPreco('');
-    setFormEstoque('');
+    setFormFoto(null);
+    setFormEscolhendoIcone(false);
     setFormEstoqueMinimo('');
+    setFormMinimoFreezer('');
+    setFormPromoTipo('valor');
     setHabilitarFichaTecnica(false);
     setFormRendimento('');
     setFormUnidadeRendimento('unidades');
     setFormTempoPreparo('');
     setIngredientesUsados([]);
     setEmbalagensUsadas([]);
-    setFormCongelados('');
-    setFormDisponibilidade('pronta_entrega');
+    setFormDisponibilidade(null);
     setFormDesconto('');
     setCustosIndiretos(CUSTOS_INDIRETOS_VAZIOS);
     setModoLucro('porcentagem');
@@ -530,7 +522,11 @@ function ProdutosEstoqueDesktop() {
     setFormFotoEmoji(prod.fotoEmoji);
     setFormCategoria(prod.categoria);
     setFormPreco(prod.preco.toFixed(2).replace('.', ','));
+    setFormFoto(prod.foto);
+    setFormEscolhendoIcone(false);
     setFormEstoqueMinimo(String(prod.estoqueMinimo));
+    setFormMinimoFreezer(prod.minimoFreezer ? String(prod.minimoFreezer) : '');
+    setFormPromoTipo('valor');
     setFormDisponibilidade(prod.disponibilidade);
     setFormDesconto(prod.desconto ? prod.desconto.toFixed(2).replace('.', ',') : '');
     setHabilitarFichaTecnica(false);
@@ -556,30 +552,40 @@ function ProdutosEstoqueDesktop() {
       return;
     }
 
-    const estoqueNum = parseFloat(formEstoque) || 0;
     const estoqueMinNum = parseFloat(formEstoqueMinimo) || 0;
-    const descontoNum = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
+    const minimoFreezerNum = parseFloat(formMinimoFreezer) || 0;
+    const promoNum = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
+    if (formPromoTipo === 'porcentagem' && promoNum >= 100) {
+      setFormErro('A promoção em % precisa ser menor que 100%.');
+      return;
+    }
+    const descontoNum = formPromoTipo === 'porcentagem' ? Math.round(precoNum * promoNum) / 100 : promoNum;
     if (descontoNum >= precoNum) {
       setFormErro('O desconto da promoção precisa ser menor que o preço de venda.');
       return;
     }
+    if (!formDisponibilidade) {
+      setFormErro('Escolha como o produto é vendido (pronta-entrega, sob encomenda ou os dois).');
+      return;
+    }
 
     if (editandoId) {
-      setFotos(prev => ({ ...prev, [editandoId]: formFotoEmoji }));
       atualizarProduto(editandoId, {
         nome: formNome.trim(),
         categoria: formCategoria,
         preco: precoNum,
         estoqueMinimo: estoqueMinNum,
+        minimoFreezer: minimoFreezerNum,
         disponibilidade: formDisponibilidade,
         desconto: descontoNum || undefined,
+        emoji: formFotoEmoji,
+        foto: formFoto,
       });
       setModalNovoProdutoVisible(false);
       return;
     }
 
     const id = `prod-${Date.now()}`;
-    setFotos(prev => ({ ...prev, [id]: formFotoEmoji }));
     cadastrarProduto({
       id,
       nome: formNome.trim(),
@@ -587,10 +593,13 @@ function ProdutosEstoqueDesktop() {
       categoria: formCategoria,
       preco: precoNum,
       custo: habilitarFichaTecnica ? calculosFinanceiros.custoUnitario : 0,
-      estoque: estoqueNum,
+      estoque: 0,
       estoqueMinimo: estoqueMinNum,
+      minimoFreezer: minimoFreezerNum,
       disponibilidade: formDisponibilidade,
       desconto: descontoNum || undefined,
+      emoji: formFotoEmoji,
+      foto: formFoto,
     });
     // A ficha vai para a lista única: aparece em Receitas, Produção e Estoque Central
     if (habilitarFichaTecnica) {
@@ -609,8 +618,6 @@ function ProdutosEstoqueDesktop() {
         lucroDesejado: parseFloat(modoLucro === 'porcentagem' ? margemLucroDesejada : lucroReaisDesejado) || 0,
       });
     }
-    // Massas já feitas vão para o freezer consumindo os insumos da ficha (depois da ficha salva)
-    congelarMassas(id, parseInt(formCongelados) || 0, true, 'cadastro do produto');
     setModalNovoProdutoVisible(false);
   };
 
@@ -829,9 +836,7 @@ function ProdutosEstoqueDesktop() {
                       }}>
                       {/* Topo do Card */}
                       <View style={styles.cardHeaderRow}>
-                        <View style={styles.productAvatar}>
-                          <Text style={{ fontSize: 24 }}>{prod.fotoEmoji}</Text>
-                        </View>
+                        <ImagemProduto foto={prod.foto} emoji={prod.fotoEmoji} tamanho={48} raio={14} fundo="#F6E8D6" />
                         <View style={{ flex: 1 }}>
                           <View style={styles.cardCategoryRow}>
                             <Text style={styles.cardCategoryText}>{prod.categoria}</Text>
@@ -933,7 +938,7 @@ function ProdutosEstoqueDesktop() {
                       setModalDossieVisible(true);
                     }}>
                     <View style={styles.gridTop}>
-                      <Text style={{ fontSize: 22 }}>{prod.fotoEmoji}</Text>
+                      <ImagemProduto foto={prod.foto} emoji={prod.fotoEmoji} tamanho={40} raio={12} />
                       <Text style={styles.gridPriceText}>{formatMoney(prod.preco)}</Text>
                     </View>
                     <Text style={styles.gridTitle} numberOfLines={2}>{prod.nome}</Text>
@@ -975,9 +980,7 @@ function ProdutosEstoqueDesktop() {
                         setModalDossieVisible(true);
                       }}>
                       <View style={[styles.td, { flex: 2.5, flexDirection: 'row', alignItems: 'center', gap: 10 }]}>
-                        <View style={styles.tableAvatar}>
-                          <Text style={{ fontSize: 18 }}>{prod.fotoEmoji}</Text>
-                        </View>
+                        <ImagemProduto foto={prod.foto} emoji={prod.fotoEmoji} tamanho={34} raio={10} fundo="#F6E8D6" />
                         <Text style={styles.tableName} numberOfLines={1}>{prod.nome}</Text>
                       </View>
 
@@ -1076,19 +1079,53 @@ function ProdutosEstoqueDesktop() {
             <View style={styles.modalBodyColumns}>
               {/* COLUNA ESQUERDA: FORMULÁRIO */}
               <ScrollView style={styles.modalFormCol} showsVerticalScrollIndicator={false}>
-                {/* 1. SELEÇÃO DE EMOJI / ÍCONE */}
+                {/* 1. IMAGEM: ÍCONE OU FOTO */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>FOTO / ÍCONE DO PRODUTO</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.emojiList}>
-                    {EMOJIS_SUGESTOES.map(emoji => (
-                      <TouchableOpacity
-                        key={emoji}
-                        style={[styles.emojiSelectBtn, formFotoEmoji === emoji && styles.emojiSelectBtnActive]}
-                        onPress={() => setFormFotoEmoji(emoji)}>
-                        <Text style={{ fontSize: 20 }}>{emoji}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
+                  <Text style={styles.inputLabel}>IMAGEM DO PRODUTO</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                    <ImagemProduto foto={formFoto} emoji={formFotoEmoji} tamanho={68} raio={18} fundo="#F6E8D6" />
+                    <View style={{ gap: 8 }}>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity style={[styles.imgBtn, formEscolhendoIcone && styles.imgBtnOn]} onPress={() => setFormEscolhendoIcone(!formEscolhendoIcone)}>
+                          <Text style={{ fontSize: 15 }}>{formFotoEmoji}</Text>
+                          <Text style={styles.imgBtnText}>Escolher ícone</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.imgBtn}
+                          onPress={async () => {
+                            const r = await escolherFotoProduto();
+                            if (!r) return;
+                            if (r.erro) return setFormErro(r.erro);
+                            setFormFoto(r.foto ?? null);
+                            setFormEscolhendoIcone(false);
+                          }}>
+                          <Feather name="camera" size={15} color="#7A4520" />
+                          <Text style={styles.imgBtnText}>{formFoto ? 'Trocar foto' : 'Anexar foto'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {!!formFoto && (
+                        <TouchableOpacity onPress={() => setFormFoto(null)}>
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: DANGER_RED }}>Remover foto e usar o ícone</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                  {formEscolhendoIcone && (
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.emojiList, { marginTop: 10 }]}>
+                      {EMOJIS_SUGESTOES.map(emoji => (
+                        <TouchableOpacity
+                          key={emoji}
+                          style={[styles.emojiSelectBtn, formFotoEmoji === emoji && !formFoto && styles.emojiSelectBtnActive]}
+                          onPress={() => {
+                            setFormFotoEmoji(emoji);
+                            setFormFoto(null);
+                            setFormEscolhendoIcone(false);
+                          }}>
+                          <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
                 </View>
 
                 {/* 2. NOME DO PRODUTO (OBRIGATÓRIO) */}
@@ -1166,36 +1203,84 @@ function ProdutosEstoqueDesktop() {
                     </View>
                   </View>
 
-                  {!editandoId && (
-                    <View style={[styles.inputGroup, { flex: 0.9 }]}>
-                      <Text style={styles.inputLabel}>PRONTOS NA VITRINE</Text>
+                  <View style={[styles.inputGroup, { flex: 1.4 }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={styles.inputLabel}>PROMOÇÃO</Text>
+                      <View style={styles.promoTipos}>
+                        {(['valor', 'porcentagem'] as const).map((t) => (
+                          <TouchableOpacity
+                            key={t}
+                            style={[styles.promoTipo, formPromoTipo === t && styles.promoTipoOn]}
+                            onPress={() => {
+                              const pr = parseFloat(formPreco.replace(/\./g, '').replace(',', '.')) || 0;
+                              const v = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
+                              if (pr > 0 && v > 0 && t !== formPromoTipo) {
+                                const novo = t === 'porcentagem' ? Math.round((v / pr) * 1000) / 10 : Math.round(pr * v) / 100;
+                                setFormDesconto(String(novo).replace('.', ','));
+                              }
+                              setFormPromoTipo(t);
+                            }}>
+                            <Text style={[styles.promoTipoText, formPromoTipo === t && { color: '#FFFFFF' }]}>{t === 'valor' ? 'R$' : '%'}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                    <View style={styles.currencyInputRow}>
+                      <Text style={styles.currencySymbol}>{formPromoTipo === 'valor' ? '- R$' : '- %'}</Text>
                       <TextInput
-                        style={styles.inputBox}
-                        placeholder="10"
+                        style={styles.currencyField}
+                        placeholder={formPromoTipo === 'valor' ? '0,00 (opcional)' : '10 (opcional)'}
                         placeholderTextColor="#9A8F87"
                         keyboardType="numeric"
-                        value={formEstoque}
-                        onChangeText={setFormEstoque}
+                        value={formDesconto}
+                        onChangeText={setFormDesconto}
                       />
                     </View>
-                  )}
+                    {(() => {
+                      const preco = parseFloat(formPreco.replace(/\./g, '').replace(',', '.')) || 0;
+                      const v = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
+                      const desc = formPromoTipo === 'porcentagem' ? (preco * v) / 100 : v;
+                      if (!(desc > 0 && preco > 0)) return null;
+                      if (desc >= preco) return <Text style={[styles.promoHint, { color: DANGER_RED }]}>O desconto passa do preço de venda</Text>;
+                      return (
+                        <Text style={styles.promoHint}>
+                          Cliente paga {formatMoney(preco - desc)} ({formPromoTipo === 'porcentagem' ? `- ${formatMoney(desc)}` : `- ${Math.round((desc / preco) * 100)}%`})
+                        </Text>
+                      );
+                    })()}
+                  </View>
+                </View>
 
-                  <View style={[styles.inputGroup, { flex: 0.9 }]}>
-                    <Text style={styles.inputLabel}>ESTOQUE MÍNIMO</Text>
+                {/* ESTOQUE MÍNIMO (o estoque vem da produção, das vendas e do Estoque Central) */}
+                <View style={styles.formRow}>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.inputLabel}>✓ ESTOQUE MÍNIMO NA VITRINE</Text>
                     <TextInput
                       style={styles.inputBox}
-                      placeholder="5"
+                      placeholder="Ex: 10"
                       placeholderTextColor="#9A8F87"
                       keyboardType="numeric"
                       value={formEstoqueMinimo}
                       onChangeText={setFormEstoqueMinimo}
                     />
                   </View>
+                  <View style={[styles.inputGroup, { flex: 1 }]}>
+                    <Text style={styles.inputLabel}>❄ ESTOQUE MÍNIMO NO FREEZER</Text>
+                    <TextInput
+                      style={styles.inputBox}
+                      placeholder="Ex: 12"
+                      placeholderTextColor="#9A8F87"
+                      keyboardType="numeric"
+                      value={formMinimoFreezer}
+                      onChangeText={setFormMinimoFreezer}
+                    />
+                  </View>
                 </View>
+                <Text style={[styles.promoHint, { marginTop: -8, marginBottom: 12 }]}>Avisa quando for hora de fazer mais. O estoque em si entra pela Produção e pelo Estoque Central.</Text>
 
                 {/* DISPONIBILIDADE */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>DISPONIBILIDADE</Text>
+                  <Text style={styles.inputLabel}>COMO VENDE *</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                     {(Object.keys(ROTULO_DISPONIBILIDADE) as Disponibilidade[]).map(d => (
                       <TouchableOpacity
@@ -1208,48 +1293,6 @@ function ProdutosEstoqueDesktop() {
                       </TouchableOpacity>
                     ))}
                   </View>
-                </View>
-
-                {/* PROMOÇÃO E CONGELADOS */}
-                <View style={styles.formRow}>
-                  <View style={[styles.inputGroup, { flex: 1.2 }]}>
-                    <Text style={styles.inputLabel}>PROMOÇÃO: DESCONTO (R$/UN)</Text>
-                    <View style={styles.currencyInputRow}>
-                      <Text style={styles.currencySymbol}>- R$</Text>
-                      <TextInput
-                        style={styles.currencyField}
-                        placeholder="0,00"
-                        placeholderTextColor="#9A8F87"
-                        keyboardType="numeric"
-                        value={formDesconto}
-                        onChangeText={setFormDesconto}
-                      />
-                    </View>
-                    {(() => {
-                      const preco = parseFloat(formPreco.replace(/\./g, '').replace(',', '.')) || 0;
-                      const desc = parseFloat(formDesconto.replace(/\./g, '').replace(',', '.')) || 0;
-                      return desc > 0 && preco > desc ? (
-                        <Text style={styles.promoHint}>Cliente paga {formatMoney(preco - desc)} na promoção</Text>
-                      ) : null;
-                    })()}
-                  </View>
-
-                  {!editandoId && (
-                    <View style={[styles.inputGroup, { flex: 0.9 }]}>
-                      <Text style={styles.inputLabel}>❄ CONGELADOS P/ ASSAR</Text>
-                      <TextInput
-                        style={styles.inputBox}
-                        placeholder="0"
-                        placeholderTextColor="#9A8F87"
-                        keyboardType="numeric"
-                        value={formCongelados}
-                        onChangeText={setFormCongelados}
-                      />
-                      <Text style={styles.promoHint}>
-                        {habilitarFichaTecnica ? 'Desconta os insumos da ficha' : 'Sem ficha: não desconta insumos'}
-                      </Text>
-                    </View>
-                  )}
                 </View>
 
                 {/* ===================================================================
@@ -1618,9 +1661,7 @@ function ProdutosEstoqueDesktop() {
             <View style={[styles.modalBox, { maxWidth: 640 }]}>
               <View style={styles.modalHeader}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={styles.dossierAvatarBox}>
-                    <Text style={{ fontSize: 28 }}>{produtoSelecionado.fotoEmoji}</Text>
-                  </View>
+                  <ImagemProduto foto={produtoSelecionado.foto} emoji={produtoSelecionado.fotoEmoji} tamanho={56} raio={16} fundo="#F6E8D6" />
                   <View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                       <Text style={styles.cardCategoryText}>{produtoSelecionado.categoria}</Text>
@@ -2206,6 +2247,13 @@ const styles = paraCelular(StyleSheet.create({
     color: WARNING_AMBER,
     marginTop: 2,
   },
+  imgBtn: { height: 36, paddingHorizontal: 14, borderRadius: 18, borderWidth: 1.5, borderColor: '#E8E0D6', backgroundColor: '#FFFDFA', flexDirection: 'row', alignItems: 'center', gap: 8 },
+  imgBtnOn: { borderColor: '#4B4FC4', backgroundColor: '#ECEBFA' },
+  imgBtnText: { fontSize: 13, fontWeight: '700', color: '#2E211A' },
+  promoTipos: { flexDirection: 'row', padding: 2, gap: 2, borderRadius: 999, backgroundColor: '#F3EEE7' },
+  promoTipo: { minWidth: 36, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  promoTipoOn: { backgroundColor: '#4B4FC4' },
+  promoTipoText: { fontSize: 12, fontWeight: '800', color: '#4A3E37' },
   promoHint: {
     fontFamily: FONT_SANS,
     fontSize: 10,
